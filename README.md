@@ -1,6 +1,6 @@
 # 🏕️ ABCL — Plataforma do Acampamento Bíblico
 
-Sistema completo com site público, hub de links, painel admin e vendinha.
+Sistema completo com site público, hub de links, painel administrativo e módulos operacionais (vendinha, financeiro, livraria).
 
 ---
 
@@ -8,24 +8,86 @@ Sistema completo com site público, hub de links, painel admin e vendinha.
 
 ```
 abcl/
-├── index.html      ← Site público do acampamento
-├── links.html      ← Hub de links (estilo Linktree)
-├── admin.html      ← Painel administrativo
-├── vendinha.html   ← Caixa rápido do acampamento
+├── index.html ← Site público do acampamento
+├── links.html ← Hub de links (estilo Linktree)
+├── admin.html ← Painel administrativo
+├── vendinha.html ← Caixa rápido (vendinha)
+├── financeiro.html ← Controle financeiro (em evolução)
+├── livraria.html ← Controle de livraria (em evolução)
 ├── css/
-│   └── style.css   ← Estilos do site principal
+│ └── style.css ← Estilos globais
 ├── js/
-│   └── main.js     ← JS do site principal
+│ └── main.js ← JS principal
 ├── assets/
-│   └── logo-abcl.png
+│ └── logo-abcl.png
 └── README.md
 ```
 
 ---
 
+
+---
+
+## 🧩 Módulos do sistema
+
+### 🌐 Site público (`index.html`)
+- Página oficial do acampamento
+- Informações gerais (data, tema, inscrição)
+- Integração com formulário externo
+
+---
+
+### 🔗 Hub de Links (`links.html`)
+- Central de acessos rápidos
+- Estilo Linktree
+- Gerenciável pelo painel admin
+
+---
+
+### 🛠️ Painel Admin (`admin.html`)
+- Dashboard com estatísticas
+- Gerenciamento de conteúdo do site
+- Cadastro de preletores
+- Controle do hub de links
+- Personalização visual
+- Acesso aos módulos internos
+
+---
+
+### 🛒 Vendinha (`vendinha.html`)
+- Caixa rápido com interface otimizada
+- Seleção de acampante
+- Controle por período (manhã/tarde/noite)
+- Formas de pagamento:
+  - PIX
+  - Dinheiro
+  - Fiado
+- Descontos e ofertas
+- Controle de estoque
+- Histórico de vendas
+- Controle de devedores
+- Exportação CSV
+
+---
+
+### 💰 Financeiro (`financeiro.html`)
+- Controle geral de entradas e saídas
+- Consolidação de dados da vendinha
+- Organização financeira do evento
+- *(em desenvolvimento)*
+
+---
+
+### 📚 Livraria (`livraria.html`)
+- Controle de vendas de livros
+- Gestão de estoque separado da vendinha
+- *(em desenvolvimento)*
+
+---
+
 ## 🔐 Credenciais padrão
 
-### Admin (admin.html)
+### Admin
 | Usuário  | Senha      |
 |----------|-----------|
 | naasson  | abcl2026  |
@@ -33,57 +95,80 @@ abcl/
 | mauri    | abcl2026  |
 | admin    | abcl@admin|
 
-### Vendinha (vendinha.html)
+---
+
+### Vendinha
 | Usuário | Senha     |
 |---------|----------|
-| caixa   | vendinha  |
-| naasson | abcl2026  |
-| haniel  | abcl2026  |
+| caixa   | vendinha |
+| naasson | abcl2026 |
+| haniel  | abcl2026 |
 
-> ⚠️ Para produção, mova as credenciais para um backend real (Firebase Auth, Supabase, etc.)
+> ⚠️ Em produção, utilizar autenticação real (Firebase Auth, Supabase, etc.)
 
 ---
 
-## 🔧 Para atualizar a cada edição
+## 🔧 Configurações importantes
 
-1. **js/main.js** → altere `DATA_ACAMPAMENTO` e `FORMS_URL`
-2. **admin.html** → faça login e edite tudo pelo painel
-3. **assets/logo-abcl.png** → substitua a logo se necessário
+Após clonar o projeto:
+
+1. Editar `js/main.js`
+   - `DATA_ACAMPAMENTO`
+   - `FORMS_URL`
+
+2. Atualizar conteúdos via `admin.html`
+
+3. Substituir logo em:
+
+assets/logo-abcl.png
+
 
 ---
 
 ## 🚀 Deploy
 
-Projeto HTML puro — sem build necessário.
+Projeto estático (HTML, CSS, JS puro)
 
-| Plataforma | Como fazer |
-|------------|-----------|
-| **Netlify** | Arraste a pasta em netlify.com/drop |
-| **GitHub Pages** | Settings → Pages → Branch main |
-| **Vercel** | `vercel --prod` na pasta |
-| **FTP** | Envie todos os arquivos mantendo a estrutura |
+| Plataforma       | Instrução |
+|----------------|----------|
+| Netlify         | Arrastar pasta no painel |
+| GitHub Pages    | Settings → Pages → main |
+| Vercel          | `vercel --prod` |
+| Hospedagem FTP  | Upload direto |
 
 ---
 
-## 🛒 Vendinha — o que ela faz
+## ⚠️ Limitações atuais
 
-- Caixa rápido com grade de produtos
-- Seleção de acampante (lista pré-carregada da planilha)
-- Períodos: Manhã / Tarde / Noite
-- Pagamentos: PIX / Dinheiro / Fiado
-- Desconto e oferta por venda
-- Baixa automática de estoque
-- Histórico de vendas filtrado por forma de pagamento
-- Aba "Devendo" com total de fiado por pessoa
-- Resumo por data e período
-- Exportar CSV
-- Gerenciamento de estoque e produtos
+- Autenticação local (não segura para produção)
+- Dados armazenados localmente (localStorage)
+- Sem backend integrado
 
-## 📋 Admin — o que ele faz
+---
 
-- Dashboard com estatísticas
-- Gerenciar Hub de Links (adicionar, editar, remover)
-- Cadastrar preletores com foto
-- Editar todos os textos do site (datas, preços, temas, versículo)
-- Personalizar cores
-- Acesso rápido à Vendinha
+## 🔮 Próximos passos (Roadmap)
+
+- [ ] Implementar backend (Firebase ou Supabase)
+- [ ] Autenticação segura
+- [ ] Sincronização em tempo real
+- [ ] Integração entre vendinha e financeiro
+- [ ] Melhorar separação de módulos
+- [ ] Evoluir para PWA (modo offline confiável)
+
+---
+
+## 📌 Visão do projeto
+
+O ABCLHub evolui de um site simples para uma **plataforma completa de gestão de acampamentos**, integrando:
+
+- Comunicação
+- Operação (vendas)
+- Administração
+- Controle financeiro
+
+---
+
+## 👤 Autor
+
+Naasson Vieira  
+GitHub: https://github.com/naassonvs
