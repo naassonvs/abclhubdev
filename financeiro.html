@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABCL — Financeiro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --verde:       #2D6A4F;
+      --verde-mid:   #40916C;
+      --verde-cl:    #74C69D;
+      --fundo:       #0A1610;
+      --card:        #0F1E17;
+      --card2:       #162418;
+      --texto:       #F0EDE6;
+      --suave:       rgba(240,237,230,0.45);
+      --borda:       rgba(64,145,108,0.2);
+      --amarelo:     #F59E0B;
+      --vermelho:    #EF4444;
+      --azul:        #3B82F6;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow-x: hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--fundo); color: var(--texto); min-height: 100vh; }
+
+    /* ── Header ── */
+    .top-bar {
+      background: rgba(10,22,16,.97);
+      border-bottom: 1px solid var(--borda);
+      padding: .75rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .top-bar-left { display: flex; align-items: center; gap: .75rem; }
+    .top-bar-left img { width: 32px; height: 32px; }
+    .top-bar-title { font-family: 'Cinzel', serif; font-size: .95rem; color: var(--verde-cl); }
+    .top-bar-sub { font-size: .65rem; color: var(--suave); }
+    .top-bar-actions { display: flex; gap: .5rem; }
+
+    /* ── Layout ── */
+    .app { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: .25rem; }
+    .tab {
+      flex-shrink: 0; padding: .55rem 1.1rem; border-radius: 8px; border: 1px solid var(--borda);
+      background: transparent; color: var(--suave); font-size: .82rem; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: all .18s; white-space: nowrap;
+    }
+    .tab.active { background: var(--verde-mid); border-color: var(--verde-mid); color: #fff; font-weight: 600; }
+    .tab:hover:not(.active) { border-color: var(--verde-cl); color: var(--texto); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Cards de resumo ── */
+    .resumo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .resumo-card {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+    .resumo-card .rc-label { font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); margin-bottom: .4rem; }
+    .resumo-card .rc-val { font-family: 'Cinzel', serif; font-size: 1.3rem; }
+    .resumo-card .rc-sub { font-size: .7rem; color: var(--suave); margin-top: .2rem; }
+    .rc-verde  { color: var(--verde-cl); }
+    .rc-amarelo { color: var(--amarelo); }
+    .rc-vermelho { color: var(--vermelho); }
+    .rc-azul { color: var(--azul); }
+
+    /* ── Section card ── */
+    .section-card {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 14px;
+      padding: 1.25rem; margin-bottom: 1.25rem;
+    }
+    .section-card h3 {
+      font-family: 'Cinzel', serif; font-size: .9rem; color: var(--verde-cl);
+      margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .section-card h3 span { font-size: 1rem; }
+
+    /* ── Tabela ── */
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    th { font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); padding: .5rem .75rem; text-align: left; border-bottom: 1px solid var(--borda); }
+    td { padding: .65rem .75rem; border-bottom: 1px solid rgba(64,145,108,.08); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(64,145,108,.05); }
+    .td-valor { font-family: 'Cinzel', serif; font-size: .88rem; text-align: right; }
+    .td-tag { display: inline-block; padding: .2rem .55rem; border-radius: 4px; font-size: .65rem; font-weight: 600; }
+    .tag-despesa { background: rgba(239,68,68,.15); color: #fca5a5; }
+    .tag-receita { background: rgba(116,198,157,.15); color: var(--verde-cl); }
+    .tag-pendente { background: rgba(245,158,11,.15); color: #fbbf24; }
+    .tag-pago     { background: rgba(64,145,108,.2); color: var(--verde-cl); }
+
+    /* ── Barra de progresso ── */
+    .prog-wrap { background: rgba(255,255,255,.06); border-radius: 99px; height: 8px; overflow: hidden; }
+    .prog-bar  { height: 100%; border-radius: 99px; transition: width .6s ease; }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: .75rem; }
+    .field label { display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: .35rem; }
+    .field input, .field select, .field textarea {
+      width: 100%; background: rgba(255,255,255,.04); border: 1px solid var(--borda);
+      border-radius: 6px; padding: .65rem .85rem; font-family: 'Inter', sans-serif;
+      font-size: 1rem; color: var(--texto); outline: none;
+      transition: border-color .2s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--verde-mid); }
+    .field input::placeholder { color: rgba(240,237,230,.2); }
+    .field select option { background: #0a1610; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1rem; border-radius: 7px; font-size: .82rem; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .18s; border: 1px solid transparent; font-weight: 500; }
+    .btn-solid  { background: var(--verde-mid); color: #fff; border-color: var(--verde-mid); }
+    .btn-solid:hover { background: var(--verde-cl); border-color: var(--verde-cl); color: var(--fundo); }
+    .btn-ghost  { background: transparent; color: var(--texto); border-color: var(--borda); }
+    .btn-ghost:hover { border-color: var(--verde-cl); color: var(--verde-cl); }
+    .btn-danger { background: rgba(239,68,68,.1); color: #fca5a5; border-color: rgba(239,68,68,.3); }
+    .btn-danger:hover { background: rgba(239,68,68,.2); }
+    .btn-sm { padding: .35rem .75rem; font-size: .75rem; }
+
+    /* ── Gráfico de barras simples ── */
+    .bar-chart { display: flex; flex-direction: column; gap: .75rem; }
+    .bar-item { }
+    .bar-label-row { display: flex; justify-content: space-between; font-size: .75rem; margin-bottom: .3rem; }
+    .bar-label-name { color: var(--texto); }
+    .bar-label-val { color: var(--suave); }
+
+    /* ── Comparativo ── */
+    .comp-row { display: flex; gap: 1rem; align-items: center; padding: .6rem 0; border-bottom: 1px solid rgba(64,145,108,.08); }
+    .comp-row:last-child { border-bottom: none; }
+    .comp-nome { flex: 1; font-size: .82rem; }
+    .comp-2025 { font-size: .8rem; color: var(--suave); min-width: 90px; text-align: right; }
+    .comp-2026 { font-size: .88rem; font-weight: 600; min-width: 90px; text-align: right; }
+    .comp-delta { font-size: .72rem; min-width: 60px; text-align: right; }
+    .delta-up { color: var(--vermelho); }
+    .delta-dn { color: var(--verde-cl); }
+
+    /* ── Projeção ── */
+    .proj-card { background: var(--card2); border: 1px solid var(--borda); border-radius: 10px; padding: 1rem 1.25rem; }
+    .proj-row { display: flex; justify-content: space-between; align-items: center; padding: .4rem 0; font-size: .82rem; border-bottom: 1px solid rgba(64,145,108,.07); }
+    .proj-row:last-child { border-bottom: none; }
+    .proj-total { font-family: 'Cinzel', serif; font-size: 1.1rem; }
+
+    /* ── Inscrições ── */
+    .insc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: .75rem; margin-bottom: 1.25rem; }
+    .insc-card { background: var(--card2); border: 1px solid var(--borda); border-radius: 10px; padding: .85rem 1rem; }
+    .insc-card .ic-cat { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); margin-bottom: .3rem; }
+    .insc-card .ic-val { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--verde-cl); }
+    .insc-card .ic-det { font-size: .7rem; color: var(--suave); margin-top: .2rem; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--verde-mid); color: #fff; padding: .6rem 1.25rem; border-radius: 8px; font-size: .82rem; z-index: 999; transition: transform .3s; pointer-events: none; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      .app { padding: 1rem; }
+      .field-row, .field-row3 { grid-template-columns: 1fr; }
+      .comp-2025 { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
+    <div>
+      <div class="top-bar-title">ABCL — Financeiro</div>
+      <div class="top-bar-sub">Controle financeiro do acampamento</div>
+    </div>
+  </div>
+  <div class="top-bar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="exportarCSV()">📥 CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.location='admin.html'">⚙ Admin</button>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('despesas',this)">📤 Despesas</button>
+    <button class="tab" onclick="switchTab('receitas',this)">📥 Receitas</button>
+    <button class="tab" onclick="switchTab('inscricoes',this)">👥 Inscrições</button>
+    <button class="tab" onclick="switchTab('comparativo',this)">📈 Comparativo</button>
+    <button class="tab" onclick="switchTab('projecao',this)">🔮 Projeção</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ DASHBOARD -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="resumo-grid" id="dash-cards"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+      <div class="section-card">
+        <h3><span>📤</span> Despesas por categoria</h3>
+        <div class="bar-chart" id="dash-despesas-chart"></div>
+      </div>
+      <div class="section-card">
+        <h3><span>📥</span> Receitas por fonte</h3>
+        <div class="bar-chart" id="dash-receitas-chart"></div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3><span>📋</span> Lançamentos recentes</h3>
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead>
+        <tbody id="dash-lancamentos"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ DESPESAS -->
+  <div class="panel" id="panel-despesas">
+    <div class="section-card">
+      <h3><span>➕</span> Nova despesa</h3>
+      <div class="field-row">
+        <div class="field"><label>Descrição</label><input type="text" id="d-desc" placeholder="Ex: Aluguel do Sítio" /></div>
+        <div class="field"><label>Categoria</label>
+          <select id="d-cat">
+            <option value="">Selecione...</option>
+            <option>Alimentação e Água</option>
+            <option>Aluguel do Sítio</option>
+            <option>Aluguel de Cadeiras e Jogos</option>
+            <option>Brindes e Mural</option>
+            <option>Oferta Preletores</option>
+            <option>Backdrop e Tela de Projeção</option>
+            <option>Impressões e Papelaria</option>
+            <option>Camisa Comissão</option>
+            <option>Gasto Caixa Mocidade</option>
+            <option>Diversos</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Valor (R$)</label><input type="number" id="d-valor" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label>Data</label><input type="date" id="d-data" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Status</label>
+          <select id="d-status">
+            <option value="Pendente">Pendente</option>
+            <option value="Pago">Pago</option>
+            <option value="Estimativa">Estimativa</option>
+          </select>
+        </div>
+        <div class="field"><label>Observação</label><input type="text" id="d-obs" placeholder="Opcional" /></div>
+      </div>
+      <button class="btn btn-solid" onclick="addDespesa()">+ Adicionar despesa</button>
+    </div>
+
+    <div class="section-card">
+      <h3><span>📤</span> Despesas lançadas</h3>
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Status</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+        <tbody id="despesas-list"></tbody>
+        <tfoot><tr>
+          <td colspan="4" style="font-size:.75rem;color:var(--suave);padding:.65rem .75rem;">Total</td>
+          <td class="td-valor rc-vermelho" id="despesas-total"></td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ RECEITAS -->
+  <div class="panel" id="panel-receitas">
+    <div class="section-card">
+      <h3><span>➕</span> Nova receita</h3>
+      <div class="field-row">
+        <div class="field"><label>Descrição</label><input type="text" id="r-desc" placeholder="Ex: Inscrições Ala Masculina" /></div>
+        <div class="field"><label>Fonte</label>
+          <select id="r-cat">
+            <option value="">Selecione...</option>
+            <option>Inscrições — Ala</option>
+            <option>Inscrições — Casa Amarela</option>
+            <option>Inscrições — Chalé</option>
+            <option>Inscrições — Diária Completa</option>
+            <option>Inscrições — Diária Avulsa</option>
+            <option>Saldo Anterior (ABCL 2024)</option>
+            <option>Lucro Vendinha</option>
+            <option>Lucro Venda de Camisas</option>
+            <option>Rendimento Financeiro</option>
+            <option>Doação</option>
+            <option>Outros</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Valor (R$)</label><input type="number" id="r-valor" placeholder="0,00" step="0.01" /></div>
+        <div class="field"><label>Data</label><input type="date" id="r-data" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Status</label>
+          <select id="r-status">
+            <option value="Recebido">Recebido</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Estimativa">Estimativa</option>
+          </select>
+        </div>
+        <div class="field"><label>Observação</label><input type="text" id="r-obs" placeholder="Opcional" /></div>
+      </div>
+      <button class="btn btn-solid" onclick="addReceita()">+ Adicionar receita</button>
+    </div>
+
+    <div class="section-card">
+      <h3><span>📥</span> Receitas lançadas</h3>
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Fonte</th><th>Status</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+        <tbody id="receitas-list"></tbody>
+        <tfoot><tr>
+          <td colspan="4" style="font-size:.75rem;color:var(--suave);padding:.65rem .75rem;">Total</td>
+          <td class="td-valor rc-verde" id="receitas-total"></td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ INSCRIÇÕES -->
+  <div class="panel" id="panel-inscricoes">
+    <div class="section-card">
+      <h3><span>⚙️</span> Configurar vagas e valores</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;" id="insc-config-grid"></div>
+      <button class="btn btn-solid btn-sm" onclick="saveInscConfig()" style="margin-top:.75rem;">💾 Salvar configuração</button>
+    </div>
+    <div class="section-card">
+      <h3><span>👥</span> Situação das inscrições</h3>
+      <div class="insc-grid" id="insc-cards"></div>
+      <div class="prog-wrap" style="margin-bottom:.5rem;">
+        <div class="prog-bar" id="insc-prog" style="background:var(--verde-mid);"></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--suave);text-align:right;" id="insc-prog-label"></div>
+    </div>
+    <div class="section-card">
+      <h3><span>➕</span> Registrar entrada de inscrição</h3>
+      <div class="field-row">
+        <div class="field"><label>Categoria</label>
+          <select id="insc-cat">
+            <option>Ala (Masculina/Feminina)</option>
+            <option>Casa Amarela</option>
+            <option>Chalé</option>
+            <option>Diária Completa</option>
+            <option>Diária Avulsa</option>
+          </select>
+        </div>
+        <div class="field"><label>Quantidade</label><input type="number" id="insc-qtd" value="1" min="1" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Valor pago (R$)</label><input type="number" id="insc-valor" placeholder="200,00" step="0.01" /></div>
+        <div class="field"><label>Nome (opcional)</label><input type="text" id="insc-nome" placeholder="Ex: João Silva" /></div>
+      </div>
+      <button class="btn btn-solid" onclick="addInscricao()">+ Registrar inscrição</button>
+    </div>
+    <div class="section-card">
+      <h3><span>📋</span> Inscrições registradas</h3>
+      <table>
+        <thead><tr><th>Nome</th><th>Categoria</th><th>Qtd</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+        <tbody id="inscricoes-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ COMPARATIVO -->
+  <div class="panel" id="panel-comparativo">
+    <div class="section-card">
+      <h3><span>📈</span> Comparativo 2025 vs 2026</h3>
+      <div style="display:grid;grid-template-columns:1fr 80px 100px 70px;gap:.5rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);padding:.4rem .5rem;">
+        <span>Item</span><span style="text-align:right">2025</span><span style="text-align:right">2026 (est.)</span><span style="text-align:right">Δ</span>
+      </div>
+      <div id="comparativo-list"></div>
+    </div>
+
+    <div class="section-card">
+      <h3><span>💡</span> Notas e premissas</h3>
+      <div style="font-size:.8rem;color:var(--suave);line-height:1.7;" id="comp-notas"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ PROJEÇÃO -->
+  <div class="panel" id="panel-projecao">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+      <div class="section-card">
+        <h3><span>📤</span> Total de despesas projetadas</h3>
+        <div class="proj-card" id="proj-despesas"></div>
+      </div>
+      <div class="section-card">
+        <h3><span>📥</span> Total de receitas projetadas</h3>
+        <div class="proj-card" id="proj-receitas"></div>
+      </div>
+    </div>
+    <div class="section-card">
+      <h3><span>⚖️</span> Resultado projetado</h3>
+      <div id="proj-resultado"></div>
+    </div>
+    <div class="section-card" style="margin-top:1.25rem;">
+      <h3><span>💰</span> Saldo inicial e reservas</h3>
+      <div class="field-row">
+        <div class="field"><label>Saldo em caixa (R$)</label><input type="number" id="proj-saldo-caixa" step="0.01" placeholder="13678.87" /></div>
+        <div class="field"><label>Lucro Vendinha estimado (R$)</label><input type="number" id="proj-vendinha" step="0.01" placeholder="1042.92" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Lucro Camisas estimado (R$)</label><input type="number" id="proj-camisas" step="0.01" placeholder="1230.00" /></div>
+        <div class="field"><label>Rendimento financeiro estimado (R$)</label><input type="number" id="proj-rend" step="0.01" placeholder="200.00" /></div>
+      </div>
+      <button class="btn btn-solid btn-sm" onclick="saveProjecaoConfig(); renderProjecao();">💾 Atualizar projeção</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════
+const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+// ══════════════════════════════════════════════════
+// DADOS PADRÃO (baseados no PDF)
+// ══════════════════════════════════════════════════
+const DESPESAS_2025 = [
+  { cat: 'Alimentação e Água',          v2025: 16725.96, v2026: 18816.71 },
+  { cat: 'Aluguel do Sítio',            v2025:  8000.00, v2026:  8000.00 },
+  { cat: 'Aluguel de Cadeiras e Jogos', v2025:  1560.00, v2026:  1716.00 },
+  { cat: 'Brindes e Mural',             v2025:  3120.36, v2026:  3432.40 },
+  { cat: 'Oferta Preletores',           v2025:  1000.00, v2026:  1000.00 },
+  { cat: 'Impressões e Papelaria',      v2025:   258.40, v2026:   284.24 },
+  { cat: 'Backdrop e Tela de Projeção', v2025:  1500.00, v2026:  1650.00 },
+  { cat: 'Camisa Comissão',             v2025:  1200.00, v2026:  1320.00 },
+  { cat: 'Gasto Caixa Mocidade',        v2025:  1000.00, v2026:  1100.00 },
+  { cat: 'Diversos',                    v2025:   400.00, v2026:   440.00 },
+];
+
+const INSC_CONFIG_DEFAULT = [
+  { cat: 'Ala (Masculina/Feminina)', vagas: 90, valor: 200.00 },
+  { cat: 'Casa Amarela',             vagas: 7,  valor: 520.00 },
+  { cat: 'Chalé',                    vagas: 6,  valor: 690.00 },
+  { cat: 'Diária Completa',          vagas: 13, valor: 200.00 },
+  { cat: 'Diária Avulsa',            vagas: 88, valor: 60.00  },
+];
+
+const PROJ_CONFIG_DEFAULT = { saldoCaixa: 13678.87, vendinha: 1042.92, camisas: 1230.00, rendimento: 200.00 };
+
+function getDespesas()   { return get('abcl-fin-despesas')   || []; }
+function getReceitas()   { return get('abcl-fin-receitas')   || []; }
+function getInscricoes() { return get('abcl-fin-inscricoes') || []; }
+function getInscConfig() { return get('abcl-fin-insc-config') || INSC_CONFIG_DEFAULT; }
+function getProjConfig() { return get('abcl-fin-proj-config') || PROJ_CONFIG_DEFAULT; }
+
+const fmt = v => `R$ ${Number(v).toFixed(2).replace('.',',')}`;
+const today = () => new Date().toISOString().slice(0,10);
+
+// ══════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  renderAll();
+}
+
+// ══════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════
+function renderDashboard() {
+  const despesas   = getDespesas();
+  const receitas   = getReceitas();
+  const inscricoes = getInscricoes();
+
+  const totalDesp = despesas.reduce((s,d) => s + Number(d.valor), 0);
+  const totalRec  = receitas.reduce((s,r) => s + Number(r.valor), 0);
+  const totalInsc = inscricoes.reduce((s,i) => s + Number(i.valor) * Number(i.qtd), 0);
+  const saldo     = totalRec + totalInsc - totalDesp;
+  const projConfig = getProjConfig();
+  const totalEntradas = totalRec + totalInsc + projConfig.saldoCaixa + projConfig.vendinha + projConfig.camisas + projConfig.rendimento;
+
+  // Cards
+  document.getElementById('dash-cards').innerHTML = `
+    <div class="resumo-card"><div class="rc-label">Total Receitas</div><div class="rc-val rc-verde">${fmt(totalRec + totalInsc)}</div><div class="rc-sub">lançadas</div></div>
+    <div class="resumo-card"><div class="rc-label">Total Despesas</div><div class="rc-val rc-vermelho">${fmt(totalDesp)}</div><div class="rc-sub">lançadas</div></div>
+    <div class="resumo-card"><div class="rc-label">Saldo atual</div><div class="rc-val ${saldo >= 0 ? 'rc-verde' : 'rc-vermelho'}">${fmt(saldo)}</div><div class="rc-sub">receitas − despesas</div></div>
+    <div class="resumo-card"><div class="rc-label">Projeção 2026</div><div class="rc-val rc-amarelo">${fmt(37852.79)}</div><div class="rc-sub">estimativa total entradas</div></div>
+  `;
+
+  // Despesas por categoria
+  const catMap = {};
+  despesas.forEach(d => { catMap[d.categoria] = (catMap[d.categoria]||0) + Number(d.valor); });
+  const maxDesp = Math.max(...Object.values(catMap), 1);
+  const COLORS = ['#40916C','#74C69D','#2D6A4F','#52B788','#95D5B2','#B7E4C7','#3B82F6','#F59E0B','#EF4444','#8B5CF6'];
+  document.getElementById('dash-despesas-chart').innerHTML = Object.entries(catMap).length
+    ? Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([cat,val],i) => `
+        <div class="bar-item">
+          <div class="bar-label-row"><span class="bar-label-name">${cat}</span><span class="bar-label-val">${fmt(val)}</span></div>
+          <div class="prog-wrap"><div class="prog-bar" style="width:${(val/maxDesp*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]};"></div></div>
+        </div>`).join('')
+    : '<p style="font-size:.78rem;color:var(--suave);">Nenhuma despesa lançada ainda.</p>';
+
+  // Receitas por fonte
+  const recMap = {};
+  receitas.forEach(r => { recMap[r.categoria] = (recMap[r.categoria]||0) + Number(r.valor); });
+  getInscricoes().forEach(i => { const k = 'Inscrições'; recMap[k] = (recMap[k]||0) + Number(i.valor)*Number(i.qtd); });
+  const maxRec = Math.max(...Object.values(recMap), 1);
+  document.getElementById('dash-receitas-chart').innerHTML = Object.entries(recMap).length
+    ? Object.entries(recMap).sort((a,b)=>b[1]-a[1]).map(([cat,val],i) => `
+        <div class="bar-item">
+          <div class="bar-label-row"><span class="bar-label-name">${cat}</span><span class="bar-label-val">${fmt(val)}</span></div>
+          <div class="prog-wrap"><div class="prog-bar" style="width:${(val/maxRec*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]};"></div></div>
+        </div>`).join('')
+    : '<p style="font-size:.78rem;color:var(--suave);">Nenhuma receita lançada ainda.</p>';
+
+  // Lançamentos recentes
+  const todos = [
+    ...despesas.map(d => ({...d, tipo:'Despesa'})),
+    ...receitas.map(r => ({...r, tipo:'Receita'})),
+  ].sort((a,b) => new Date(b.data) - new Date(a.data)).slice(0,10);
+
+  document.getElementById('dash-lancamentos').innerHTML = todos.length
+    ? todos.map(l => `
+        <tr>
+          <td style="color:var(--suave)">${l.data ? new Date(l.data+'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
+          <td>${l.descricao || '—'}</td>
+          <td style="color:var(--suave);font-size:.75rem;">${l.categoria || '—'}</td>
+          <td><span class="td-tag ${l.tipo === 'Despesa' ? 'tag-despesa' : 'tag-receita'}">${l.tipo}</span></td>
+          <td class="td-valor ${l.tipo === 'Despesa' ? 'rc-vermelho' : 'rc-verde'}">${fmt(l.valor)}</td>
+          <td><span class="td-tag ${l.status === 'Pago' || l.status === 'Recebido' ? 'tag-pago' : 'tag-pendente'}">${l.status||'—'}</span></td>
+        </tr>`)
+    .join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhum lançamento ainda. Adicione despesas ou receitas.</td></tr>';
+}
+
+// ══════════════════════════════════════════════════
+// DESPESAS
+// ══════════════════════════════════════════════════
+function addDespesa() {
+  const desc  = document.getElementById('d-desc').value.trim();
+  const cat   = document.getElementById('d-cat').value;
+  const valor = parseFloat(document.getElementById('d-valor').value);
+  const data  = document.getElementById('d-data').value || today();
+  const status= document.getElementById('d-status').value;
+  const obs   = document.getElementById('d-obs').value.trim();
+  if (!desc || !valor || valor <= 0) { toast('⚠️ Preencha descrição e valor.'); return; }
+  const list = getDespesas();
+  list.unshift({ id: Date.now(), descricao: desc, categoria: cat, valor, data, status, obs });
+  set('abcl-fin-despesas', list);
+  ['d-desc','d-cat','d-valor','d-data','d-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  renderDespesas(); renderDashboard(); renderProjecao();
+  toast('✅ Despesa adicionada!');
+}
+
+function removeDespesa(id) {
+  if (!confirm('Remover esta despesa?')) return;
+  set('abcl-fin-despesas', getDespesas().filter(d => d.id !== id));
+  renderDespesas(); renderDashboard(); renderProjecao();
+  toast('🗑 Despesa removida.');
+}
+
+function renderDespesas() {
+  const list  = getDespesas();
+  const total = list.reduce((s,d) => s + Number(d.valor), 0);
+  document.getElementById('despesas-total').textContent = fmt(total);
+  document.getElementById('despesas-list').innerHTML = list.length
+    ? list.map(d => `
+        <tr>
+          <td style="color:var(--suave)">${d.data ? new Date(d.data+'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
+          <td>${d.descricao}</td>
+          <td style="color:var(--suave);font-size:.75rem;">${d.categoria||'—'}</td>
+          <td><span class="td-tag ${d.status === 'Pago' ? 'tag-pago' : 'tag-pendente'}">${d.status}</span></td>
+          <td class="td-valor rc-vermelho">${fmt(d.valor)}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="removeDespesa(${d.id})">✕</button></td>
+        </tr>`)
+    .join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhuma despesa lançada.</td></tr>';
+}
+
+// ══════════════════════════════════════════════════
+// RECEITAS
+// ══════════════════════════════════════════════════
+function addReceita() {
+  const desc  = document.getElementById('r-desc').value.trim();
+  const cat   = document.getElementById('r-cat').value;
+  const valor = parseFloat(document.getElementById('r-valor').value);
+  const data  = document.getElementById('r-data').value || today();
+  const status= document.getElementById('r-status').value;
+  const obs   = document.getElementById('r-obs').value.trim();
+  if (!desc || !valor || valor <= 0) { toast('⚠️ Preencha descrição e valor.'); return; }
+  const list = getReceitas();
+  list.unshift({ id: Date.now(), descricao: desc, categoria: cat, valor, data, status, obs });
+  set('abcl-fin-receitas', list);
+  ['r-desc','r-cat','r-valor','r-data','r-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  renderReceitas(); renderDashboard(); renderProjecao();
+  toast('✅ Receita adicionada!');
+}
+
+function removeReceita(id) {
+  if (!confirm('Remover esta receita?')) return;
+  set('abcl-fin-receitas', getReceitas().filter(r => r.id !== id));
+  renderReceitas(); renderDashboard(); renderProjecao();
+  toast('🗑 Receita removida.');
+}
+
+function renderReceitas() {
+  const list  = getReceitas();
+  const total = list.reduce((s,r) => s + Number(r.valor), 0);
+  document.getElementById('receitas-total').textContent = fmt(total);
+  document.getElementById('receitas-list').innerHTML = list.length
+    ? list.map(r => `
+        <tr>
+          <td style="color:var(--suave)">${r.data ? new Date(r.data+'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
+          <td>${r.descricao}</td>
+          <td style="color:var(--suave);font-size:.75rem;">${r.categoria||'—'}</td>
+          <td><span class="td-tag ${r.status === 'Recebido' ? 'tag-pago' : 'tag-pendente'}">${r.status}</span></td>
+          <td class="td-valor rc-verde">${fmt(r.valor)}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="removeReceita(${r.id})">✕</button></td>
+        </tr>`)
+    .join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhuma receita lançada.</td></tr>';
+}
+
+// ══════════════════════════════════════════════════
+// INSCRIÇÕES
+// ══════════════════════════════════════════════════
+function renderInscConfig() {
+  const cfg = getInscConfig();
+  document.getElementById('insc-config-grid').innerHTML = cfg.map((c,i) => `
+    <div style="background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.75rem;">
+      <div style="font-size:.7rem;color:var(--suave);margin-bottom:.5rem;">${c.cat}</div>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <input type="number" value="${c.vagas}" id="icfg-vagas-${i}" placeholder="Vagas" style="width:60px;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:5px;padding:.35rem .5rem;font-size:1rem;color:var(--texto);text-align:center;" />
+        <span style="color:var(--suave);font-size:.72rem;">vagas</span>
+        <input type="number" value="${c.valor}" id="icfg-valor-${i}" placeholder="R$" style="width:80px;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:5px;padding:.35rem .5rem;font-size:1rem;color:var(--texto);text-align:right;" step="0.01" />
+      </div>
+    </div>`).join('');
+}
+
+function saveInscConfig() {
+  const cfg = getInscConfig();
+  cfg.forEach((c,i) => {
+    c.vagas = parseInt(document.getElementById(`icfg-vagas-${i}`)?.value) || c.vagas;
+    c.valor = parseFloat(document.getElementById(`icfg-valor-${i}`)?.value) || c.valor;
+  });
+  set('abcl-fin-insc-config', cfg);
+  renderInscCards();
+  toast('✅ Configuração salva!');
+}
+
+function renderInscCards() {
+  const cfg  = getInscConfig();
+  const insc = getInscricoes();
+  const cards = cfg.map(c => {
+    const reg   = insc.filter(i => i.categoria === c.cat);
+    const qtdReg = reg.reduce((s,i) => s + Number(i.qtd), 0);
+    const valRec = reg.reduce((s,i) => s + Number(i.valor) * Number(i.qtd), 0);
+    const perc  = c.vagas > 0 ? Math.min(100, qtdReg / c.vagas * 100) : 0;
+    return { ...c, qtdReg, valRec, perc };
+  });
+
+  document.getElementById('insc-cards').innerHTML = cards.map(c => `
+    <div class="insc-card">
+      <div class="ic-cat">${c.cat}</div>
+      <div class="ic-val">${c.qtdReg} / ${c.vagas}</div>
+      <div style="margin:.4rem 0;"><div class="prog-wrap"><div class="prog-bar" style="width:${c.perc.toFixed(1)}%;background:var(--verde-mid);"></div></div></div>
+      <div class="ic-det">${fmt(c.valRec)} recebidos</div>
+    </div>`).join('');
+
+  const totalVagas = cards.reduce((s,c) => s + c.vagas, 0);
+  const totalReg   = cards.reduce((s,c) => s + c.qtdReg, 0);
+  const percGeral  = totalVagas > 0 ? Math.min(100, totalReg / totalVagas * 100) : 0;
+  const progEl = document.getElementById('insc-prog');
+  if (progEl) progEl.style.width = percGeral.toFixed(1) + '%';
+  const lbl = document.getElementById('insc-prog-label');
+  if (lbl) lbl.textContent = `${totalReg} / ${totalVagas} vagas preenchidas (${percGeral.toFixed(0)}%)`;
+}
+
+function addInscricao() {
+  const cat   = document.getElementById('insc-cat').value;
+  const qtd   = parseInt(document.getElementById('insc-qtd').value) || 1;
+  const valor = parseFloat(document.getElementById('insc-valor').value) || 0;
+  const nome  = document.getElementById('insc-nome').value.trim();
+  if (valor <= 0) { toast('⚠️ Informe o valor pago.'); return; }
+  const list = getInscricoes();
+  list.unshift({ id: Date.now(), categoria: cat, qtd, valor, nome });
+  set('abcl-fin-inscricoes', list);
+  document.getElementById('insc-qtd').value  = '1';
+  document.getElementById('insc-valor').value = '';
+  document.getElementById('insc-nome').value  = '';
+  renderInscricoesList(); renderInscCards(); renderDashboard(); renderProjecao();
+  toast('✅ Inscrição registrada!');
+}
+
+function removeInscricao(id) {
+  if (!confirm('Remover esta inscrição?')) return;
+  set('abcl-fin-inscricoes', getInscricoes().filter(i => i.id !== id));
+  renderInscricoesList(); renderInscCards(); renderDashboard(); renderProjecao();
+}
+
+function renderInscricoesList() {
+  const list = getInscricoes();
+  document.getElementById('inscricoes-list').innerHTML = list.length
+    ? list.map(i => `
+        <tr>
+          <td>${i.nome || '—'}</td>
+          <td style="color:var(--suave);font-size:.75rem;">${i.categoria}</td>
+          <td style="text-align:center;">${i.qtd}</td>
+          <td class="td-valor rc-verde">${fmt(Number(i.valor)*Number(i.qtd))}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="removeInscricao(${i.id})">✕</button></td>
+        </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhuma inscrição registrada.</td></tr>';
+}
+
+// ══════════════════════════════════════════════════
+// COMPARATIVO
+// ══════════════════════════════════════════════════
+function renderComparativo() {
+  const total2025 = DESPESAS_2025.reduce((s,d) => s + d.v2025, 0);
+  const total2026 = DESPESAS_2025.reduce((s,d) => s + d.v2026, 0);
+  const delta = ((total2026 - total2025) / total2025 * 100).toFixed(1);
+
+  document.getElementById('comparativo-list').innerHTML = [
+    ...DESPESAS_2025.map(d => {
+      const pct = ((d.v2026 - d.v2025) / d.v2025 * 100).toFixed(1);
+      return `<div class="comp-row">
+        <span class="comp-nome">${d.cat}</span>
+        <span class="comp-2025">${fmt(d.v2025)}</span>
+        <span class="comp-2026 rc-amarelo">${fmt(d.v2026)}</span>
+        <span class="comp-delta ${pct > 0 ? 'delta-up' : 'delta-dn'}">${pct > 0 ? '+' : ''}${pct}%</span>
+      </div>`;
+    }),
+    `<div class="comp-row" style="margin-top:.5rem;border-top:1px solid var(--borda);padding-top:.75rem;">
+      <span class="comp-nome" style="font-weight:600;">Total</span>
+      <span class="comp-2025" style="font-weight:600;">${fmt(total2025)}</span>
+      <span class="comp-2026 rc-vermelho" style="font-weight:600;">${fmt(total2026)}</span>
+      <span class="comp-delta delta-up">+${delta}%</span>
+    </div>`,
+  ].join('');
+
+  document.getElementById('comp-notas').innerHTML = `
+    <p>• Custos estimados com aumento médio de <strong style="color:var(--verde-cl)">8,5%</strong> em relação a 2025.</p>
+    <p>• Alimentação e Água representa <strong style="color:var(--amarelo)">~45%</strong> do orçamento total.</p>
+    <p>• Aluguel do Sítio mantido em <strong style="color:var(--verde-cl)">R$ 8.000,00</strong> (sem reajuste).</p>
+    <p>• Receita estimada de inscrições: <strong style="color:var(--verde-cl)">R$ 33.660,00</strong> (+12% vs 2025).</p>
+    <p>• Saldo em caixa disponível: <strong style="color:var(--verde-cl)">R$ 13.678,87</strong>.</p>
+  `;
+}
+
+// ══════════════════════════════════════════════════
+// PROJEÇÃO
+// ══════════════════════════════════════════════════
+function saveProjecaoConfig() {
+  set('abcl-fin-proj-config', {
+    saldoCaixa: parseFloat(document.getElementById('proj-saldo-caixa').value) || 0,
+    vendinha:   parseFloat(document.getElementById('proj-vendinha').value)    || 0,
+    camisas:    parseFloat(document.getElementById('proj-camisas').value)     || 0,
+    rendimento: parseFloat(document.getElementById('proj-rend').value)        || 0,
+  });
+}
+
+function renderProjecao() {
+  const cfg       = getProjConfig();
+  const despesas  = getDespesas();
+  const receitas  = getReceitas();
+  const insc      = getInscricoes();
+
+  // Preencher campos
+  document.getElementById('proj-saldo-caixa').value = cfg.saldoCaixa || '';
+  document.getElementById('proj-vendinha').value    = cfg.vendinha   || '';
+  document.getElementById('proj-camisas').value     = cfg.camisas    || '';
+  document.getElementById('proj-rend').value        = cfg.rendimento || '';
+
+  const totalDesp = DESPESAS_2025.reduce((s,d) => s + d.v2026, 0);
+  const totalDesp2 = despesas.reduce((s,d) => s + Number(d.valor), 0);
+  const despFinal = Math.max(totalDesp, totalDesp2);
+
+  const totalInscEst  = 33660.00;
+  const totalInscReal = insc.reduce((s,i) => s + Number(i.valor)*Number(i.qtd), 0);
+  const totalRecReal  = receitas.reduce((s,r) => s + Number(r.valor), 0);
+
+  const entradas = cfg.saldoCaixa + cfg.vendinha + cfg.camisas + cfg.rendimento + totalInscEst;
+  const resultado = entradas - despFinal;
+
+  document.getElementById('proj-despesas').innerHTML = DESPESAS_2025.map(d => `
+    <div class="proj-row"><span>${d.cat}</span><span class="rc-vermelho">${fmt(d.v2026)}</span></div>
+  `).join('') + `<div class="proj-row" style="border-top:1px solid var(--borda);margin-top:.5rem;padding-top:.5rem;font-weight:600;">
+    <span>Total estimado</span><span class="proj-total rc-vermelho">${fmt(despFinal)}</span></div>`;
+
+  document.getElementById('proj-receitas').innerHTML = `
+    <div class="proj-row"><span>Saldo em caixa</span><span class="rc-verde">${fmt(cfg.saldoCaixa)}</span></div>
+    <div class="proj-row"><span>Inscrições (estimativa)</span><span class="rc-verde">${fmt(totalInscEst)}</span></div>
+    <div class="proj-row"><span>Lucro Vendinha</span><span class="rc-verde">${fmt(cfg.vendinha)}</span></div>
+    <div class="proj-row"><span>Lucro Camisas</span><span class="rc-verde">${fmt(cfg.camisas)}</span></div>
+    <div class="proj-row"><span>Rendimento financeiro</span><span class="rc-verde">${fmt(cfg.rendimento)}</span></div>
+    <div class="proj-row" style="border-top:1px solid var(--borda);margin-top:.5rem;padding-top:.5rem;font-weight:600;">
+      <span>Total estimado</span><span class="proj-total rc-verde">${fmt(entradas)}</span></div>`;
+
+  const cor = resultado >= 0 ? 'var(--verde-cl)' : 'var(--vermelho)';
+  document.getElementById('proj-resultado').innerHTML = `
+    <div style="display:flex;gap:1.25rem;flex-wrap:wrap;">
+      <div class="resumo-card" style="flex:1;min-width:160px;">
+        <div class="rc-label">Resultado projetado</div>
+        <div class="rc-val" style="color:${cor};">${fmt(resultado)}</div>
+        <div class="rc-sub">${resultado >= 0 ? '✅ Superávit estimado' : '⚠️ Déficit estimado'}</div>
+      </div>
+      <div class="resumo-card" style="flex:1;min-width:160px;">
+        <div class="rc-label">Total entradas</div>
+        <div class="rc-val rc-verde">${fmt(entradas)}</div>
+        <div class="rc-sub">receitas + saldo</div>
+      </div>
+      <div class="resumo-card" style="flex:1;min-width:160px;">
+        <div class="rc-label">Total saídas</div>
+        <div class="rc-val rc-vermelho">${fmt(despFinal)}</div>
+        <div class="rc-sub">despesas estimadas</div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;">
+      <div class="prog-wrap" style="height:12px;">
+        <div class="prog-bar" style="width:${Math.min(100,(despFinal/entradas*100)).toFixed(1)}%;background:${cor};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--suave);margin-top:.35rem;">
+        <span>Despesas como % das receitas</span>
+        <span>${(despFinal/entradas*100).toFixed(1)}%</span>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// EXPORTAR CSV
+// ══════════════════════════════════════════════════
+function exportarCSV() {
+  const desp = getDespesas().map(d => `Despesa,${d.data||''},${d.descricao},${d.categoria||''},${d.status},${d.valor}`);
+  const rec  = getReceitas().map(r => `Receita,${r.data||''},${r.descricao},${r.categoria||''},${r.status},${r.valor}`);
+  const insc = getInscricoes().map(i => `Inscrição,—,${i.nome||''},${i.categoria},Recebido,${Number(i.valor)*Number(i.qtd)}`);
+  const csv  = ['Tipo,Data,Descrição,Categoria,Status,Valor', ...desp, ...rec, ...insc].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `ABCL_Financeiro_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('📥 CSV exportado!');
+}
+
+// ══════════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════════
+function renderAll() {
+  renderDashboard();
+  renderDespesas();
+  renderReceitas();
+  renderInscConfig();
+  renderInscCards();
+  renderInscricoesList();
+  renderComparativo();
+  renderProjecao();
+}
+
+renderAll();
+</script>
+</body>
+</html>

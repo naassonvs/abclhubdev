@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABCL Livraria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #060C14;
+      --bg2:      #0A1220;
+      --card:     #0D1828;
+      --card2:    #111F35;
+      --texto:    #EDE8DF;
+      --suave:    rgba(237,232,223,0.45);
+      --borda:    rgba(91,141,193,0.18);
+      --azul:     #3B82F6;
+      --azul-cl:  #93C5FD;
+      --azul-mid: #2563EB;
+      --dourado:  #D4A853;
+      --verde:    #40916C;
+      --vermelho: #EF4444;
+      --amarelo:  #F59E0B;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow-x: hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--texto); min-height: 100vh; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at 30% 30%, rgba(37,99,235,.15) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 70%, rgba(212,168,83,.08) 0%, transparent 60%),
+                  var(--bg);
+    }
+    .login-box {
+      background: var(--card); border: 1px solid var(--borda);
+      border-radius: 18px; padding: 2.5rem; width: 100%; max-width: 360px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    }
+    .login-logo { text-align: center; margin-bottom: 1.75rem; }
+    .login-logo img { width: 60px; height: 60px; }
+    .login-logo .l-titulo { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--azul-cl); margin-top: .5rem; }
+    .login-logo .l-sub { font-size: .72rem; color: var(--suave); }
+    .login-field { margin-bottom: .85rem; }
+    .login-field label { display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: .35rem; }
+    .login-field input {
+      width: 100%; background: rgba(255,255,255,.05); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .75rem 1rem; font-size: 1rem;
+      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+      transition: border-color .2s;
+    }
+    .login-field input:focus { border-color: var(--azul); }
+    .btn-login {
+      width: 100%; background: var(--azul-mid); color: #fff; border: none;
+      border-radius: 10px; padding: .85rem; font-size: .9rem; font-weight: 600;
+      font-family: 'Cinzel', serif; letter-spacing: .06em; cursor: pointer;
+      margin-top: .5rem; transition: background .2s;
+    }
+    .btn-login:hover { background: var(--azul); }
+    .login-error { color: #fca5a5; font-size: .75rem; text-align: center; margin-top: .5rem; display: none; }
+
+    /* ── APP ── */
+    #app { display: none; }
+
+    /* ── TOP BAR ── */
+    .top-bar {
+      background: rgba(6,12,20,.97); border-bottom: 1px solid var(--borda);
+      padding: .6rem 1.25rem; display: flex; align-items: center; gap: 1rem;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .top-bar img { width: 28px; height: 28px; }
+    .top-bar-title { font-family: 'Cinzel', serif; font-size: .88rem; color: var(--azul-cl); flex: 1; }
+    .top-bar-sub { font-size: .62rem; color: var(--suave); }
+    .top-bar-actions { display: flex; gap: .5rem; }
+
+    /* ── STATS ── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--borda); background: var(--bg2);
+    }
+    .stat-item {
+      padding: .6rem 1rem; text-align: center;
+      border-right: 1px solid var(--borda);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-label { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); }
+    .stat-val { font-family: 'Cinzel', serif; font-size: 1rem; margin-top: .1rem; }
+
+    /* ── TABS ── */
+    .view-tabs {
+      display: flex; gap: .4rem; padding: .75rem 1rem;
+      background: var(--bg2); border-bottom: 1px solid var(--borda);
+      overflow-x: auto;
+    }
+    .view-tab {
+      flex-shrink: 0; padding: .4rem .9rem; border-radius: 7px;
+      border: 1px solid var(--borda); background: transparent;
+      color: var(--suave); font-size: .78rem; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: all .18s; white-space: nowrap;
+    }
+    .view-tab.active { background: var(--azul-mid); border-color: var(--azul-mid); color: #fff; font-weight: 600; }
+    .view-tab:hover:not(.active) { border-color: var(--azul-cl); color: var(--texto); }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - var(--chrome-h, 148px)); overflow: hidden; }
+    .catalogo-area { overflow-y: auto; padding: 0 1rem 1rem; }
+    .pedido-area { border-left: 1px solid var(--borda); display: flex; flex-direction: column; background: var(--bg2); overflow: hidden; }
+
+    /* ── BUSCA / FILTROS ── */
+    .filtros-bar {
+      display: flex; gap: .5rem; flex-wrap: wrap;
+      position: sticky; top: 0; z-index: 10;
+      background: var(--bg);
+      padding: .75rem 0 .6rem;
+      margin-bottom: .75rem;
+      border-bottom: 1px solid var(--borda);
+    }
+    .busca-input {
+      flex: 1; min-width: 180px; background: var(--card); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .55rem .85rem; font-size: 1rem;
+      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+      transition: border-color .2s;
+    }
+    .busca-input:focus { border-color: var(--azul); }
+    .filtro-select {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 8px;
+      padding: .5rem .75rem; font-size: .8rem; color: var(--texto);
+      outline: none; font-family: 'Inter', sans-serif; cursor: pointer;
+    }
+    .filtro-select option { background: var(--bg2); }
+
+    /* ── GRADE DE LIVROS ── */
+    .livros-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .75rem;
+    }
+    .livro-card {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 10px;
+      cursor: pointer; transition: all .18s; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .livro-card:hover { border-color: var(--azul-cl); transform: translateY(-2px); background: var(--card2); }
+    .livro-card:active { transform: scale(.97); }
+    .livro-card.esgotado { opacity: .35; pointer-events: none; filter: grayscale(1); }
+    .livro-card.estoque-baixo { border-color: rgba(245,158,11,.4); }
+
+    /* ── TOOLTIP DESKTOP ── */
+    .livro-tooltip {
+      position: absolute; z-index: 200;
+      background: var(--card); border: 1px solid var(--borda);
+      border-radius: 12px; padding: 1rem; width: 240px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6);
+      pointer-events: none; opacity: 0; transform: translateY(6px);
+      transition: opacity .2s, transform .2s;
+      font-size: .78rem; line-height: 1.55; color: var(--suave);
+    }
+    .livro-tooltip.visible { opacity: 1; transform: translateY(0); }
+    .livro-tooltip .tt-titulo { font-family:'Cinzel',serif; font-size:.82rem; color:var(--texto); margin-bottom:.2rem; font-weight:600; }
+    .livro-tooltip .tt-autor  { font-size:.68rem; color:var(--azul-cl); margin-bottom:.5rem; }
+    .livro-tooltip .tt-tags   { display:flex; gap:.3rem; flex-wrap:wrap; margin-top:.5rem; }
+    .livro-tooltip .tt-tag    { font-size:.6rem; padding:.15rem .45rem; border-radius:99px; background:rgba(37,99,235,.15); color:var(--azul-cl); border:1px solid rgba(37,99,235,.25); }
+    .livro-tooltip .tt-preco  { font-family:'Cinzel',serif; color:var(--azul-cl); margin-top:.5rem; font-size:.88rem; }
+
+    /* ── BOTTOM SHEET MOBILE ── */
+    .bottom-sheet-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.6); display: none; align-items: flex-end;
+    }
+    .bottom-sheet-overlay.open { display: flex; }
+    .bottom-sheet {
+      background: var(--card); border-radius: 20px 20px 0 0;
+      border-top: 1px solid var(--borda);
+      width: 100%; max-height: 80vh; overflow-y: auto;
+      padding: 1.5rem;
+      animation: slideUp .3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .bs-handle { width: 40px; height: 4px; background: var(--borda); border-radius: 99px; margin: 0 auto 1.25rem; }
+    .bs-livro-header { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .bs-livro-capa { width: 80px; height: 115px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: var(--card2); }
+    .bs-livro-info { flex: 1; }
+    .bs-livro-titulo { font-family:'Cinzel',serif; font-size:1rem; color:var(--texto); margin-bottom:.25rem; line-height:1.3; }
+    .bs-livro-autor  { font-size:.75rem; color:var(--azul-cl); margin-bottom:.25rem; }
+    .bs-livro-meta   { font-size:.7rem; color:var(--suave); margin-bottom:.5rem; }
+    .bs-livro-preco  { font-family:'Cinzel',serif; font-size:1.2rem; color:var(--azul-cl); }
+    .bs-descricao    { font-size:.82rem; color:var(--suave); line-height:1.7; border-top:1px solid var(--borda); padding-top:.85rem; }
+    .bs-add-btn {
+      width:100%; margin-top:1.25rem; background:var(--azul-mid); color:#fff;
+      border:none; border-radius:10px; padding:.85rem; font-family:'Cinzel',serif;
+      font-size:.9rem; font-weight:600; cursor:pointer; transition:background .2s;
+    }
+    .bs-add-btn:hover { background:var(--azul); }
+    .bs-add-btn:disabled { opacity:.4; pointer-events:none; }
+
+    /* ── CONTADOR DE CHARS ── */
+    .char-counter { font-size:.65rem; color:var(--suave); text-align:right; margin-top:.2rem; }
+
+    .livro-capa {
+      width: 100%; aspect-ratio: 2/3; object-fit: cover;
+      background: var(--card2); display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; color: var(--suave); flex-shrink: 0;
+    }
+    .livro-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .livro-capa.loading { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:.8} }
+
+    .livro-info { padding: .6rem .65rem; flex: 1; display: flex; flex-direction: column; gap: .2rem; }
+    .livro-titulo { font-size: .72rem; font-weight: 600; line-height: 1.3; color: var(--texto); }
+    .livro-editora { font-size: .62rem; color: var(--suave); }
+    .livro-preco { font-family: 'Cinzel', serif; font-size: .85rem; color: var(--azul-cl); margin-top: auto; padding-top: .3rem; }
+    .livro-estoque { font-size: .6rem; color: var(--suave); }
+    .estoque-baixo-badge { color: var(--amarelo); }
+    .esgotado-badge { color: var(--vermelho); }
+
+    /* ── PEDIDO ── */
+    .pedido-header { padding: .85rem 1rem; border-bottom: 1px solid var(--borda); display: flex; justify-content: space-between; align-items: center; }
+    .pedido-header h3 { font-family: 'Cinzel', serif; font-size: .88rem; color: var(--azul-cl); }
+    
+    /* Busca de cliente */
+    .pedido-cliente { padding: .75rem 1rem; border-bottom: 1px solid var(--borda); position: relative; }
+    .busca-cliente-input {
+      width: 100%; background: var(--card); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .6rem .85rem; font-size: 1rem;
+      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+    }
+    .busca-cliente-input:focus { border-color: var(--azul); }
+    .dropdown-clientes {
+      position: absolute; top: 100%; left: .75rem; right: .75rem;
+      background: var(--card); border: 1px solid var(--borda); border-radius: 0 0 8px 8px;
+      max-height: 180px; overflow-y: auto; z-index: 50; display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .cliente-chip {
+      display: none; margin-top: .4rem; padding: .35rem .75rem;
+      background: rgba(37,99,235,.15); border: 1px solid rgba(37,99,235,.3);
+      border-radius: 6px; font-size: .78rem; color: var(--azul-cl);
+      align-items: center; justify-content: space-between; font-weight: 600;
+    }
+    .cliente-chip.show { display: flex; }
+
+    .pedido-periodo { display: flex; gap: .4rem; padding: .5rem 1rem; border-bottom: 1px solid var(--borda); }
+    .periodo-btn {
+      flex: 1; padding: .4rem .5rem; border-radius: 6px; border: 1px solid var(--borda);
+      background: transparent; color: var(--suave); font-size: .72rem;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s; text-align: center;
+    }
+    .periodo-btn.active { background: var(--azul-mid); border-color: var(--azul-mid); color: #fff; font-weight: 600; }
+
+    .pedido-itens { flex: 1; overflow-y: auto; padding: .5rem; }
+    .pedido-vazio { text-align: center; color: var(--suave); font-size: .78rem; padding: 2rem 1rem; }
+
+    .item-pedido {
+      display: flex; gap: .5rem; align-items: center; padding: .5rem .35rem;
+      border-bottom: 1px solid rgba(91,141,193,.08); font-size: .8rem;
+    }
+    .item-nome { flex: 1; line-height: 1.3; font-size: .75rem; }
+    .item-preco { color: var(--azul-cl); font-size: .75rem; min-width: 52px; text-align: right; font-family: 'Cinzel', serif; }
+    .qty-ctrl { display: flex; align-items: center; gap: .25rem; }
+    .qty-btn {
+      width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--borda);
+      background: var(--card2); color: var(--texto); font-size: .8rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background .15s;
+    }
+    .qty-btn:hover { background: var(--azul-mid); border-color: var(--azul-mid); }
+    .qty-num { font-size: .8rem; min-width: 16px; text-align: center; font-weight: 600; }
+
+    /* ── CHECKOUT AREA ── */
+    .checkout-area { border-top: 1px solid var(--borda); padding: .75rem 1rem; background: var(--bg); }
+    .extras-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .6rem; }
+    .extras-input {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 6px;
+      padding: .45rem .7rem; font-size: 1rem; color: var(--texto);
+      font-family: 'Inter', sans-serif; outline: none; width: 100%;
+    }
+    .pagamento-row { display: flex; gap: .4rem; margin-bottom: .65rem; }
+    .pag-btn {
+      flex: 1; padding: .45rem .4rem; border-radius: 6px; border: 1px solid var(--borda);
+      background: transparent; color: var(--suave); font-size: .72rem;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s;
+    }
+    .pag-btn.active { background: var(--azul-mid); border-color: var(--azul-mid); color: #fff; font-weight: 600; }
+    .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .65rem; }
+    .total-label { font-size: .75rem; color: var(--suave); }
+    .total-val { font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--azul-cl); }
+    .acao-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+    .btn-finalizar {
+      background: var(--azul-mid); color: #fff; border: none; border-radius: 8px;
+      padding: .7rem; font-size: .82rem; font-weight: 600; cursor: pointer;
+      font-family: 'Cinzel', serif; transition: background .2s;
+    }
+    .btn-finalizar:hover { background: var(--azul); }
+    .btn-limpar {
+      background: transparent; color: var(--suave); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .7rem; font-size: .78rem; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-limpar:hover { border-color: var(--vermelho); color: #fca5a5; }
+
+    /* ── VIEW PANELS ── */
+    .view-panel { display: none; padding: 1rem; }
+    .view-panel.active { display: block; }
+
+    /* ── PANEL HISTORICO ── */
+    .hist-tabela { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    .hist-tabela th { font-size: .63rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); padding: .45rem .6rem; text-align: left; border-bottom: 1px solid var(--borda); }
+    .hist-tabela td { padding: .55rem .6rem; border-bottom: 1px solid rgba(91,141,193,.07); }
+
+    /* ── PANEL ESTOQUE ── */
+    .estoque-item {
+      display: flex; align-items: center; gap: .75rem; padding: .6rem;
+      border-bottom: 1px solid rgba(91,141,193,.07);
+    }
+    .estoque-capa { width: 36px; height: 50px; border-radius: 4px; object-fit: cover; background: var(--card2); flex-shrink: 0; }
+    .estoque-nome { flex: 1; font-size: .8rem; }
+    .estoque-editora { font-size: .65rem; color: var(--suave); }
+    .estoque-qty-input { width: 60px; background: var(--card); border: 1px solid var(--borda); border-radius: 5px; padding: .3rem .5rem; color: var(--texto); font-size: .85rem; text-align: center; }
+
+    /* ── PANEL BESTSELLERS ── */
+    .bs-item { display: flex; align-items: center; gap: .75rem; padding: .65rem 0; border-bottom: 1px solid rgba(91,141,193,.07); }
+    .bs-rank { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--dourado); min-width: 28px; text-align: center; }
+    .bs-info { flex: 1; }
+    .bs-titulo { font-size: .82rem; font-weight: 600; }
+    .bs-det { font-size: .68rem; color: var(--suave); }
+    .bs-val { font-family: 'Cinzel', serif; font-size: .88rem; color: var(--azul-cl); }
+
+    /* ── MODAL QR PIX ── */
+    #qr-modal {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.75); align-items: center; justify-content: center; padding: 1rem;
+    }
+    #qr-modal .qr-box {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 16px;
+      padding: 2rem; max-width: 300px; width: 100%; text-align: center;
+    }
+
+    /* ── MODAL IMPORTAR CSV ── */
+    #import-modal {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.75); align-items: center; justify-content: center; padding: 1rem;
+    }
+    #import-modal .import-box {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 16px;
+      padding: 2rem; max-width: 480px; width: 100%;
+    }
+
+    /* ── MODAL NOVO LIVRO ── */
+    #livro-modal {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.75); align-items: center; justify-content: center; padding: 1rem;
+    }
+    #livro-modal .livro-modal-box {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 16px;
+      padding: 1.75rem; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--azul-mid); color: #fff; padding: .6rem 1.25rem;
+      border-radius: 8px; font-size: .82rem; z-index: 999;
+      transition: transform .3s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── BTN UTILS ── */
+    .btn { display: inline-flex; align-items: center; gap: .35rem; padding: .45rem .9rem; border-radius: 7px; font-size: .78rem; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .18s; border: 1px solid transparent; font-weight: 500; }
+    .btn-solid { background: var(--azul-mid); color: #fff; border-color: var(--azul-mid); }
+    .btn-solid:hover { background: var(--azul); }
+    .btn-ghost { background: transparent; color: var(--texto); border-color: var(--borda); }
+    .btn-ghost:hover { border-color: var(--azul-cl); color: var(--azul-cl); }
+    .btn-sm { padding: .3rem .65rem; font-size: .72rem; }
+
+    .field { margin-bottom: .75rem; }
+    .field label { display: block; font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: .3rem; }
+    .field input, .field select, .field textarea {
+      width: 100%; background: rgba(255,255,255,.04); border: 1px solid var(--borda);
+      border-radius: 6px; padding: .6rem .8rem; font-size: 1rem;
+      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+      transition: border-color .2s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--azul); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+
+    .section-h {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .65rem; letter-spacing: .15em; text-transform: uppercase;
+      color: var(--azul-cl); font-weight: 600; margin-bottom: .85rem;
+    }
+
+    @media (max-width: 720px) {
+      .main-layout { grid-template-columns: 1fr; height: auto; }
+      .pedido-area { border-left: none; border-top: 1px solid var(--borda); }
+      .stats-bar { grid-template-columns: repeat(2,1fr); }
+      .livros-grid { grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
+      <div class="l-titulo">ABCL Livraria</div>
+      <div class="l-sub">Caixa rápido · Acampamento 2026</div>
+    </div>
+    <div class="login-field"><label>Usuário</label><input type="text" id="l-user" placeholder="seu usuário" onkeydown="if(event.key==='Enter')lLogin()" /></div>
+    <div class="login-field"><label>Senha</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')lLogin()" /></div>
+    <button class="btn-login" onclick="lLogin()">Entrar</button>
+    <div class="login-error" id="l-error">Usuário ou senha incorretos.</div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
+    <div>
+      <div class="top-bar-title">ABCL LIVRARIA</div>
+      <div class="top-bar-sub">Caixa rápido · <span id="l-username"></span></div>
+    </div>
+    <div class="top-bar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="abrirImport()">📥 Importar CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="window.open('admin.html','_blank')">⚙ Admin</button>
+      <button class="btn btn-ghost btn-sm" onclick="lSair()">Sair</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-label">Vendas</div><div class="stat-val" id="s-vendas" style="color:var(--azul-cl)">0</div></div>
+    <div class="stat-item"><div class="stat-label">Total</div><div class="stat-val" id="s-total" style="color:var(--verde)">R$ 0,00</div></div>
+    <div class="stat-item"><div class="stat-label">Fiado</div><div class="stat-val" id="s-fiado" style="color:var(--amarelo)">R$ 0,00</div></div>
+    <div class="stat-item"><div class="stat-label">Recebido</div><div class="stat-val" id="s-recebido" style="color:var(--azul-cl)">R$ 0,00</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="switchView('caixa',this)">📚 Caixa</button>
+    <button class="view-tab" onclick="switchView('historico',this)">📋 Histórico</button>
+    <button class="view-tab" onclick="switchView('bestsellers',this)">🏆 Mais Vendidos</button>
+    <button class="view-tab" onclick="switchView('estoque',this)">📦 Estoque</button>
+  </div>
+
+  <!-- ══ CAIXA ══ -->
+  <div id="vp-caixa" style="display:block;">
+    <div class="main-layout">
+
+      <!-- CATÁLOGO -->
+      <div class="catalogo-area">
+        <div class="filtros-bar">
+          <input class="busca-input" id="busca" type="text" placeholder="🔍 Buscar título, autor, editora..."
+            oninput="renderLivros()" />
+          <select class="filtro-select" id="filtro-editora" onchange="renderLivros()">
+            <option value="">Todas as editoras</option>
+            <option>Chamada</option><option>DLC</option><option>Deivison</option>
+            <option>Lucas</option><option>SBC</option><option>Verdade</option>
+          </select>
+          <select class="filtro-select" id="filtro-cat" onchange="renderLivros()">
+            <option value="">Todas as categorias</option>
+            <option>Infantil</option><option>Bíblia</option><option>Teologia</option>
+            <option>Apologética</option><option>Profecia</option><option>Vida Cristã</option>
+            <option>Liderança</option><option>Biografia</option><option>Família</option>
+            <option>Devocional</option>
+          </select>
+        </div>
+        <div class="livros-grid" id="livros-grid"></div>
+        <div id="livros-empty" style="display:none;text-align:center;padding:3rem;color:var(--suave);font-size:.82rem;">
+          Nenhum livro encontrado para essa busca.
+        </div>
+      </div>
+
+      <!-- PEDIDO -->
+      <div class="pedido-area">
+        <div class="pedido-header">
+          <h3>📖 Pedido</h3>
+          <button class="btn btn-ghost btn-sm" onclick="limparPedido()">Limpar</button>
+        </div>
+
+        <!-- Cliente -->
+        <div class="pedido-cliente">
+          <input class="busca-cliente-input" id="busca-cliente" type="text"
+            placeholder="🔍 Buscar acampante..."
+            oninput="filtrarClientes(this.value)" onfocus="filtrarClientes(this.value)" />
+          <div id="dropdown-clientes" class="dropdown-clientes"></div>
+          <div class="cliente-chip" id="cliente-chip">
+            <span id="cliente-chip-nome"></span>
+            <button onclick="limparCliente()" style="background:none;border:none;color:var(--suave);cursor:pointer;padding:0 .25rem;">✕</button>
+          </div>
+          <input type="text" id="input-avulso" placeholder="Nome (avulso)"
+            style="display:none;margin-top:.4rem;width:100%;background:var(--card);border:1px solid var(--borda);border-radius:8px;padding:.55rem .8rem;font-size:1rem;color:var(--texto);outline:none;"
+            oninput="setClienteAvulso()" />
+        </div>
+
+        <!-- Período -->
+        <div class="pedido-periodo">
+          <button class="periodo-btn active" onclick="setPeriodo('Manhã',this)">Manhã</button>
+          <button class="periodo-btn" onclick="setPeriodo('Tarde',this)">Tarde</button>
+          <button class="periodo-btn" onclick="setPeriodo('Noite',this)">Noite</button>
+        </div>
+
+        <!-- Itens -->
+        <div class="pedido-itens" id="cart-items">
+          <div class="pedido-vazio">Toque em um livro para adicionar.</div>
+        </div>
+
+        <!-- Checkout -->
+        <div class="checkout-area">
+          <div class="extras-row">
+            <input class="extras-input" type="number" id="desconto" placeholder="Desconto (R$)" step="0.5" oninput="renderCart()" />
+            <input class="extras-input" type="number" id="oferta" placeholder="Oferta (R$)" step="0.5" oninput="renderCart()" />
+          </div>
+          <div class="pagamento-row">
+            <button class="pag-btn active" onclick="setPag('PIX',this)">📱 PIX</button>
+            <button class="pag-btn" onclick="setPag('Dinheiro',this)">💵 Dinheiro</button>
+            <button class="pag-btn" onclick="setPag('Fiado',this)">📒 Fiado</button>
+          </div>
+          <div class="total-row">
+            <span class="total-label">Total</span>
+            <span class="total-val" id="cart-total">R$ 0,00</span>
+          </div>
+          <div class="acao-row">
+            <button class="btn-finalizar" onclick="checkout()">✓ Finalizar</button>
+            <button class="btn-limpar" onclick="limparPedido()">✕ Limpar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ HISTÓRICO ══ -->
+  <div class="view-panel" id="vp-historico">
+    <div class="section-h">
+      <span>Histórico de vendas</span>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 CSV</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="hist-tabela">
+        <thead><tr>
+          <th>Data</th><th>Hora</th><th>Cliente</th><th>Período</th>
+          <th>Itens</th><th>Pagamento</th><th style="text-align:right">Total</th>
+        </tr></thead>
+        <tbody id="historico-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ BEST SELLERS ══ -->
+  <div class="view-panel" id="vp-bestsellers">
+    <div class="section-h"><span>🏆 Livros mais vendidos</span></div>
+    <div id="bs-list"></div>
+  </div>
+
+  <!-- ══ ESTOQUE ══ -->
+  <div class="view-panel" id="vp-estoque">
+    <div class="section-h">
+      <span>Estoque de livros</span>
+      <div style="display:flex;gap:.4rem;">
+        <button class="btn btn-ghost btn-sm" onclick="salvarEstoque()">💾 Salvar</button>
+        <button class="btn btn-solid btn-sm" onclick="abrirNovoLivro()">+ Novo livro</button>
+      </div>
+    </div>
+    <div id="estoque-list"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ══ MODAL QR PIX ══ -->
+<div id="qr-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:2rem;max-width:300px;width:100%;text-align:center;">
+    <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--azul-cl);margin-bottom:.5rem;">💳 PIX</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.6rem;color:var(--azul-cl);margin-bottom:1rem;" id="qr-valor"></div>
+    <div id="qr-container" style="width:220px;height:220px;background:#fff;border-radius:8px;margin:0 auto 1rem;padding:8px;display:flex;align-items:center;justify-content:center;"></div>
+    <div style="font-size:.72rem;color:var(--suave);margin-bottom:1.25rem;">Chave: <strong id="qr-chave" style="color:var(--texto);"></strong></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;">
+      <button class="btn btn-ghost" onclick="document.getElementById('qr-modal').style.display='none'">Cancelar</button>
+      <button class="btn btn-solid" id="qr-confirmar">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL IMPORTAR CSV ══ -->
+<div id="import-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:2rem;max-width:480px;width:100%;">
+    <h3 style="font-family:'Cinzel',serif;color:var(--azul-cl);margin-bottom:1rem;">📥 Importar CSV</h3>
+    <p style="font-size:.78rem;color:var(--suave);margin-bottom:1rem;line-height:1.6;">
+      Formato esperado: <code style="background:rgba(255,255,255,.07);padding:.1rem .4rem;border-radius:3px;">Título;Editora;Preço;Estoque;Categoria</code><br>
+      Ou use o mesmo formato do fechamento da livraria.
+    </p>
+    <div class="field"><label>Arquivo CSV</label><input type="file" id="csv-file" accept=".csv" style="font-size:.82rem;" /></div>
+    <div id="import-preview" style="max-height:200px;overflow-y:auto;font-size:.72rem;color:var(--suave);background:rgba(255,255,255,.03);border-radius:8px;padding:.75rem;margin-bottom:1rem;display:none;"></div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="document.getElementById('import-modal').style.display='none'">Cancelar</button>
+      <button class="btn btn-solid" onclick="executarImport()">📥 Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL NOVO LIVRO ══ -->
+<div id="livro-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:1.75rem;max-width:520px;width:100%;max-height:90vh;overflow-y:auto;">
+    <h3 style="font-family:'Cinzel',serif;color:var(--azul-cl);margin-bottom:1.25rem;" id="livro-modal-titulo">Novo livro</h3>
+    <input type="hidden" id="lm-id" />
+    <div class="field-row">
+      <div class="field"><label>Título *</label><input type="text" id="lm-titulo" placeholder="Título do livro" /></div>
+      <div class="field"><label>Autor</label><input type="text" id="lm-autor" placeholder="Nome do autor" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Editora</label>
+        <select id="lm-editora">
+          <option value="">Selecione...</option>
+          <option>Chamada</option><option>DLC</option><option>Deivison</option>
+          <option>Lucas</option><option>SBC</option><option>Verdade</option><option>Outra</option>
+        </select>
+      </div>
+      <div class="field"><label>Categoria</label>
+        <select id="lm-categoria">
+          <option value="">Selecione...</option>
+          <option>Infantil</option><option>Bíblia</option><option>Teologia</option>
+          <option>Apologética</option><option>Profecia</option><option>Vida Cristã</option>
+          <option>Liderança</option><option>Biografia</option><option>Família</option><option>Devocional</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Preço de venda (R$) *</label><input type="number" id="lm-preco" placeholder="29.90" step="0.01" /></div>
+      <div class="field"><label>Custo (R$)</label><input type="number" id="lm-custo" placeholder="25.00" step="0.01" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Estoque inicial</label><input type="number" id="lm-estoque" placeholder="5" /></div>
+      <div class="field"><label>Alerta estoque baixo</label><input type="number" id="lm-alerta" placeholder="3" /></div>
+    </div>
+    <div class="field">
+      <label>Capa (URL, base64 ou buscar pelo título)</label>
+      <div style="display:flex;gap:.4rem;margin-bottom:.4rem;">
+        <input type="text" id="lm-capa-url" placeholder="https://... ou cole base64" oninput="previewCapa()" />
+        <button class="btn btn-ghost btn-sm" onclick="buscarCapaGoogle()" title="Buscar capa pelo Google Books">🔍</button>
+      </div>
+      <input type="file" id="lm-capa-file" accept="image/*" onchange="lerCapaFile(this)" style="font-size:.78rem;color:var(--suave);" />
+      <img id="lm-capa-preview" src="" style="display:none;max-width:80px;max-height:110px;border-radius:5px;margin-top:.5rem;object-fit:cover;" />
+    </div>
+    <div class="field">
+      <label>Descrição / Resumo <span style="font-size:.6rem;font-weight:400;color:var(--suave);">(aparece no preview ao passar o mouse ou pressionar)</span></label>
+      <textarea id="lm-desc" rows="4" maxlength="400"
+        placeholder="Ex: Um livro de histórias bíblicas com relatos simples e claros, ilustrações coloridas e linguagem acessível para toda a família."
+        oninput="document.getElementById('lm-desc-count').textContent=this.value.length+'/400'"
+        style="resize:vertical;line-height:1.55;font-size:1rem;"></textarea>
+      <div class="char-counter"><span id="lm-desc-count">0/400</span></div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost" onclick="document.getElementById('livro-modal').style.display='none'">Cancelar</button>
+      <button class="btn btn-solid" onclick="salvarLivro()">💾 Salvar livro</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── TOOLTIP DESKTOP ── -->
+<div class="livro-tooltip" id="livro-tooltip">
+  <div class="tt-titulo" id="tt-titulo"></div>
+  <div class="tt-autor"  id="tt-autor"></div>
+  <div id="tt-desc"></div>
+  <div class="tt-tags"  id="tt-tags"></div>
+  <div class="tt-preco" id="tt-preco"></div>
+</div>
+
+<!-- ── BOTTOM SHEET MOBILE ── -->
+<div class="bottom-sheet-overlay" id="bs-overlay" onclick="fecharBottomSheet(event)">
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="bs-handle"></div>
+    <div class="bs-livro-header">
+      <img class="bs-livro-capa" id="bs-capa" src="" alt="" onerror="this.style.display='none'" />
+      <div class="bs-livro-info">
+        <div class="bs-livro-titulo" id="bs-titulo"></div>
+        <div class="bs-livro-autor"  id="bs-autor"></div>
+        <div class="bs-livro-meta"   id="bs-meta"></div>
+        <div class="bs-livro-preco"  id="bs-preco"></div>
+      </div>
+    </div>
+    <div class="bs-descricao" id="bs-desc"></div>
+    <button class="bs-add-btn" id="bs-add-btn" onclick="addFromSheet()">+ Adicionar ao pedido</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// AJUSTE DINÂMICO DE ALTURA DO LAYOUT
+// ══════════════════════════════════════════════════
+function ajustarAlturaLayout() {
+  const topBar   = document.querySelector('.top-bar');
+  const statsBar = document.querySelector('.stats-bar');
+  const tabsBar  = document.querySelector('.view-tabs');
+  const h = (topBar?.offsetHeight || 0)
+          + (statsBar?.offsetHeight || 0)
+          + (tabsBar?.offsetHeight || 0);
+  document.documentElement.style.setProperty('--chrome-h', h + 'px');
+}
+window.addEventListener('resize', ajustarAlturaLayout);
+
+// ══════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════
+const L_USERS = { 'caixa':'vendinha','naasson':'abcl2026','haniel':'abcl2026','mauri':'abcl2026','admin':'abcl@admin' };
+function lLogin() {
+  const u = document.getElementById('l-user').value.trim().toLowerCase();
+  const p = document.getElementById('l-pass').value;
+  if (L_USERS[u] && L_USERS[u] === p) {
+    sessionStorage.setItem('abcl-livraria-auth', u);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('l-username').textContent = u;
+    initApp();
+  } else {
+    document.getElementById('l-error').style.display = 'block';
+  }
+}
+function lSair() { sessionStorage.removeItem('abcl-livraria-auth'); location.reload(); }
+(function checkAuth() {
+  if (sessionStorage.getItem('abcl-livraria-auth')) {
+    const u = sessionStorage.getItem('abcl-livraria-auth');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('l-username').textContent = u;
+    window.addEventListener('DOMContentLoaded', initApp);
+  }
+})();
+
+// ══════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════
+const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+// ══════════════════════════════════════════════════
+// CATÁLOGO PADRÃO (72 títulos do CSV)
+// ══════════════════════════════════════════════════
+const CATALOGO_DEFAULT = [
+  {t:'101 Historias Biblicas Favoritas',e:'DLC',      p:28.00,c:25.00,s:3, cat:'Infantil'},
+  {t:'A Arca de Noé',                   e:'DLC',      p:15.00,c:9.00, s:3, cat:'Infantil'},
+  {t:'A Bíblia Para Colorir',           e:'DLC',      p:32.00,c:28.00,s:3, cat:'Infantil'},
+  {t:'A Ciência Nos Livros De Deus',    e:'Verdade',  p:19.90,c:19.90,s:3, cat:'Apologética'},
+  {t:'A Criação',                       e:'DLC',      p:20.00,c:9.00, s:3, cat:'Infantil'},
+  {t:'A Igreja e Liderança',            e:'Verdade',  p:29.90,c:29.90,s:3, cat:'Liderança'},
+  {t:'A Vida Cristã',                   e:'Verdade',  p:39.90,c:39.90,s:3, cat:'Vida Cristã'},
+  {t:'Adesivo',                         e:'DLC',      p:8.00, c:7.00, s:10,cat:''},
+  {t:'Amy Carmichael',                  e:'Lucas',    p:40.00,c:38.69,s:3, cat:'Biografia'},
+  {t:'Andando Com As Mulheres Da Bíblia',e:'DLC',     p:80.00,c:70.00,s:3, cat:'Vida Cristã'},
+  {t:'Apologética Para Questões Difíceis Da Vida',e:'Lucas',p:60.00,c:53.10,s:3,cat:'Apologética'},
+  {t:'Aqueles Da Bíblia',               e:'Lucas',    p:40.00,c:37.44,s:3, cat:'Bíblia'},
+  {t:'Boa Semente Infantil',            e:'DLC',      p:40.00,c:35.00,s:3, cat:'Infantil'},
+  {t:'Boa Semente Kids',                e:'DLC',      p:15.00,c:12.00,s:3, cat:'Infantil'},
+  {t:'Boa Semente Teen',                e:'DLC',      p:32.00,c:28.00,s:3, cat:'Infantil'},
+  {t:'Bíblia Azul',                     e:'DLC',      p:30.00,c:27.00,s:3, cat:'Bíblia'},
+  {t:'Bíblia Flores',                   e:'DLC',      p:30.00,c:27.00,s:3, cat:'Bíblia'},
+  {t:'Comentário Básico Do Novo Testamento',e:'Deivison',p:30.00,c:30.00,s:3,cat:'Teologia'},
+  {t:'Comentário Expositivo De Escatologia Bíblica',e:'Chamada',p:60.00,c:45.00,s:3,cat:'Profecia'},
+  {t:'Cristãos Que Marcaram A História', e:'Chamada', p:72.00,c:58.50,s:3, cat:'Biografia'},
+  {t:'Cristianismo Básico',             e:'Verdade',  p:19.90,c:19.90,s:3, cat:'Vida Cristã'},
+  {t:'Cristo nas Ofertas de Levítico',  e:'SBC',      p:22.00,c:22.00,s:3, cat:'Teologia'},
+  {t:'Cristo nas Solenidades de Levítico 23',e:'SBC', p:33.00,c:33.00,s:3, cat:'Teologia'},
+  {t:'Cristo no Apocalipse',            e:'SBC',      p:49.00,c:49.00,s:3, cat:'Profecia'},
+  {t:'Deus É Fiel',                     e:'Verdade',  p:19.90,c:19.90,s:3, cat:'Devocional'},
+  {t:'Discipulados Por Jesus Cristo',   e:'DLC',      p:16.00,c:12.00,s:3, cat:'Vida Cristã'},
+  {t:'Dispensacionalismo Versus Aliancismo',e:'Deivison',p:46.00,c:46.00,s:3,cat:'Teologia'},
+  {t:'E Deus Falou Na Língua Dos Homens',e:'Lucas',   p:40.00,c:38.49,s:3, cat:'Teologia'},
+  {t:'Ele Reinará',                     e:'Deivison', p:159.90,c:159.90,s:3,cat:'Profecia'},
+  {t:'Em Defesa De Cristo',             e:'Lucas',    p:45.00,c:41.38,s:3, cat:'Apologética'},
+  {t:'Em Guarda',                       e:'Lucas',    p:55.00,c:52.74,s:3, cat:'Vida Cristã'},
+  {t:'FAQ - Você Pergunta, A Bíblia Responde',e:'DLC',p:31.00,c:14.00,s:3,cat:'Bíblia'},
+  {t:'Finanças',                        e:'DLC',      p:28.00,c:24.00,s:3, cat:'Vida Cristã'},
+  {t:'George Müller',                   e:'Lucas',    p:35.00,c:34.44,s:3, cat:'Biografia'},
+  {t:'Histórias Missionárias com a Família Miller',e:'DLC',p:20.00,c:27.00,s:3,cat:'Infantil'},
+  {t:'Histórias para Crianças',         e:'DLC',      p:56.00,c:35.00,s:3, cat:'Infantil'},
+  {t:'Hudson Taylor',                   e:'Lucas',    p:45.00,c:44.95,s:3, cat:'Biografia'},
+  {t:'Hurlbuts A História da Bíblia',   e:'DLC',      p:32.00,c:28.00,s:3, cat:'Bíblia'},
+  {t:'Lendas Urbanas Da História Da Igreja',e:'Chamada',p:60.00,c:45.50,s:3,cat:'Apologética'},
+  {t:'Lendas Urbanas Do Antigo Testamento',e:'Chamada',p:64.00,c:52.00,s:3,cat:'Apologética'},
+  {t:'Lendas Urbanas Do Novo Testamento',e:'Chamada', p:64.00,c:52.00,s:3, cat:'Apologética'},
+  {t:'Lendo Moisés Vendo Jesus',        e:'Chamada',  p:25.00,c:20.50,s:3, cat:'Teologia'},
+  {t:'Liderando Mulheres Em Conflito',  e:'Chamada',  p:32.00,c:26.00,s:3, cat:'Liderança'},
+  {t:'Lições para Líderes Volume 1',    e:'SBC',      p:32.00,c:32.00,s:3, cat:'Liderança'},
+  {t:'Lições para Líderes Volume 2',    e:'SBC',      p:35.00,c:35.00,s:3, cat:'Liderança'},
+  {t:'Línguas, Curas, Profecias',       e:'Verdade',  p:15.00,c:14.90,s:3, cat:'Teologia'},
+  {t:'Manual Do Professor De Escola Bíblica',e:'DLC', p:120.00,c:100.00,s:3,cat:'Liderança'},
+  {t:'Mistério Na Floresta',            e:'DLC',      p:56.00,c:49.00,s:3, cat:'Infantil'},
+  {t:'Nosso Casamento Pode Ser Ainda Melhor',e:'Chamada',p:21.00,c:17.00,s:3,cat:'Família'},
+  {t:'Não Tenho Fé Suficiente Para Ser Ateu',e:'Lucas',p:50.00,c:48.79,s:3,cat:'Apologética'},
+  {t:'O Dízimo e Ofertas',              e:'Verdade',  p:9.90, c:9.90, s:3, cat:'Vida Cristã'},
+  {t:'O Fim dos Tempos',                e:'Verdade',  p:89.90,c:89.90,s:3, cat:'Profecia'},
+  {t:'O Problema Do Mal No Antigo Testamento',e:'Lucas',p:25.00,c:25.00,s:3,cat:'Teologia'},
+  {t:'O Que Devemos Pensar Sobre Israel',e:'Chamada', p:33.50,c:27.00,s:3, cat:'Profecia'},
+  {t:'O Que Os Pais Da Igreja Falaram Sobre O Futuro',e:'Chamada',p:77.00,c:50.00,s:3,cat:'Profecia'},
+  {t:'O Todo Suficiente Nome de Jesus Cristo',e:'DLC',p:32.00,c:20.00,s:3,cat:'Devocional'},
+  {t:'Os Dons Espirituais',             e:'DLC',      p:12.00,c:12.00,s:3, cat:'Teologia'},
+  {t:'Os Outros Da Bíblia',             e:'Lucas',    p:40.00,c:36.60,s:3, cat:'Bíblia'},
+  {t:'Os Planos Proféticos de Cristo',  e:'Deivison', p:55.00,c:55.00,s:3, cat:'Profecia'},
+  {t:'Outro Evangelho',                 e:'Lucas',    p:55.00,c:54.49,s:3, cat:'Teologia'},
+  {t:'Pais Apostólicos',                e:'Lucas',    p:40.00,c:38.94,s:3, cat:'Teologia'},
+  {t:'Perguntas Essenciais Para O Fim Dos Tempos',e:'Verdade',p:18.00,c:17.90,s:3,cat:'Profecia'},
+  {t:'Princípios Fundamentais Da Igreja Do Novo Testamento',e:'Verdade',p:15.00,c:14.90,s:3,cat:'Teologia'},
+  {t:'Problemas Humanos',               e:'Verdade',  p:23.00,c:22.90,s:3, cat:'Vida Cristã'},
+  {t:'Seguindo Cristo em uma Era de Confusão',e:'Verdade',p:29.90,c:29.90,s:3,cat:'Vida Cristã'},
+  {t:'Sofrimento',                      e:'Verdade',  p:29.90,c:29.90,s:3, cat:'Devocional'},
+  {t:'Topia',                           e:'Chamada',  p:71.00,c:55.00,s:3, cat:'Teologia'},
+  {t:'Trazendo-Nos À Glória',           e:'Verdade',  p:39.90,c:39.90,s:3, cat:'Devocional'},
+  {t:'Trindade Explicada',              e:'Lucas',    p:45.00,c:44.90,s:3, cat:'Teologia'},
+  {t:'Você Pergunta, A Bíblia Responde',e:'DLC',      p:15.00,c:14.00,s:3, cat:'Bíblia'},
+  {t:'Lições para Líderes Volume 3',    e:'SBC',      p:35.00,c:35.00,s:3, cat:'Liderança'},
+  {t:'Mcnair',                          e:'Deivison', p:38.50,c:38.50,s:3, cat:'Teologia'},
+  {t:'Cristãos Que Marcaram A História',e:'Chamada',  p:72.00,c:58.50,s:3, cat:'Biografia'},
+].map((l, i) => ({ id: i + 1, titulo: l.t, editora: l.e, preco: l.p, custo: l.c, estoque: l.s, categoria: l.cat, autor: '', capa: '', alertaBaixo: 3 }));
+
+function getLivros() {
+  const saved = get('abcl-livraria-livros');
+  if (saved && saved.length > 0) return saved;
+  set('abcl-livraria-livros', CATALOGO_DEFAULT);
+  return CATALOGO_DEFAULT;
+}
+function getSales()   { return get('abcl-livraria-sales') || []; }
+function getPessoas() { return get('abcl-pessoas') || []; }
+function getDefinicoes() { return get('abcl-definicoes') || { pixChave:'', pixNome:'ABCL', pixCidade:'CONSELHEIRO LAFAIETE' }; }
+
+// ══════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════
+let cart = [];
+let cliente = '';
+let periodo = 'Manhã';
+let pagamento = 'PIX';
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+function initApp() {
+  ajustarAlturaLayout();
+  renderLivros();
+  renderCart();
+  renderStats();
+  renderHistorico();
+  renderBestSellers();
+  renderEstoque();
+  buscarCapasGoogle();
+}
+
+// ══════════════════════════════════════════════════
+// VIEW TABS
+// ══════════════════════════════════════════════════
+function switchView(name, btn) {
+  document.querySelectorAll('.view-panel').forEach(p => { p.style.display='none'; p.classList.remove('active'); });
+  document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('vp-caixa').style.display    = name === 'caixa' ? 'block' : 'none';
+  const panel = document.getElementById('vp-' + name);
+  if (panel) { panel.style.display = 'block'; panel.classList.add('active'); }
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+// BUSCA FUZZY
+// ══════════════════════════════════════════════════
+function fuzzyMatch(str, query) {
+  if (!query) return true;
+  const s = str.toLowerCase(); const q = query.toLowerCase();
+  // Match direto
+  if (s.includes(q)) return true;
+  // Match fuzzy — cada char do query deve aparecer em ordem
+  let qi = 0;
+  for (let i = 0; i < s.length && qi < q.length; i++) { if (s[i] === q[qi]) qi++; }
+  return qi === q.length;
+}
+
+// ══════════════════════════════════════════════════
+// RENDER LIVROS
+// ══════════════════════════════════════════════════
+function renderLivros() {
+  const livros  = getLivros();
+  const busca   = document.getElementById('busca')?.value.trim() || '';
+  const edFiltro= document.getElementById('filtro-editora')?.value || '';
+  const catFiltro=document.getElementById('filtro-cat')?.value || '';
+
+  const filtrados = livros.filter(l => {
+    const termoBusca = `${l.titulo} ${l.autor} ${l.editora} ${l.categoria}`;
+    if (!fuzzyMatch(termoBusca, busca)) return false;
+    if (edFiltro && l.editora !== edFiltro) return false;
+    if (catFiltro && l.categoria !== catFiltro) return false;
+    return true;
+  });
+
+  const grid  = document.getElementById('livros-grid');
+  const empty = document.getElementById('livros-empty');
+
+  if (filtrados.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtrados.map(l => {
+    const esgotado = l.estoque <= 0;
+    const baixo    = !esgotado && l.estoque <= (l.alertaBaixo || 3);
+    return `
+    <div class="livro-card ${esgotado?'esgotado':baixo?'estoque-baixo':''}"
+      onclick="addToCart(${l.id})"
+      onmouseenter="showTooltip(event,${l.id})"
+      onmouseleave="hideTooltip()"
+      onmousemove="moveTooltip(event)"
+      ontouchstart="startLongPress(${l.id})"
+      ontouchend="cancelLongPress()"
+      ontouchmove="cancelLongPress()"
+      title="${l.titulo}">
+      <div class="livro-capa" id="capa-wrap-${l.id}">
+        ${l.capa
+          ? `<img src="${l.capa}" alt="${l.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='📖'" />`
+          : `<span style="font-size:2rem;">📖</span>`}
+      </div>
+      <div class="livro-info">
+        <div class="livro-titulo">${l.titulo}</div>
+        <div class="livro-editora">${l.editora}${l.autor?' · '+l.autor:''}</div>
+        <div class="livro-preco">R$ ${l.preco.toFixed(2).replace('.',',')}</div>
+        <div class="livro-estoque ${esgotado?'esgotado-badge':baixo?'estoque-baixo-badge':''}">
+          ${esgotado ? '✕ Esgotado' : baixo ? `⚠ Restam ${l.estoque}` : `Estoque: ${l.estoque}`}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+// CAPAS — Google Books API
+// ══════════════════════════════════════════════════
+async function buscarCapasGoogle() {
+  const livros = getLivros();
+  const semCapa = livros.filter(l => !l.capa).slice(0, 20); // máx 20 por vez
+  if (semCapa.length === 0) return;
+
+  for (const l of semCapa) {
+    try {
+      const q = encodeURIComponent(l.titulo + (l.autor ? ' ' + l.autor : ''));
+      const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&fields=items(volumeInfo(imageLinks))`);
+      const data = await res.json();
+      const img = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+      if (img) {
+        l.capa = img.replace('http:', 'https:').replace('zoom=1','zoom=2');
+        // Atualiza o wrap visualmente sem re-renderizar tudo
+        const wrap = document.getElementById(`capa-wrap-${l.id}`);
+        if (wrap) wrap.innerHTML = `<img src="${l.capa}" alt="${l.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='📖'" />`;
+      }
+    } catch(e) {}
+    await new Promise(r => setTimeout(r, 120)); // throttle gentil
+  }
+  set('abcl-livraria-livros', livros);
+}
+
+// ══════════════════════════════════════════════════
+// CARRINHO
+// ══════════════════════════════════════════════════
+function addToCart(id) {
+  const livros = getLivros();
+  const l = livros.find(x => x.id === id);
+  if (!l || l.estoque <= 0) return;
+
+  // Verificar estoque vs carrinho
+  const noCart = cart.find(x => x.id === id);
+  if (noCart) {
+    if (noCart.qtd >= l.estoque) { toast('⛔ Limite de estoque!'); return; }
+    noCart.qtd++;
+  } else {
+    cart.push({ id: l.id, titulo: l.titulo, preco: l.preco, qtd: 1, capa: l.capa });
+  }
+  renderCart();
+}
+
+function changeQty(id, delta) {
+  const idx = cart.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  if (delta > 0) {
+    const livros = getLivros();
+    const l = livros.find(x => x.id === id);
+    if (l && cart[idx].qtd >= l.estoque) { toast('⛔ Limite de estoque!'); return; }
+  }
+  cart[idx].qtd += delta;
+  if (cart[idx].qtd <= 0) cart.splice(idx, 1);
+  renderCart();
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-items');
+  const desconto  = parseFloat(document.getElementById('desconto')?.value) || 0;
+  const oferta    = parseFloat(document.getElementById('oferta')?.value)   || 0;
+  const subtotal  = cart.reduce((s, i) => s + i.preco * i.qtd, 0);
+  const total     = Math.max(0, subtotal - desconto + oferta);
+
+  document.getElementById('cart-total').textContent = `R$ ${total.toFixed(2).replace('.',',')}`;
+
+  if (cart.length === 0) { container.innerHTML = '<div class="pedido-vazio">Toque em um livro para adicionar.</div>'; return; }
+
+  container.innerHTML = cart.map(i => `
+    <div class="item-pedido">
+      <div class="item-nome">${i.titulo}</div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty(${i.id},-1)">−</button>
+        <span class="qty-num">${i.qtd}</span>
+        <button class="qty-btn" onclick="changeQty(${i.id},1)">+</button>
+      </div>
+      <div class="item-preco">R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}</div>
+    </div>`).join('');
+}
+
+function limparPedido() {
+  cart = []; cliente = '';
+  document.getElementById('busca-cliente').value = '';
+  document.getElementById('cliente-chip').className = 'cliente-chip';
+  document.getElementById('input-avulso').style.display = 'none';
+  document.getElementById('desconto').value = '';
+  document.getElementById('oferta').value   = '';
+  renderCart();
+}
+
+// ══════════════════════════════════════════════════
+// CLIENTE / PESSOA
+// ══════════════════════════════════════════════════
+function filtrarClientes(q) {
+  const dd = document.getElementById('dropdown-clientes');
+  const pessoas = getPessoas();
+  const termo = q.trim().toLowerCase();
+  const matches = [
+    ...pessoas.filter(p => !termo || p.toLowerCase().includes(termo)),
+    '✦ Avulso (digitar nome)',
+  ].slice(0, 20);
+
+  if (!document.getElementById('busca-cliente').matches(':focus')) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = matches.map(p => {
+    const isAvulso = p.startsWith('✦');
+    return `<div onclick="selecionarCliente('${isAvulso?'__avulso__':p.replace(/'/g,"\\'")}','${isAvulso?'':p.replace(/'/g,"\\'")}')"
+      style="padding:.6rem 1rem;cursor:pointer;font-size:.82rem;border-bottom:1px solid rgba(91,141,193,.07);${isAvulso?'color:var(--suave);font-style:italic;':''}transition:background .12s;"
+      onmouseover="this.style.background='rgba(37,99,235,.12)'" onmouseout="this.style.background=''">
+      ${isAvulso ? p : `<span style="color:var(--azul-cl);margin-right:.4rem;">👤</span>${p}`}
+    </div>`;
+  }).join('');
+}
+
+function selecionarCliente(val, label) {
+  document.getElementById('dropdown-clientes').style.display = 'none';
+  const inp  = document.getElementById('input-avulso');
+  const chip = document.getElementById('cliente-chip');
+  if (val === '__avulso__') {
+    inp.style.display = 'block'; chip.className = 'cliente-chip';
+    document.getElementById('busca-cliente').value = '';
+    cliente = ''; inp.focus();
+  } else {
+    inp.style.display = 'none'; inp.value = '';
+    chip.className = 'cliente-chip show';
+    document.getElementById('cliente-chip-nome').textContent = label;
+    document.getElementById('busca-cliente').value = '';
+    cliente = val;
+  }
+}
+
+function limparCliente() {
+  cliente = '';
+  document.getElementById('cliente-chip').className = 'cliente-chip';
+  document.getElementById('busca-cliente').value = '';
+  document.getElementById('input-avulso').style.display = 'none';
+}
+
+function setClienteAvulso() { cliente = document.getElementById('input-avulso').value.trim(); }
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.pedido-cliente')) document.getElementById('dropdown-clientes').style.display = 'none';
+});
+
+function setPeriodo(p, btn) {
+  periodo = p;
+  document.querySelectorAll('.periodo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setPag(p, btn) {
+  pagamento = p;
+  document.querySelectorAll('.pag-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+// CHECKOUT
+// ══════════════════════════════════════════════════
+function checkout() {
+  if (cart.length === 0)  { toast('Adicione livros ao pedido.'); return; }
+  if (!cliente)           { toast('⚠️ Selecione o cliente.'); document.getElementById('busca-cliente').focus(); return; }
+  if (!pagamento)         { toast('⚠️ Selecione o pagamento.'); return; }
+
+  const desconto = parseFloat(document.getElementById('desconto').value) || 0;
+  const oferta   = parseFloat(document.getElementById('oferta').value)   || 0;
+  const subtotal = cart.reduce((s, i) => s + i.preco * i.qtd, 0);
+  const total    = Math.max(0, subtotal - desconto + oferta);
+
+  // Validar estoque final
+  const livros = getLivros();
+  for (const ci of cart) {
+    const l = livros.find(x => x.id === ci.id);
+    if (l && ci.qtd > l.estoque) { toast(`⛔ Estoque insuficiente: ${ci.titulo}`); return; }
+  }
+
+  if (pagamento === 'PIX') { showQrPix(total, () => finalizarVenda(total, subtotal, desconto, oferta, livros)); return; }
+  finalizarVenda(total, subtotal, desconto, oferta, livros);
+}
+
+function finalizarVenda(total, subtotal, desconto, oferta, livros) {
+  const sale = {
+    id:        Date.now(),
+    cliente,   periodo,   pagamento,
+    pago:      pagamento !== 'Fiado',
+    desconto,  oferta,    subtotal,   total,
+    quitado:   false,
+    itens:     cart.map(i => ({ id:i.id, titulo:i.titulo, preco:i.preco, qtd:i.qtd })),
+    hora:      new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    data:      new Date().toLocaleDateString('pt-BR'),
+    origem:    'livraria',
+  };
+
+  // Baixar estoque
+  cart.forEach(ci => {
+    const l = livros.find(x => x.id === ci.id);
+    if (l) l.estoque = Math.max(0, l.estoque - ci.qtd);
+  });
+  set('abcl-livraria-livros', livros);
+
+  // Salvar venda local
+  const sales = getSales(); sales.unshift(sale);
+  set('abcl-livraria-sales', sales);
+
+  // ── Integrar com Financeiro ──
+  registrarNoFinanceiro(sale);
+
+  limparPedido();
+  renderLivros();
+  renderStats();
+  renderHistorico();
+  renderBestSellers();
+  renderEstoque();
+  toast(`✅ Venda finalizada! R$ ${total.toFixed(2)}`);
+}
+
+// ── Integração Financeiro ──
+function registrarNoFinanceiro(sale) {
+  try {
+    const receitas = get('abcl-fin-receitas') || [];
+    receitas.unshift({
+      id:          'liv_' + sale.id,
+      descricao:   `Livraria — ${sale.cliente} (${sale.itens.length} item${sale.itens.length!==1?'s':''})`,
+      categoria:   'Lucro Livraria',
+      valor:       sale.total,
+      data:        new Date().toISOString().slice(0,10),
+      status:      sale.pago ? 'Recebido' : 'Pendente',
+      obs:         `${sale.pagamento} · ${sale.periodo} · ${sale.itens.map(i=>i.titulo).join(', ')}`,
+      origem:      'livraria',
+    });
+    set('abcl-fin-receitas', receitas);
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════
+// STATS
+// ══════════════════════════════════════════════════
+function renderStats() {
+  const sales = getSales();
+  const total   = sales.reduce((s,v) => s + v.total, 0);
+  const fiado   = sales.filter(v => v.pagamento === 'Fiado' && !v.quitado).reduce((s,v) => s + v.total, 0);
+  const recebido= sales.filter(v => v.pago).reduce((s,v) => s + v.total, 0);
+  document.getElementById('s-vendas').textContent   = sales.length;
+  document.getElementById('s-total').textContent    = `R$ ${total.toFixed(2).replace('.',',')}`;
+  document.getElementById('s-fiado').textContent    = `R$ ${fiado.toFixed(2).replace('.',',')}`;
+  document.getElementById('s-recebido').textContent = `R$ ${recebido.toFixed(2).replace('.',',')}`;
+}
+
+// ══════════════════════════════════════════════════
+// HISTÓRICO
+// ══════════════════════════════════════════════════
+function renderHistorico() {
+  const sales = getSales();
+  const PAG_COR = { PIX:'var(--azul-cl)', Dinheiro:'var(--verde)', Fiado:'var(--amarelo)' };
+  document.getElementById('historico-list').innerHTML = sales.length ? sales.map(s => `
+    <tr>
+      <td style="color:var(--suave)">${s.data}</td>
+      <td style="color:var(--suave)">${s.hora}</td>
+      <td>${s.cliente}</td>
+      <td style="color:var(--suave)">${s.periodo}</td>
+      <td style="font-size:.7rem;color:var(--suave)">${s.itens.map(i=>i.titulo+'×'+i.qtd).join(', ')}</td>
+      <td><span style="color:${PAG_COR[s.pagamento]||'var(--texto)'};font-size:.75rem;">${s.pagamento}</span></td>
+      <td style="text-align:right;font-family:'Cinzel',serif;color:var(--azul-cl)">R$ ${s.total.toFixed(2).replace('.',',')}</td>
+    </tr>`).join('')
+  : '<tr><td colspan="7" style="text-align:center;color:var(--suave);padding:2rem;font-size:.78rem;">Nenhuma venda ainda.</td></tr>';
+}
+
+// ══════════════════════════════════════════════════
+// BEST SELLERS
+// ══════════════════════════════════════════════════
+function renderBestSellers() {
+  const sales = getSales();
+  const map   = {};
+  sales.forEach(s => s.itens.forEach(i => {
+    if (!map[i.titulo]) map[i.titulo] = { qtd:0, total:0 };
+    map[i.titulo].qtd   += i.qtd;
+    map[i.titulo].total += i.preco * i.qtd;
+  }));
+  const sorted = Object.entries(map).sort((a,b) => b[1].qtd - a[1].qtd).slice(0, 15);
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('bs-list').innerHTML = sorted.length ? sorted.map(([titulo, d], i) => `
+    <div class="bs-item">
+      <div class="bs-rank">${medals[i] || (i+1)}</div>
+      <div class="bs-info">
+        <div class="bs-titulo">${titulo}</div>
+        <div class="bs-det">${d.qtd} unidade${d.qtd!==1?'s':''} vendida${d.qtd!==1?'s':''}</div>
+      </div>
+      <div class="bs-val">R$ ${d.total.toFixed(2).replace('.',',')}</div>
+    </div>`).join('')
+  : '<p style="text-align:center;color:var(--suave);font-size:.82rem;padding:3rem 0;">Nenhuma venda registrada ainda.</p>';
+}
+
+// ══════════════════════════════════════════════════
+// ESTOQUE
+// ══════════════════════════════════════════════════
+function renderEstoque() {
+  const livros = getLivros();
+  document.getElementById('estoque-list').innerHTML = livros.map(l => {
+    const baixo = l.estoque > 0 && l.estoque <= (l.alertaBaixo||3);
+    const esgotado = l.estoque <= 0;
+    return `
+    <div class="estoque-item">
+      ${l.capa
+        ? `<img class="estoque-capa" src="${l.capa}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+        : `<div class="estoque-capa" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📖</div>`}
+      <div style="flex:1;min-width:0;">
+        <div class="estoque-nome">${l.titulo}</div>
+        <div class="estoque-editora">${l.editora}${l.categoria?' · '+l.categoria:''}</div>
+        <div style="font-size:.65rem;color:${esgotado?'var(--vermelho)':baixo?'var(--amarelo)':'var(--suave)'};">
+          ${esgotado?'⛔ Esgotado':baixo?`⚠ Baixo estoque`:''}
+          R$ ${l.preco.toFixed(2).replace('.',',')}
+        </div>
+      </div>
+      <input class="estoque-qty-input" type="number" value="${l.estoque}" min="0"
+        onchange="atualizarEstoque(${l.id},+this.value)" />
+      <button class="btn btn-ghost btn-sm" onclick="editarLivro(${l.id})" style="margin-left:.3rem;">✏️</button>
+      <button class="btn btn-sm" onclick="removerLivro(${l.id})" style="margin-left:.2rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:5px;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function atualizarEstoque(id, val) {
+  const livros = getLivros();
+  const l = livros.find(x => x.id === id);
+  if (l) { l.estoque = Math.max(0, val); set('abcl-livraria-livros', livros); renderLivros(); }
+}
+
+function salvarEstoque() {
+  const livros = getLivros();
+  document.querySelectorAll('.estoque-qty-input').forEach((inp, i) => {
+    if (livros[i]) livros[i].estoque = Math.max(0, parseInt(inp.value)||0);
+  });
+  set('abcl-livraria-livros', livros);
+  renderLivros();
+  renderEstoque();
+  toast('✅ Estoque salvo!');
+}
+
+function removerLivro(id) {
+  if (!confirm('Remover este livro?')) return;
+  const livros = getLivros().filter(l => l.id !== id);
+  set('abcl-livraria-livros', livros);
+  renderLivros(); renderEstoque();
+  toast('🗑 Livro removido.');
+}
+
+// ══════════════════════════════════════════════════
+// MODAL NOVO / EDITAR LIVRO
+// ══════════════════════════════════════════════════
+let _editLivroId = null;
+
+function abrirNovoLivro() {
+  _editLivroId = null;
+  document.getElementById('livro-modal-titulo').textContent = 'Novo livro';
+  ['lm-titulo','lm-autor','lm-preco','lm-custo','lm-estoque','lm-alerta','lm-capa-url','lm-desc'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
+  document.getElementById('lm-desc-count').textContent = '0/400';
+  document.getElementById('lm-editora').value  = '';
+  document.getElementById('lm-categoria').value= '';
+  document.getElementById('lm-capa-preview').style.display = 'none';
+  document.getElementById('livro-modal').style.display = 'flex';
+}
+
+function editarLivro(id) {
+  _editLivroId = id;
+  const l = getLivros().find(x => x.id === id);
+  if (!l) return;
+  document.getElementById('livro-modal-titulo').textContent = 'Editar livro';
+  document.getElementById('lm-titulo').value   = l.titulo   || '';
+  document.getElementById('lm-autor').value    = l.autor    || '';
+  document.getElementById('lm-editora').value  = l.editora  || '';
+  document.getElementById('lm-categoria').value= l.categoria|| '';
+  document.getElementById('lm-preco').value    = l.preco    || '';
+  document.getElementById('lm-custo').value    = l.custo    || '';
+  document.getElementById('lm-estoque').value  = l.estoque  || 0;
+  document.getElementById('lm-alerta').value   = l.alertaBaixo || 3;
+  document.getElementById('lm-capa-url').value = l.capa     || '';
+  document.getElementById('lm-desc').value      = l.desc     || '';
+  document.getElementById('lm-desc-count').textContent = (l.desc||'').length + '/400';
+  const prev = document.getElementById('lm-capa-preview');
+  if (l.capa) { prev.src = l.capa; prev.style.display = 'block'; }
+  else prev.style.display = 'none';
+  document.getElementById('livro-modal').style.display = 'flex';
+}
+
+function salvarLivro() {
+  const titulo = document.getElementById('lm-titulo').value.trim();
+  const preco  = parseFloat(document.getElementById('lm-preco').value);
+  if (!titulo || !preco) { toast('⚠️ Preencha título e preço.'); return; }
+  const livro = {
+    id:         _editLivroId || Date.now(),
+    titulo,
+    autor:      document.getElementById('lm-autor').value.trim(),
+    editora:    document.getElementById('lm-editora').value,
+    categoria:  document.getElementById('lm-categoria').value,
+    preco,
+    custo:      parseFloat(document.getElementById('lm-custo').value) || 0,
+    estoque:    parseInt(document.getElementById('lm-estoque').value) || 0,
+    alertaBaixo:parseInt(document.getElementById('lm-alerta').value)  || 3,
+    capa:       document.getElementById('lm-capa-url').value.trim(),
+    desc:       document.getElementById('lm-desc').value.trim(),
+  };
+  const livros = getLivros();
+  const idx = livros.findIndex(l => l.id === _editLivroId);
+  if (idx >= 0) livros[idx] = livro; else livros.push(livro);
+  set('abcl-livraria-livros', livros);
+  document.getElementById('livro-modal').style.display = 'none';
+  renderLivros(); renderEstoque();
+  toast(_editLivroId ? '✅ Livro atualizado!' : '✅ Livro adicionado!');
+}
+
+function previewCapa() {
+  const url = document.getElementById('lm-capa-url').value.trim();
+  const prev = document.getElementById('lm-capa-preview');
+  if (url) { prev.src = url; prev.style.display = 'block'; }
+  else prev.style.display = 'none';
+}
+
+function lerCapaFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('lm-capa-url').value = e.target.result;
+    previewCapa();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function buscarCapaGoogle() {
+  const titulo = document.getElementById('lm-titulo')?.value.trim();
+  if (!titulo) { toast('Digite o título primeiro.'); return; }
+  toast('🔍 Buscando capa...');
+  try {
+    const q = encodeURIComponent(titulo);
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&fields=items(volumeInfo(imageLinks))`);
+    const data = await res.json();
+    const img = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+    if (img) {
+      const url = img.replace('http:','https:').replace('zoom=1','zoom=2');
+      document.getElementById('lm-capa-url').value = url;
+      previewCapa();
+      toast('✅ Capa encontrada!');
+    } else { toast('Capa não encontrada no Google Books.'); }
+  } catch(e) { toast('Erro ao buscar capa.'); }
+}
+
+// ══════════════════════════════════════════════════
+// PIX QR CODE (offline — EMV)
+// ══════════════════════════════════════════════════
+function buildPixPayload(chave, nome, cidade, valor) {
+  const clean = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9 ]/g,'').substring(0,25).trim();
+  const emv   = (id, val) => `${id}${String(val.length).padStart(2,'0')}${val}`;
+  const merchant = emv('26', emv('00','BR.GOV.BCB.PIX') + emv('01', chave));
+  const amount   = valor > 0 ? emv('54', valor.toFixed(2)) : '';
+  const payload  = `000201${merchant}${emv('52','0000')}${emv('53','986')}${amount}${emv('58','BR')}${emv('59',clean(nome||'ABCL'))}${emv('60',clean(cidade||'BRASIL'))}${emv('62',emv('05','***'))}6304`;
+  let crc = 0xFFFF;
+  for (let i = 0; i < payload.length; i++) { crc ^= payload.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1; }
+  return payload + (crc & 0xFFFF).toString(16).toUpperCase().padStart(4,'0');
+}
+
+function gerarQRSVG(texto, container) {
+  // QR Code inline via API pública (fallback online) ou placeholder offline
+  container.innerHTML = `<div style="font-size:.7rem;color:#999;padding:1rem;">Carregando QR...</div>`;
+  const img = document.createElement('img');
+  img.style.cssText = 'width:200px;height:200px;border-radius:4px;';
+  img.onload = () => { container.innerHTML = ''; container.appendChild(img); };
+  img.onerror = () => { container.innerHTML = `<div style="font-size:.65rem;padding:1rem;word-break:break-all;color:#666;">${texto}</div>`; };
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(texto)}`;
+}
+
+function showQrPix(total, onConfirm) {
+  const def = getDefinicoes();
+  if (!def.pixChave) { toast('⚠️ Cadastre a chave PIX em Estoque & Definições da Vendinha.'); return; }
+  const payload = buildPixPayload(def.pixChave, def.pixNome, def.pixCidade, total);
+  document.getElementById('qr-valor').textContent  = `R$ ${total.toFixed(2).replace('.',',')}`;
+  document.getElementById('qr-chave').textContent  = def.pixChave;
+  gerarQRSVG(payload, document.getElementById('qr-container'));
+  document.getElementById('qr-modal').style.display = 'flex';
+  document.getElementById('qr-confirmar').onclick = () => {
+    document.getElementById('qr-modal').style.display = 'none';
+    onConfirm();
+  };
+}
+
+// ══════════════════════════════════════════════════
+// IMPORTAR CSV
+// ══════════════════════════════════════════════════
+function abrirImport() {
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('import-preview').innerHTML = '';
+  document.getElementById('csv-file').value = '';
+  document.getElementById('import-modal').style.display = 'flex';
+}
+
+document.getElementById('csv-file').addEventListener('change', function() {
+  const file = this.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').slice(0, 6);
+    const prev = document.getElementById('import-preview');
+    prev.textContent = lines.join('\n');
+    prev.style.display = 'block';
+  };
+  reader.readAsText(file, 'latin-1');
+});
+
+function executarImport() {
+  const file = document.getElementById('csv-file').files[0];
+  if (!file) { toast('Selecione um arquivo CSV.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines  = e.target.result.split('\n');
+    const header = lines[0].toLowerCase();
+    const livros = getLivros();
+    let importados = 0;
+    const isTitulo = i => i;
+
+    lines.slice(1).forEach(line => {
+      if (!line.trim()) return;
+      const parts = line.split(';').map(p => p.trim().replace(/^"|"$/g,''));
+      if (parts.length < 2) return;
+      // Tentar detectar formato
+      // Formato fechamento: Título;Pessoa;Editora;Qtd;Desc;Oferta;Total;Pagamento;TotalSite;TotalInicial
+      // Formato simples:    Título;Editora;Preço;Estoque;Categoria
+      let titulo, editora, preco, estoque, cat;
+      if (parts.length >= 9) {
+        // Formato fechamento — usa como catálogo
+        titulo  = parts[0];
+        editora = parts[2];
+        preco   = parseFloat(parts[6]?.replace('R$ ','').replace(',','.')) || 0;
+        estoque = 3;
+        cat     = '';
+      } else {
+        titulo  = parts[0];
+        editora = parts[1] || '';
+        preco   = parseFloat(parts[2]?.replace(',','.')) || 0;
+        estoque = parseInt(parts[3]) || 3;
+        cat     = parts[4] || '';
+      }
+      if (!titulo || !preco) return;
+      const existe = livros.find(l => l.titulo.toLowerCase() === titulo.toLowerCase());
+      if (!existe) {
+        livros.push({ id: Date.now() + Math.random(), titulo, editora, preco, custo: 0, estoque, categoria: cat, autor: '', capa: '', alertaBaixo: 3 });
+        importados++;
+      }
+    });
+
+    set('abcl-livraria-livros', livros);
+    document.getElementById('import-modal').style.display = 'none';
+    renderLivros(); renderEstoque();
+    toast(`✅ ${importados} livro${importados!==1?'s':''} importado${importados!==1?'s':''}!`);
+  };
+  reader.readAsText(file, 'latin-1');
+}
+
+// ══════════════════════════════════════════════════
+// EXPORT CSV HISTÓRICO
+// ══════════════════════════════════════════════════
+function exportCSV() {
+  const sales = getSales();
+  const rows = ['Data,Hora,Cliente,Período,Pagamento,Itens,Total'];
+  sales.forEach(s => rows.push(`${s.data},${s.hora},"${s.cliente}",${s.periodo},${s.pagamento},"${s.itens.map(i=>i.titulo+'x'+i.qtd).join('|')}",${s.total.toFixed(2)}`));
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.join('\n'));
+  a.download = `ABCL_Livraria_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ══════════════════════════════════════════════════
+// TOOLTIP DESKTOP + BOTTOM SHEET MOBILE
+// ══════════════════════════════════════════════════
+const tooltip = document.getElementById('livro-tooltip');
+let _tooltipTimer = null;
+let _lpTimer = null;
+let _bsLivroId = null;
+
+function showTooltip(e, id) {
+  // Só em desktop (pointer não touch)
+  if (window.matchMedia('(hover: none)').matches) return;
+  _tooltipTimer = setTimeout(() => {
+    const l = getLivros().find(x => x.id === id);
+    if (!l) return;
+    document.getElementById('tt-titulo').textContent = l.titulo;
+    document.getElementById('tt-autor').textContent  = [l.autor, l.editora].filter(Boolean).join(' · ');
+    document.getElementById('tt-desc').textContent   = l.desc || (l.categoria ? `Categoria: ${l.categoria}` : 'Sem descrição disponível.');
+    document.getElementById('tt-preco').textContent  = `R$ ${l.preco.toFixed(2).replace('.',',')}`;
+    const tags = [l.categoria, l.editora, l.estoque > 0 ? `Estoque: ${l.estoque}` : 'Esgotado'].filter(Boolean);
+    document.getElementById('tt-tags').innerHTML = tags.map(t => `<span class="tt-tag">${t}</span>`).join('');
+    tooltip.classList.add('visible');
+    moveTooltip(e);
+  }, 400);
+}
+
+function hideTooltip() {
+  clearTimeout(_tooltipTimer);
+  tooltip.classList.remove('visible');
+}
+
+function moveTooltip(e) {
+  if (!tooltip.classList.contains('visible')) return;
+  const x = e.clientX + 16;
+  const y = e.clientY + 16;
+  const w = tooltip.offsetWidth;
+  const h = tooltip.offsetHeight;
+  tooltip.style.left = (x + w > window.innerWidth  ? x - w - 32 : x) + 'px';
+  tooltip.style.top  = (y + h > window.innerHeight ? y - h - 32 : y) + 'px';
+}
+
+// Long press para mobile
+function startLongPress(id) {
+  cancelLongPress();
+  _lpTimer = setTimeout(() => abrirBottomSheet(id), 600);
+}
+function cancelLongPress() {
+  if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+}
+
+function abrirBottomSheet(id) {
+  const l = getLivros().find(x => x.id === id);
+  if (!l) return;
+  _bsLivroId = id;
+
+  const capaEl = document.getElementById('bs-capa');
+  if (l.capa) { capaEl.src = l.capa; capaEl.style.display = 'block'; }
+  else capaEl.style.display = 'none';
+
+  document.getElementById('bs-titulo').textContent = l.titulo;
+  document.getElementById('bs-autor').textContent  = l.autor || '';
+  document.getElementById('bs-meta').textContent   = [l.editora, l.categoria].filter(Boolean).join(' · ');
+  document.getElementById('bs-preco').textContent  = `R$ ${l.preco.toFixed(2).replace('.',',')}`;
+  document.getElementById('bs-desc').textContent   = l.desc || 'Nenhuma descrição disponível para este título.';
+
+  const addBtn = document.getElementById('bs-add-btn');
+  addBtn.disabled = l.estoque <= 0;
+  addBtn.textContent = l.estoque <= 0 ? 'Esgotado' : '+ Adicionar ao pedido';
+
+  document.getElementById('bs-overlay').classList.add('open');
+}
+
+function fecharBottomSheet(e) {
+  if (e && e.target !== document.getElementById('bs-overlay')) return;
+  document.getElementById('bs-overlay').classList.remove('open');
+  _bsLivroId = null;
+}
+
+function addFromSheet() {
+  if (_bsLivroId) addToCart(_bsLivroId);
+  document.getElementById('bs-overlay').classList.remove('open');
+  _bsLivroId = null;
+}
+
+// Fechar bottom sheet com swipe down
+let _bsTouchY = 0;
+document.getElementById('bottom-sheet').addEventListener('touchstart', e => { _bsTouchY = e.touches[0].clientY; });
+document.getElementById('bottom-sheet').addEventListener('touchmove', e => {
+  if (e.touches[0].clientY - _bsTouchY > 80) fecharBottomSheet({ target: document.getElementById('bs-overlay') });
+});
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>

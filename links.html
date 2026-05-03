@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABCL — Links</title>
+  <meta name="description" content="Links oficiais do Acampamento Bíblico Conselheiro Lafaiete." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --verde:       #2D6A4F;
+      --verde-mid:   #40916C;
+      --verde-claro: #74C69D;
+      --fundo:       #0A1610;
+      --card:        #0F1E17;
+      --texto:       #F0EDE6;
+      --suave:       rgba(240,237,230,0.5);
+      --borda:       rgba(64,145,108,0.22);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .page { width: 100%; max-width: 480px; }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      animation: fadeUp .6s ease both;
+    }
+
+    .logo-wrap {
+      width: 90px; height: 90px;
+      margin: 0 auto 1rem;
+      background: rgba(64,145,108,0.1);
+      border: 1px solid var(--borda);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    .logo-wrap img {
+      width: 70px;
+      height: 70px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,.4));
+    }
+
+    .org-name {
+      font-family: 'Cinzel', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--verde-claro);
+      margin-bottom: .25rem;
+    }
+
+    .org-sub {
+      font-size: .75rem;
+      color: var(--suave);
+      letter-spacing: .06em;
+    }
+
+    /* ── Links ── */
+    .links { display: flex; flex-direction: column; gap: .75rem; }
+
+    .link-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--card);
+      border: 1px solid var(--borda);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      text-decoration: none;
+      color: var(--texto);
+      transition: transform .18s, border-color .18s, background .18s;
+      animation: fadeUp .6s ease both;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .link-item:hover {
+      transform: translateY(-2px);
+      border-color: var(--verde-claro);
+      background: rgba(64,145,108,0.1);
+    }
+
+    .link-item:active { transform: scale(.98); }
+
+    .link-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.3rem;
+    }
+
+    .link-info { flex: 1; min-width: 0; }
+
+    .link-title {
+      font-weight: 600;
+      font-size: .95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .link-desc {
+      font-size: .75rem;
+      color: var(--suave);
+      margin-top: .15rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .link-arrow {
+      color: var(--verde-claro);
+      opacity: .6;
+      flex-shrink: 0;
+    }
+
+    /* Seção separador */
+    .section-label {
+      font-size: .62rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--suave);
+      text-align: center;
+      margin: 1.5rem 0 .75rem;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 2.5rem;
+      font-size: .72rem;
+      color: rgba(240,237,230,.2);
+    }
+
+    .footer a {
+      color: var(--verde-claro);
+      text-decoration: none;
+      opacity: .5;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Staggered delays */
+    .link-item:nth-child(1)  { animation-delay: .05s }
+    .link-item:nth-child(2)  { animation-delay: .10s }
+    .link-item:nth-child(3)  { animation-delay: .15s }
+    .link-item:nth-child(4)  { animation-delay: .20s }
+    .link-item:nth-child(5)  { animation-delay: .25s }
+    .link-item:nth-child(6)  { animation-delay: .30s }
+    .link-item:nth-child(7)  { animation-delay: .35s }
+    .link-item:nth-child(8)  { animation-delay: .40s }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-wrap">
+      <img src="assets/logo-abcl.svg" onerror="this.src='assets/logo-abcl.png'" alt="Logo ABCL" />
+    </div>
+    <div class="org-name" id="hl-nome">ABCL</div>
+    <div class="org-sub" id="hl-sub">Acampamento Bíblico · Conselheiro Lafaiete</div>
+  </div>
+
+  <!-- Links principais -->
+  <div class="links" id="links-container">
+    <!-- Renderizado via JS a partir de LINKS_DATA -->
+  </div>
+
+  <div class="footer">
+    <p>© 2026 Mocidade da Casa de Oração</p>
+    <p style="margin-top:.4rem"><a href="admin.html">⚙ Admin</a></p>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// DADOS — editados pelo admin.html
+// ══════════════════════════════════════════════════
+const DEFAULT_LINKS = [
+  { id:1, icon:'📋', label:'Inscrição', desc:'Formulário oficial 2026', url:'https://forms.gle/VAdsxWVp7fedCzD76', bg:'rgba(64,145,108,.25)' },
+  { id:2, icon:'📸', label:'Instagram', desc:'@abcl.oficial', url:'https://instagram.com/', bg:'rgba(225,48,108,.22)' },
+  { id:3, icon:'▶️', label:'YouTube',   desc:'Mensagens e louvor',     url:'https://youtube.com/', bg:'rgba(255,0,0,.18)' },
+  { id:4, icon:'💬', label:'WhatsApp',  desc:'(31) 98826-2599',        url:'https://wa.me/5531988262599', bg:'rgba(37,211,102,.2)' },
+  { id:5, icon:'📍', label:'Localização', desc:'Sítio Recanto Del Rey — Queluzito/MG', url:'https://maps.google.com/?q=Queluzito+MG', bg:'rgba(66,133,244,.2)' },
+  { id:6, icon:'💰', label:'Doações / PIX', desc:'Apoie o acampamento', url:'#', bg:'rgba(201,169,75,.22)' },
+  { id:7, icon:'🏕', label:'Site do Acampamento', desc:'Informações, temas e inscrições', url:'index.html', bg:'rgba(64,145,108,.18)' },
+];
+
+const DEFAULT_HEADER = {
+  nome: 'ABCL',
+  sub:  'Acampamento Bíblico · Conselheiro Lafaiete',
+};
+
+function loadData() {
+  try {
+    const links  = JSON.parse(localStorage.getItem('abcl-links'))  || DEFAULT_LINKS;
+    const header = JSON.parse(localStorage.getItem('abcl-header')) || DEFAULT_HEADER;
+    return { links, header };
+  } catch { return { links: DEFAULT_LINKS, header: DEFAULT_HEADER }; }
+}
+
+function render() {
+  const { links, header } = loadData();
+
+  document.getElementById('hl-nome').textContent = header.nome;
+  document.getElementById('hl-sub').textContent  = header.sub;
+
+  const container = document.getElementById('links-container');
+  container.innerHTML = links.map((l, i) => `
+    <a class="link-item" href="${l.url || '#'}" target="${l.url && l.url !== '#' ? '_blank' : '_self'}" rel="noopener noreferrer" style="animation-delay:${.05 + i*.05}s">
+      <div class="link-icon" style="background:${l.bg || 'rgba(64,145,108,.2)'}">
+        <span>${l.icon || '🔗'}</span>
+      </div>
+      <div class="link-info">
+        <div class="link-title">${l.label}</div>
+        ${l.desc ? `<div class="link-desc">${l.desc}</div>` : ''}
+      </div>
+      <svg class="link-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </a>
+  `).join('');
+}
+
+render();
+</script>
+</body>
+</html>

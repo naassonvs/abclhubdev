@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABCL — Formulário</title>
+  <meta name="description" content="Formulário do Acampamento Bíblico de Conselheiro Lafaiete." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root[data-theme="dark"] {
+      --bg:        #08120D;
+      --card:      #111E16;
+      --card2:     #162318;
+      --texto:     #EDE8DF;
+      --suave:     rgba(237,232,223,0.45);
+      --borda:     rgba(64,145,108,0.22);
+      --verde-mid: #40916C;
+      --verde-cl:  #74C69D;
+      --input-bg:  rgba(255,255,255,0.04);
+      --shadow:    0 4px 24px rgba(0,0,0,.45);
+    }
+    :root[data-theme="light"] {
+      --bg:        #F2EFE8;
+      --card:      #FFFFFF;
+      --card2:     #F8F5EF;
+      --texto:     #1C2E24;
+      --suave:     rgba(28,46,36,0.5);
+      --borda:     rgba(45,106,79,0.22);
+      --verde-mid: #40916C;
+      --verde-cl:  #2D6A4F;
+      --input-bg:  rgba(0,0,0,0.035);
+      --shadow:    0 4px 24px rgba(0,0,0,.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg); color: var(--texto);
+      min-height: 100vh;
+      transition: background .3s, color .3s;
+    }
+
+    /* ── Top bar ── */
+    .top-bar {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--card); border-bottom: 1px solid var(--borda);
+      padding: .6rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .top-bar-logo { display: flex; align-items: center; gap: .6rem; }
+    .top-bar-logo img { width: 28px; height: 28px; }
+    .top-bar-logo span { font-family: 'Cinzel', serif; font-size: .82rem; color: var(--verde-cl); }
+    .theme-btn {
+      background: var(--card2); border: 1px solid var(--borda);
+      border-radius: 99px; padding: .3rem .7rem;
+      font-size: .7rem; color: var(--suave); cursor: pointer;
+      transition: all .2s;
+    }
+    .theme-btn:hover { border-color: var(--verde-mid); color: var(--verde-mid); }
+
+    /* ── Progress ── */
+    .progress-bar {
+      height: 3px; background: var(--borda);
+      position: sticky; top: 44px; z-index: 49;
+    }
+    .progress-bar-fill {
+      height: 100%; background: var(--verde-mid);
+      transition: width .4s ease; width: 0%;
+    }
+
+    /* ── Page ── */
+    .page { max-width: 600px; margin: 0 auto; padding: 2rem 1.25rem 5rem; }
+
+    /* ── Capa ── */
+    .capa-img {
+      width: 100%; max-height: 200px; object-fit: cover;
+      border-radius: 14px; margin-bottom: 1.5rem;
+    }
+
+    /* ── Header ── */
+    .form-header {
+      text-align: center; margin-bottom: 2rem;
+    }
+    .form-logo {
+      width: 72px; height: 72px; margin: 0 auto .85rem;
+      background: rgba(64,145,108,.1); border: 1px solid var(--borda);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .form-logo img { width: 54px; height: 54px; object-fit: contain; }
+    .form-titulo {
+      font-family: 'Cinzel', serif; font-size: 1.5rem;
+      color: var(--texto); margin-bottom: .4rem;
+    }
+    .form-subtitulo { font-size: .88rem; color: var(--suave); line-height: 1.6; }
+
+    /* ── Seção ── */
+    .form-secao {
+      background: var(--card); border: 1px solid var(--borda);
+      border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem;
+      box-shadow: var(--shadow); transition: background .3s;
+    }
+    .secao-titulo {
+      font-size: .68rem; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--verde-cl); font-weight: 600; margin-bottom: .35rem;
+    }
+    .secao-desc { font-size: .78rem; color: var(--suave); }
+
+    /* ── Campo ── */
+    .campo { margin-bottom: 1.1rem; }
+    .campo:last-child { margin-bottom: 0; }
+    .campo-label {
+      font-size: .72rem; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--suave); margin-bottom: .4rem;
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .campo-label .req { color: var(--verde-cl); }
+    .campo-desc { font-size: .75rem; color: var(--suave); margin-bottom: .45rem; line-height: 1.5; }
+
+    .campo input, .campo select, .campo textarea {
+      width: 100%; background: var(--input-bg);
+      border: 1px solid var(--borda); border-radius: 10px;
+      padding: .8rem 1rem; font-family: 'Inter', sans-serif;
+      font-size: 1rem; color: var(--texto); outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .campo input:focus, .campo select:focus, .campo textarea:focus {
+      border-color: var(--verde-mid);
+      box-shadow: 0 0 0 3px rgba(64,145,108,0.15);
+    }
+    .campo input::placeholder, .campo textarea::placeholder { color: var(--suave); opacity: .6; }
+    .campo select option { background: var(--card); }
+    .campo textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+
+    /* ── Opções radio/checkbox ── */
+    .opcoes { display: flex; flex-direction: column; gap: .5rem; }
+    .opcoes.horizontal { flex-direction: row; flex-wrap: wrap; }
+
+    .opcao-item {
+      display: flex; align-items: center; gap: .65rem;
+      background: var(--card2); border: 1px solid var(--borda);
+      border-radius: 10px; padding: .65rem 1rem; cursor: pointer;
+      transition: border-color .18s, background .18s; font-size: .88rem;
+      user-select: none;
+    }
+    .opcao-item:hover { border-color: var(--verde-mid); background: rgba(64,145,108,.07); }
+    .opcao-item.sel    { border-color: var(--verde-mid); background: rgba(64,145,108,.14); color: var(--texto); }
+
+    .opcao-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--borda); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .18s; position: relative;
+    }
+    .opcao-item.sel .opcao-dot { border-color: var(--verde-mid); }
+    .opcao-dot::after {
+      content:''; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--verde-mid); display: none;
+    }
+    .opcao-item.sel .opcao-dot::after { display: block; }
+
+    .opcao-box {
+      width: 18px; height: 18px; border-radius: 5px;
+      border: 2px solid var(--borda); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; transition: all .18s;
+    }
+    .opcao-item.sel .opcao-box { background: var(--verde-mid); border-color: var(--verde-mid); color: #fff; }
+
+    /* ── Imagem no formulário ── */
+    .campo-img {
+      width: 100%; border-radius: 10px; margin-bottom: .5rem;
+      object-fit: cover; max-height: 220px;
+    }
+
+    /* ── Erro ── */
+    .campo.erro .campo input,
+    .campo.erro .campo-input { border-color: #EF4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,.12) !important; }
+    .erro-msg { font-size: .7rem; color: #EF4444; margin-top: .3rem; display: none; }
+    .campo.erro .erro-msg { display: block; }
+
+    /* ── Submit ── */
+    .submit-area { text-align: center; margin-top: 1.5rem; }
+    .btn-submit {
+      background: var(--verde-mid); color: #fff;
+      border: none; border-radius: 12px; padding: .95rem 2.5rem;
+      font-family: 'Cinzel', serif; font-size: .95rem; font-weight: 600;
+      letter-spacing: .06em; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(64,145,108,.35);
+      transition: background .2s, transform .15s, box-shadow .2s;
+      display: inline-flex; align-items: center; gap: .6rem;
+    }
+    .btn-submit:hover { background: var(--verde-cl); color: var(--bg); transform: translateY(-2px); }
+    .btn-submit:disabled { opacity: .5; pointer-events: none; }
+
+    /* ── Sucesso ── */
+    .sucesso {
+      display: none; text-align: center;
+      background: var(--card); border: 1px solid var(--borda);
+      border-radius: 16px; padding: 3rem 2rem;
+      box-shadow: var(--shadow);
+    }
+    .sucesso.show { display: block; }
+    .sucesso-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .sucesso-titulo { font-family:'Cinzel',serif; font-size:1.3rem; color:var(--verde-cl); margin-bottom:.6rem; }
+    .sucesso-msg { font-size:.85rem; color:var(--suave); line-height:1.7; }
+
+    @media (max-width: 480px) {
+      .form-titulo { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-bar-logo">
+    <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
+    <span id="top-titulo">ABCL 2026</span>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ Claro</button>
+</div>
+<div class="progress-bar"><div class="progress-bar-fill" id="prog-fill"></div></div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="form-header" id="form-header">
+    <div class="form-logo">
+      <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
+    </div>
+    <h1 class="form-titulo" id="f-titulo">Carregando...</h1>
+    <p class="form-subtitulo" id="f-subtitulo"></p>
+  </div>
+
+  <!-- Campos gerados dinamicamente -->
+  <div id="form-body"></div>
+
+  <!-- Submit -->
+  <div class="submit-area" id="submit-area">
+    <button class="btn-submit" id="btn-submit" onclick="enviarFormulario()">
+      💬 <span id="btn-label">Enviar pelo WhatsApp</span>
+    </button>
+    <p style="font-size:.72rem;color:var(--suave);margin-top:.75rem;line-height:1.6;">
+      Suas respostas serão enviadas pelo WhatsApp para a coordenação.
+    </p>
+  </div>
+
+  <!-- Sucesso -->
+  <div class="sucesso" id="sucesso">
+    <div class="sucesso-icon">✅</div>
+    <div class="sucesso-titulo">Enviado com sucesso!</div>
+    <p class="sucesso-msg">
+      Suas respostas foram enviadas pelo WhatsApp.<br>
+      A coordenação entrará em contato em breve.
+    </p>
+    <a href="index.html" style="display:inline-block;margin-top:1.25rem;color:var(--verde-cl);font-size:.82rem;text-decoration:none;">← Voltar ao site</a>
+  </div>
+
+  <div style="text-align:center;margin-top:2.5rem;font-size:.68rem;color:var(--suave);">
+    © 2026 Mocidade da Casa de Oração
+    <a href="admin.html" style="color:rgba(116,198,157,.2);margin-left:.5rem;text-decoration:none;">⚙</a>
+  </div>
+</div>
+
+<script>
+// ── Tema ──
+(function() {
+  const t = localStorage.getItem('abcl-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = t === 'dark' ? '☀️ Claro' : '🌙 Escuro';
+})();
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = dark ? '🌙 Escuro' : '☀️ Claro';
+  localStorage.setItem('abcl-theme', dark ? 'light' : 'dark');
+}
+
+// ── Storage ──
+const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+
+// ── Defaults ──
+function getDefaultPerguntas() {
+  return [
+    { id:1, tipo:'radio',    label:'É sua primeira vez no ABCL?',               obrig:true,  opcoes:['Sim, primeira vez! 🎉','Já fui em edições anteriores'] },
+    { id:2, tipo:'select',   label:'Faixa etária',                               obrig:true,  opcoes:['Abaixo de 14 anos','14–17 anos','18–24 anos','25–35 anos','Acima de 35 anos'] },
+    { id:3, tipo:'texto',    label:'De qual cidade você vem?',                   obrig:true,  placeholder:'Ex: Conselheiro Lafaiete...' },
+    { id:4, tipo:'radio',    label:'Como ficou sabendo do acampamento?',         obrig:true,  opcoes:['Instagram','WhatsApp / indicação de amigo','Igreja','Já conhecia de outros anos','Outro'] },
+    { id:5, tipo:'radio',    label:'Toca instrumento ou canta?',                 obrig:true,  opcoes:['Sim — instrumento','Sim — canto','Ambos','Não'] },
+    { id:6, tipo:'texto',    label:'Se sim, qual(is) instrumento(s)?',           obrig:false, placeholder:'Ex: violão, bateria, piano...' },
+    { id:7, tipo:'radio',    label:'Interesse em servir na organização do ABCL?',obrig:true,  opcoes:['Sim, adoraria! 🙋','Talvez','Não desta vez'] },
+    { id:8, tipo:'textarea', label:'Alguma expectativa ou palavra para compartilhar?', obrig:false, placeholder:'Compartilhe o que quiser...' },
+  ];
+}
+
+
+// ── Carregar formulário pelo ?id= da URL ──
+(function carregarFormulario() {
+  const urlId = new URLSearchParams(window.location.search).get('id');
+  let formData = null;
+
+  try {
+    const lista = JSON.parse(localStorage.getItem('abcl-forms-lista') || '[]');
+    if (urlId) {
+      formData = lista.find(f => f.id === urlId) || null;
+    } else {
+      // Sem ID: pegar o primeiro formulário ativo, ou o de perfil
+      formData = lista.find(f => f.id === 'perfil') || lista.find(f => f.ativo) || lista[0] || null;
+    }
+  } catch(e) {}
+
+  if (!formData) {
+    // Fallback padrão caso não exista nada no localStorage
+    formData = {
+      titulo: 'Perfil do Acampante',
+      subtitulo: 'Conte um pouco mais sobre você 🏕️',
+      whats: '5531988262599',
+      btnLabel: 'Enviar pelo WhatsApp',
+      capa: '',
+      perguntas: getDefaultPerguntas(),
+    };
+  }
+
+  // Expor como constantes globais usadas pelo restante do código
+  window.CONFIG    = formData;
+  window.PERGUNTAS = (formData.perguntas && formData.perguntas.length > 0)
+    ? formData.perguntas
+    : getDefaultPerguntas();
+})();
+
+// ── Respostas coletadas ──
+const respostas = {};
+
+// ── Montar formulário ──
+function montarFormulario() {
+  document.getElementById('f-titulo').textContent    = CONFIG.titulo    || 'Formulário';
+  document.getElementById('f-subtitulo').textContent = CONFIG.subtitulo || '';
+  document.getElementById('top-titulo').textContent  = CONFIG.titulo    || 'ABCL';
+  document.getElementById('btn-label').textContent   = CONFIG.btnLabel  || 'Enviar pelo WhatsApp';
+
+  if (CONFIG.capa) {
+    const img = document.createElement('img');
+    img.src = CONFIG.capa; img.className = 'capa-img';
+    document.getElementById('form-header').insertAdjacentElement('beforebegin', img);
+  }
+
+  const body = document.getElementById('form-body');
+  body.innerHTML = '';
+
+  PERGUNTAS.forEach((p, i) => {
+    if (p.tipo === 'secao') {
+      const el = document.createElement('div');
+      el.className = 'form-secao';
+      el.innerHTML = `
+        <div class="secao-titulo">${p.label || ''}</div>
+        ${p.desc ? `<div class="secao-desc">${p.desc}</div>` : ''}
+      `;
+      body.appendChild(el);
+      return;
+    }
+
+    if (p.tipo === 'imagem') {
+      if (!p.imagemUrl) return;
+      const el = document.createElement('div');
+      el.style.marginBottom = '1rem';
+      el.innerHTML = `<img src="${p.imagemUrl}" class="capa-img" style="max-height:260px;" />`;
+      body.appendChild(el);
+      return;
+    }
+
+    const secao = document.createElement('div');
+    secao.className = 'form-secao';
+    secao.innerHTML = `
+      <div class="campo" id="campo-${p.id}">
+        <div class="campo-label">
+          ${i+1}. ${p.label}
+          ${p.obrig ? '<span class="req">*</span>' : ''}
+        </div>
+        ${p.desc ? `<div class="campo-desc">${p.desc}</div>` : ''}
+        <div id="input-wrap-${p.id}">${renderCampo(p)}</div>
+        <div class="erro-msg" id="erro-${p.id}">Campo obrigatório.</div>
+      </div>
+    `;
+    body.appendChild(secao);
+  });
+
+  atualizarProgresso();
+}
+
+function renderCampo(p) {
+  if (p.tipo === 'texto') {
+    return `<input type="text" id="inp-${p.id}" placeholder="${p.placeholder||''}"
+      oninput="salvarResposta(${p.id},this.value);atualizarProgresso()" />`;
+  }
+  if (p.tipo === 'numero') {
+    return `<input type="number" id="inp-${p.id}" placeholder="${p.placeholder||''}"
+      oninput="salvarResposta(${p.id},this.value);atualizarProgresso()" />`;
+  }
+  if (p.tipo === 'textarea') {
+    return `<textarea id="inp-${p.id}" placeholder="${p.placeholder||''}"
+      oninput="salvarResposta(${p.id},this.value);atualizarProgresso()"></textarea>`;
+  }
+  if (p.tipo === 'select') {
+    const opts = (p.opcoes||[]).map(o => `<option value="${o}">${o}</option>`).join('');
+    return `<select id="inp-${p.id}" onchange="salvarResposta(${p.id},this.value);atualizarProgresso()">
+      <option value="">Selecione...</option>${opts}</select>`;
+  }
+  if (p.tipo === 'radio') {
+    return `<div class="opcoes" id="opc-${p.id}">
+      ${(p.opcoes||[]).map(o => `
+        <label class="opcao-item" onclick="selecionarOpcao(${p.id},'${escapar(o)}',this,'radio')">
+          <div class="opcao-dot"></div> ${o}
+        </label>`).join('')}
+    </div>`;
+  }
+  if (p.tipo === 'checkbox') {
+    return `<div class="opcoes" id="opc-${p.id}">
+      ${(p.opcoes||[]).map(o => `
+        <label class="opcao-item" onclick="selecionarOpcao(${p.id},'${escapar(o)}',this,'checkbox')">
+          <div class="opcao-box"></div> ${o}
+        </label>`).join('')}
+    </div>`;
+  }
+  return '';
+}
+
+function escapar(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+function salvarResposta(id, val) {
+  respostas[id] = val;
+  const campo = document.getElementById(`campo-${id}`);
+  if (campo) campo.classList.remove('erro');
+}
+
+function selecionarOpcao(id, val, el, tipo) {
+  const wrap = document.getElementById(`opc-${id}`);
+  if (tipo === 'radio') {
+    wrap.querySelectorAll('.opcao-item').forEach(i => i.classList.remove('sel'));
+    el.classList.add('sel');
+    respostas[id] = val;
+  } else {
+    el.classList.toggle('sel');
+    const selecionados = [...wrap.querySelectorAll('.opcao-item.sel')].map(i => i.textContent.trim());
+    respostas[id] = selecionados.join(', ');
+    const box = el.querySelector('.opcao-box');
+    if (box) box.textContent = el.classList.contains('sel') ? '✓' : '';
+  }
+  const campo = document.getElementById(`campo-${id}`);
+  if (campo) campo.classList.remove('erro');
+  atualizarProgresso();
+}
+
+// ── Progresso ──
+function atualizarProgresso() {
+  const obrigatorias = PERGUNTAS.filter(p => p.obrig && p.tipo !== 'secao' && p.tipo !== 'imagem');
+  const respondidas  = obrigatorias.filter(p => respostas[p.id] && String(respostas[p.id]).trim());
+  const pct = obrigatorias.length ? (respondidas.length / obrigatorias.length) * 100 : 0;
+  document.getElementById('prog-fill').style.width = pct.toFixed(0) + '%';
+}
+
+// ── Validação ──
+function validar() {
+  let ok = true;
+  PERGUNTAS.forEach(p => {
+    if (!p.obrig || p.tipo === 'secao' || p.tipo === 'imagem') return;
+    const val = respostas[p.id];
+    if (!val || !String(val).trim()) {
+      document.getElementById(`campo-${p.id}`)?.classList.add('erro');
+      ok = false;
+    }
+  });
+  return ok;
+}
+
+// ── Envio ──
+function enviarFormulario() {
+  if (!validar()) {
+    const primeiro = document.querySelector('.campo.erro');
+    if (primeiro) primeiro.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+
+  const linhas = [`📋 *${CONFIG.titulo || 'Formulário ABCL 2026'}*`, ''];
+  PERGUNTAS.forEach(p => {
+    if (p.tipo === 'secao') { linhas.push(`\n*${p.label.toUpperCase()}*`); return; }
+    if (p.tipo === 'imagem') return;
+    const r = respostas[p.id];
+    if (r && String(r).trim()) linhas.push(`• *${p.label}:* ${r}`);
+    else if (!p.obrig) return;
+  });
+  linhas.push('', `_Enviado via ABCL 2026_`);
+
+  const whats = CONFIG.whats || '5531988262599';
+  const url   = `https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+
+  // Salvar para insights no admin
+  try {
+    const lista = JSON.parse(localStorage.getItem('abcl-insights') || '[]');
+    lista.unshift({ ts: Date.now(), data: new Date().toLocaleDateString('pt-BR'), ...respostas });
+    localStorage.setItem('abcl-insights', JSON.stringify(lista.slice(0, 500)));
+  } catch(e) {}
+
+  // Mostrar sucesso
+  document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
+  document.getElementById('sucesso').classList.add('show');
+  document.getElementById('prog-fill').style.width = '100%';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+montarFormulario();
+</script>
+</body>
+</html>
