@@ -484,6 +484,99 @@ function enviarFormulario() {
     return;
   }
 
+  // ── Verificar vagas disponíveis ──
+  const vagasStatus = verificarVagas();
+  if (vagasStatus === 'lotado') {
+    mostrarLotado(); return;
+  }
+  if (vagasStatus === 'fila') {
+    enviarComoFila(); return;
+  }
+
+  _executarEnvio();
+}
+
+function verificarVagas() {
+  if (!CONFIG.vagasMasc && !CONFIG.vagasFem && !CONFIG.vagasGeral) return 'ok';
+  const respostas_salvas = JSON.parse(localStorage.getItem('abcl-insights') || '[]');
+  const deste = respostas_salvas.filter(r => r.formId === (_formData?.id || ''));
+
+  // Detectar sexo da resposta atual
+  const pSexo = PERGUNTAS.find(p => p.label && p.label.toLowerCase().includes('sexo'));
+  const sexoAtual = pSexo ? respostas[pSexo.id] : '';
+
+  if (CONFIG.vagasGeral > 0 && deste.length >= CONFIG.vagasGeral) {
+    return CONFIG.filaEspera ? 'fila' : 'lotado';
+  }
+  if (CONFIG.vagasMasc > 0 && sexoAtual === 'Masculino') {
+    const masc = deste.filter(r => r[pSexo?.id] === 'Masculino').length;
+    if (masc >= CONFIG.vagasMasc) return CONFIG.filaEspera ? 'fila' : 'lotado';
+  }
+  if (CONFIG.vagasFem > 0 && sexoAtual === 'Feminino') {
+    const fem = deste.filter(r => r[pSexo?.id] === 'Feminino').length;
+    if (fem >= CONFIG.vagasFem) return CONFIG.filaEspera ? 'fila' : 'lotado';
+  }
+  return 'ok';
+}
+
+function mostrarLotado() {
+  document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
+  document.getElementById('prog-fill').style.width = '100%';
+  const s = document.getElementById('sucesso');
+  s.classList.add('show');
+  s.innerHTML = `
+    <div style="font-size:3rem;margin-bottom:1rem;">😔</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.2rem;color:#fca5a5;margin-bottom:.6rem;">Vagas esgotadas</div>
+    <p style="font-size:.85rem;color:var(--suave);line-height:1.7;max-width:360px;margin:0 auto;">
+      Infelizmente todas as vagas desta categoria já foram preenchidas.<br>
+      Entre em contato pelo WhatsApp para mais informações.
+    </p>
+    <a href="https://wa.me/${CONFIG.whats||'5531988262599'}" target="_blank" rel="noopener"
+      style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;background:#25D366;color:#fff;padding:.75rem 1.5rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.88rem;">
+      💬 Falar pelo WhatsApp
+    </a>
+    <a href="index.html" style="display:block;margin-top:1rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
+  `;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function enviarComoFila() {
+  // Registra como fila e envia mensagem diferenciada
+  const linhas = [`📋 *${CONFIG.titulo} — FILA DE ESPERA*`, ''];
+  PERGUNTAS.forEach(p => {
+    if (p.tipo === 'secao' || p.tipo === 'imagem') return;
+    const r = respostas[p.id];
+    if (r && String(r).trim()) linhas.push(`• *${p.label}:* ${r}`);
+  });
+  linhas.push('', `⏳ _Esta inscrição entrou na fila de espera_`, `_${CONFIG.filaMsg || 'Você está na fila de espera. Entraremos em contato caso uma vaga se abra.'}_`);
+
+  // Salvar com flag de fila
+  _salvarInsight(true);
+  window.open(`https://wa.me/${CONFIG.whats||'5531988262599'}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener');
+
+  const s = document.getElementById('sucesso');
+  document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
+  s.classList.add('show');
+  s.innerHTML = `
+    <div style="font-size:3rem;margin-bottom:1rem;">⏳</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.2rem;color:#fbbf24;margin-bottom:.6rem;">Você está na fila de espera</div>
+    <p style="font-size:.85rem;color:var(--suave);line-height:1.7;max-width:380px;margin:0 auto;">
+      ${CONFIG.filaMsg || 'Suas informações foram enviadas. Você será avisado pelo WhatsApp caso uma vaga se abra.'}
+    </p>
+    <a href="index.html" style="display:block;margin-top:1.25rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
+  `;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function _salvarInsight(filaEspera = false) {
+  try {
+    const lista = JSON.parse(localStorage.getItem('abcl-insights') || '[]');
+    lista.unshift({ ts: Date.now(), data: new Date().toLocaleDateString('pt-BR'), formId: _formData?.id || '', filaEspera, ...respostas });
+    localStorage.setItem('abcl-insights', JSON.stringify(lista.slice(0, 500)));
+  } catch(e) {}
+}
+
+function _executarEnvio() {
   const linhas = [`📋 *${CONFIG.titulo || 'Formulário ABCL 2026'}*`, ''];
   PERGUNTAS.forEach(p => {
     if (p.tipo === 'secao') { linhas.push(`\n*${p.label.toUpperCase()}*`); return; }
@@ -495,17 +588,9 @@ function enviarFormulario() {
   linhas.push('', `_Enviado via ABCL 2026_`);
 
   const whats = CONFIG.whats || '5531988262599';
-  const url   = `https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`;
-  window.open(url, '_blank', 'noopener,noreferrer');
+  window.open(`https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener,noreferrer');
+  _salvarInsight(false);
 
-  // Salvar para insights no admin
-  try {
-    const lista = JSON.parse(localStorage.getItem('abcl-insights') || '[]');
-    lista.unshift({ ts: Date.now(), data: new Date().toLocaleDateString('pt-BR'), ...respostas });
-    localStorage.setItem('abcl-insights', JSON.stringify(lista.slice(0, 500)));
-  } catch(e) {}
-
-  // Mostrar sucesso
   document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
   document.getElementById('sucesso').classList.add('show');
   document.getElementById('prog-fill').style.width = '100%';

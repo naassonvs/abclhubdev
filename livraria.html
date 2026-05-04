@@ -824,7 +824,17 @@ function getLivros() {
   return CATALOGO_DEFAULT;
 }
 function getSales()   { return get('abcl-livraria-sales') || []; }
-function getPessoas() { return get('abcl-pessoas') || []; }
+function getPessoas() {
+  // Tenta múltiplas fontes onde acampantes podem estar cadastrados
+  const p1 = get('abcl-pessoas')         || [];
+  const p2 = get('abcl-acampantes')      || [];
+  const p3 = get('abcl-fin-inscricoes')  || [];
+  // Extrai nomes dos inscritos do módulo financeiro
+  const nomesInscritos = p3.map(i => i.nome).filter(Boolean);
+  // Une e deduplica
+  const todos = [...new Set([...p1, ...p2, ...nomesInscritos])].filter(Boolean).sort();
+  return todos;
+}
 function getDefinicoes() { return get('abcl-definicoes') || { pixChave:'', pixNome:'ABCL', pixCidade:'CONSELHEIRO LAFAIETE' }; }
 
 // ══════════════════════════════════════════════════

@@ -438,6 +438,8 @@
       <div class="nav-label">Ferramentas</div>
       <button class="nav-item" onclick="window.open('vendinha.html','_blank')">🛒 Vendinha</button>
       <button class="nav-item" onclick="window.open('livraria.html','_blank')">📚 Livraria</button>
+      <button class="nav-item" onclick="window.open('loja.html','_blank')">🛍️ Loja</button>
+      <button class="nav-item" onclick="switchTab('gestao-loja', this)">⚙️ Gerir Loja</button>
       <button class="nav-item" onclick="window.open('financeiro.html','_blank')">💰 Financeiro</button>
       <button class="nav-item" onclick="switchTab('formularios', this)">📝 Formulários</button>
       <button class="nav-item" onclick="window.open('links.html','_blank')">👁 Ver Hub</button>
@@ -821,6 +823,48 @@
               <div class="field"><label>Texto do botão</label><input type="text" id="form-btn-label" placeholder="Enviar pelo WhatsApp" /></div>
             </div>
             <div class="field"><label>Imagem de capa (URL ou base64)</label><input type="text" id="form-capa" placeholder="https://..." /></div>
+
+            <!-- Vagas e fila de espera -->
+            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
+              <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">🎟️ Vagas e controle</div>
+              <div class="field-row">
+                <div class="field">
+                  <label>Vagas masculinas</label>
+                  <input type="number" id="form-vagas-masc" placeholder="45" min="0" />
+                  <div style="font-size:.63rem;color:var(--suave);margin-top:.2rem;" id="form-vagas-masc-info"></div>
+                </div>
+                <div class="field">
+                  <label>Vagas femininas</label>
+                  <input type="number" id="form-vagas-fem" placeholder="45" min="0" />
+                  <div style="font-size:.63rem;color:var(--suave);margin-top:.2rem;" id="form-vagas-fem-info"></div>
+                </div>
+              </div>
+              <div class="field">
+                <label>Vagas gerais (sem distinção)</label>
+                <input type="number" id="form-vagas-geral" placeholder="0 = sem limite" min="0" />
+                <div style="font-size:.63rem;color:var(--suave);margin-top:.2rem;" id="form-vagas-geral-info"></div>
+              </div>
+              <!-- Toggle fila de espera -->
+              <div style="display:flex;align-items:center;gap:.75rem;margin-top:.5rem;">
+                <div onclick="toggleFilaEspera()" id="fila-toggle-wrap"
+                  style="width:44px;height:24px;border-radius:99px;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0;">
+                  <div id="fila-toggle-dot" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;transition:left .2s;"></div>
+                </div>
+                <div>
+                  <div style="font-size:.78rem;font-weight:600;">Fila de espera</div>
+                  <div style="font-size:.65rem;color:var(--suave);">Quando lotado, aceita inscrições com aviso de espera</div>
+                </div>
+              </div>
+              <div id="fila-msg-wrap" style="margin-top:.65rem;display:none;">
+                <div class="field" style="margin-bottom:0;">
+                  <label>Mensagem para quem entra na fila</label>
+                  <textarea id="form-fila-msg" rows="2" placeholder="Você está na fila de espera. Entraremos em contato caso uma vaga se abra."></textarea>
+                </div>
+              </div>
+              <div style="margin-top:.75rem;padding:.65rem .85rem;background:rgba(64,145,108,.08);border-radius:8px;font-size:.72rem;color:var(--suave);" id="form-vagas-resumo">
+                Configure as vagas acima e salve para ativar o controle.
+              </div>
+            </div>
             <!-- Agendamento inline -->
             <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
               <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">⏰ Agendamento</div>
@@ -857,7 +901,85 @@
         </div>
       </div>
 
+      <!-- ══ GESTÃO DA LOJA ══ -->
+      <div class="tab" id="tab-gestao-loja">
+        <div class="page-header">
+          <div><h1>🛍️ Gestão da Loja</h1><p>Produtos, estoque e pedidos da loja online</p></div>
+          <div style="display:flex;gap:.5rem;">
+            <button class="btn btn-ghost btn-sm" onclick="window.open('loja.html','_blank')">👁 Ver Loja</button>
+            <button class="btn btn-solid btn-sm" onclick="abrirModalProdLoja()">+ Novo produto</button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid-3" style="margin-bottom:1.25rem;" id="loja-stats"></div>
+
+        <!-- Lista de produtos -->
+        <div class="section-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h2>📦 Produtos</h2>
+            <input type="text" id="loja-busca" placeholder="🔍 Buscar produto..."
+              oninput="renderProdutosAdmin()"
+              style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.82rem;color:var(--texto);outline:none;width:200px;" />
+          </div>
+          <div id="loja-produtos-list"></div>
+        </div>
+
+        <!-- Pedidos recentes -->
+        <div class="section-card" style="margin-top:1.25rem;">
+          <h2 style="margin-bottom:1rem;">📋 Pedidos via Financeiro</h2>
+          <p style="font-size:.78rem;color:var(--suave);line-height:1.6;">
+            Cada pedido finalizado na loja é registrado automaticamente em
+            <strong style="color:var(--texto);">Financeiro → Receitas</strong>
+            com a categoria <strong style="color:var(--verde-claro);">"Lucro Loja"</strong>.
+            <button class="btn btn-ghost btn-sm" onclick="window.open('financeiro.html','_blank')" style="margin-left:.5rem;">Abrir Financeiro →</button>
+          </p>
+        </div>
+      </div>
+
     </main>
+  </div>
+</div>
+
+<!-- ══ MODAL: PRODUTO LOJA ══ -->
+<div class="modal-overlay" id="prod-loja-modal">
+  <div class="modal" style="max-width:580px;width:100%;max-height:90vh;overflow-y:auto;">
+    <h3 id="plm-titulo" style="font-family:'Cinzel',serif;color:var(--verde-claro);margin-bottom:1.25rem;">Novo produto</h3>
+    <input type="hidden" id="plm-id" />
+    <div class="field-row">
+      <div class="field"><label>Nome *</label><input type="text" id="plm-nome" placeholder="Ex: Moletom Temático ABCL 2026" /></div>
+      <div class="field"><label>Categoria</label>
+        <select id="plm-cat">
+          <option value="Moletom">🧥 Moletom</option><option value="Camisa">👕 Camisa</option>
+          <option value="Caneca">☕ Caneca</option><option value="Boné">🧢 Boné</option>
+          <option value="Adesivo">🏷️ Adesivo</option><option value="Outros">✨ Outros</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Descrição</label><textarea id="plm-desc" rows="3" placeholder="Descreva o produto..."></textarea></div>
+    <div class="field-row">
+      <div class="field"><label>Preço (R$) *</label><input type="number" id="plm-preco" placeholder="120.00" step="0.01" /></div>
+      <div class="field"><label>Estoque total</label><input type="number" id="plm-estoque" placeholder="50" /></div>
+    </div>
+    <div class="field"><label>Tamanhos <span style="font-size:.62rem;font-weight:400;color:var(--suave);">separados por vírgula</span></label><input type="text" id="plm-tamanhos" placeholder="PP, P, M, G, GG, XGG" /></div>
+    <div class="field-row">
+      <div class="field"><label>Cores</label><input type="text" id="plm-cores" placeholder="Preto, Chumbo, Verde" /></div>
+      <div class="field"><label>Gênero / Corte</label><input type="text" id="plm-genero" placeholder="Masculino, Feminino, Infantil" /></div>
+    </div>
+    <div class="field">
+      <label>Imagem (URL ou upload)</label>
+      <input type="text" id="plm-img-url" placeholder="https://..." oninput="previewProdLoja()" style="margin-bottom:.35rem;" />
+      <input type="file" id="plm-img-file" accept="image/*" onchange="lerImgProdLoja(this)" style="font-size:.78rem;color:var(--suave);" />
+      <img id="plm-img-preview" src="" style="display:none;max-width:120px;border-radius:8px;margin-top:.5rem;object-fit:cover;" />
+    </div>
+    <div style="display:flex;gap:1.25rem;margin:.75rem 0;font-size:.82rem;">
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;"><input type="checkbox" id="plm-novo" style="width:15px;height:15px;" /> Badge "NOVO"</label>
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;"><input type="checkbox" id="plm-ativo" checked style="width:15px;height:15px;" /> Ativo (visível na loja)</label>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost" onclick="document.getElementById('prod-loja-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-solid" onclick="salvarProdLoja()">💾 Salvar produto</button>
+    </div>
   </div>
 </div>
 
@@ -1539,6 +1661,7 @@ function switchTab(name, btn) {
   if (name === 'insights')    renderInsights();
   if (name === 'dashboard')   renderDashboard();
   if (name === 'formularios') initFormularios();
+  if (name === 'gestao-loja') initGestaoloja();
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 }
 
@@ -1699,6 +1822,60 @@ function criarNovoFormulario() {
   editarFormulario(id);
 }
 
+// ── VAGAS E FILA DE ESPERA ──
+function toggleFilaEspera() {
+  if (!_formAtualId) return;
+  const lista = getTodosForms();
+  const f = lista.find(x => x.id === _formAtualId);
+  if (!f) return;
+  f.filaEspera = !f.filaEspera;
+  setTodosForms(lista);
+  _atualizarToggleFila(f.filaEspera);
+}
+
+function _atualizarToggleFila(ativo) {
+  const wrap = document.getElementById('fila-toggle-wrap');
+  const dot  = document.getElementById('fila-toggle-dot');
+  const msg  = document.getElementById('fila-msg-wrap');
+  if (!wrap) return;
+  wrap.style.background = ativo ? 'var(--verde-mid)' : 'rgba(255,255,255,.15)';
+  dot.style.left = ativo ? '23px' : '3px';
+  if (msg) msg.style.display = ativo ? 'block' : 'none';
+}
+
+function _atualizarResumoVagas(f) {
+  const el = document.getElementById('form-vagas-resumo');
+  if (!el) return;
+  const respostas = get('abcl-insights') || [];
+  const deste = respostas.filter(r => r.formId === f.id);
+  const masc = deste.filter(r => r[_idPerguntaSexo(f)] === 'Masculino').length;
+  const fem  = deste.filter(r => r[_idPerguntaSexo(f)] === 'Feminino').length;
+  const total= deste.length;
+  const parts = [];
+  if (f.vagasMasc > 0) {
+    const livres = Math.max(0, f.vagasMasc - masc);
+    parts.push(`♂ ${masc}/${f.vagasMasc} (${livres} livres)`);
+    document.getElementById('form-vagas-masc-info').textContent = `${masc} inscritos · ${livres} livres`;
+  }
+  if (f.vagasFem > 0) {
+    const livres = Math.max(0, f.vagasFem - fem);
+    parts.push(`♀ ${fem}/${f.vagasFem} (${livres} livres)`);
+    document.getElementById('form-vagas-fem-info').textContent = `${fem} inscritas · ${livres} livres`;
+  }
+  if (f.vagasGeral > 0) {
+    const livres = Math.max(0, f.vagasGeral - total);
+    parts.push(`Total: ${total}/${f.vagasGeral} (${livres} livres)`);
+    document.getElementById('form-vagas-geral-info').textContent = `${total} inscritos · ${livres} livres`;
+  }
+  el.textContent = parts.length ? parts.join(' · ') : 'Sem limite de vagas configurado.';
+}
+
+function _idPerguntaSexo(f) {
+  // Tenta encontrar o ID da pergunta de sexo nas respostas
+  const p = (f.perguntas || []).find(p => p.label && p.label.toLowerCase().includes('sexo'));
+  return p ? p.id : 'sexo';
+}
+
 function editarFormulario(id) {
   _formAtualId = id;
   const f = getFormById(id);
@@ -1712,6 +1889,14 @@ function editarFormulario(id) {
   document.getElementById('form-whats').value     = f.whats     || '';
   document.getElementById('form-btn-label').value = f.btnLabel  || '';
   document.getElementById('form-capa').value      = f.capa      || '';
+  // Vagas
+  document.getElementById('form-vagas-masc').value  = f.vagasMasc  || '';
+  document.getElementById('form-vagas-fem').value   = f.vagasFem   || '';
+  document.getElementById('form-vagas-geral').value = f.vagasGeral || '';
+  document.getElementById('form-fila-msg')?.value && (document.getElementById('form-fila-msg').value = f.filaMsg || '');
+  if (document.getElementById('form-fila-msg')) document.getElementById('form-fila-msg').value = f.filaMsg || '';
+  _atualizarToggleFila(f.filaEspera || false);
+  _atualizarResumoVagas(f);
   // Agendamento
   const fIni = document.getElementById('form-agenda-inicio');
   const fFim = document.getElementById('form-agenda-fim');
@@ -1878,7 +2063,12 @@ function salvarConfigFormulario() {
   f.whats     = document.getElementById('form-whats').value.trim()     || f.whats;
   f.btnLabel  = document.getElementById('form-btn-label').value.trim() || f.btnLabel;
   f.capa      = document.getElementById('form-capa').value.trim();
-  // Salvar agendamento junto
+  // Vagas
+  f.vagasMasc  = parseInt(document.getElementById('form-vagas-masc').value)  || 0;
+  f.vagasFem   = parseInt(document.getElementById('form-vagas-fem').value)   || 0;
+  f.vagasGeral = parseInt(document.getElementById('form-vagas-geral').value) || 0;
+  f.filaMsg    = document.getElementById('form-fila-msg')?.value.trim() || '';
+  // Agendamento
   const ini = document.getElementById('form-agenda-inicio')?.value;
   const fim = document.getElementById('form-agenda-fim')?.value;
   f.agendaInicio = ini ? new Date(ini).toISOString() : '';
@@ -1888,6 +2078,7 @@ function salvarConfigFormulario() {
   document.getElementById('feditor-titulo-header').textContent    = f.titulo;
   document.getElementById('feditor-subtitulo-header').textContent = f.subtitulo;
   _atualizarPreviewAgendamento(f);
+  _atualizarResumoVagas(f);
   atualizarToggleAtivo(f.ativo);
   renderPreview();
   toast('✅ Configurações salvas!');
@@ -2050,7 +2241,163 @@ document.getElementById('pergunta-modal')?.addEventListener('click', function(e)
   if (e.target === this) fecharModalPergunta();
 });
 
-// Close modals on overlay click
+// ══════════════════════════════════════════════════
+// GESTÃO DA LOJA
+// ══════════════════════════════════════════════════
+const LOJA_PRODUTOS_DEFAULT = [
+  {id:1,nome:'Moletom Temático ABCL 2026',categoria:'Moletom',desc:'Moletom oficial canguru com arte exclusiva.',preco:120,estoque:50,tamanhos:['P','M','G','GG','XGG'],cores:['Preto','Chumbo','Verde'],genero:['Masculino','Feminino','Infantil'],imagem:'',ativo:true,novo:true},
+  {id:2,nome:'Camisa Temática ABCL 2026',categoria:'Camisa',desc:'Camiseta malha 100% algodão com arte exclusiva.',preco:55,estoque:80,tamanhos:['PP','P','M','G','GG','XGG'],cores:['Branca','Preta'],genero:['Masculino','Feminino','Infantil'],imagem:'',ativo:true,novo:true},
+  {id:3,nome:'Caneca ABCL 2026',categoria:'Caneca',desc:'Caneca de porcelana 325ml com arte temática.',preco:35,estoque:30,tamanhos:[],cores:[],genero:[],imagem:'',ativo:true,novo:false},
+  {id:4,nome:'Boné ABCL 2026',categoria:'Boné',desc:'Boné strapback com bordado frontal da logo ABCL.',preco:45,estoque:20,tamanhos:['Único'],cores:['Preto','Verde'],genero:[],imagem:'',ativo:true,novo:false},
+  {id:5,nome:'Adesivo Pack ABCL',categoria:'Adesivo',desc:'Kit com 5 adesivos impermeáveis.',preco:12,estoque:100,tamanhos:[],cores:[],genero:[],imagem:'',ativo:true,novo:false},
+];
+
+function getLojaProdutos() {
+  const s = get('abcl-loja-produtos');
+  if (s && s.length) return s;
+  set('abcl-loja-produtos', LOJA_PRODUTOS_DEFAULT);
+  return LOJA_PRODUTOS_DEFAULT;
+}
+
+function initGestaoloja() {
+  renderLojaStats();
+  renderProdutosAdmin();
+}
+
+function renderLojaStats() {
+  const prods = getLojaProdutos();
+  const ativos   = prods.filter(p => p.ativo).length;
+  const estoque  = prods.reduce((s,p) => s+p.estoque, 0);
+  const receitas = (get('abcl-fin-receitas') || []).filter(r => r.origem === 'loja');
+  const totalVendas = receitas.reduce((s,r) => s+Number(r.valor||0), 0);
+  const el = document.getElementById('loja-stats');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="stat-card"><div class="sc-label">Produtos ativos</div><div class="sc-value" style="color:var(--verde-claro);">${ativos}</div></div>
+    <div class="stat-card"><div class="sc-label">Estoque total</div><div class="sc-value">${estoque}</div></div>
+    <div class="stat-card"><div class="sc-label">Receita (Loja)</div><div class="sc-value" style="color:var(--verde-claro);">R$ ${totalVendas.toFixed(2).replace('.',',')}</div></div>
+  `;
+}
+
+function renderProdutosAdmin() {
+  const busca = document.getElementById('loja-busca')?.value.toLowerCase() || '';
+  const prods = getLojaProdutos().filter(p => !busca || p.nome.toLowerCase().includes(busca) || p.categoria.toLowerCase().includes(busca));
+  const el = document.getElementById('loja-produtos-list');
+  if (!el) return;
+
+  const ICON = {'Moletom':'🧥','Camisa':'👕','Caneca':'☕','Boné':'🧢','Adesivo':'🏷️'};
+  el.innerHTML = prods.map(p => `
+    <div style="display:flex;align-items:center;gap:.85rem;padding:.7rem 0;border-bottom:1px solid rgba(64,145,108,.08);">
+      <div style="width:44px;height:44px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;overflow:hidden;">
+        ${p.imagem ? `<img src="${p.imagem}" style="width:100%;height:100%;object-fit:cover;" />` : (ICON[p.categoria]||'✨')}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:.88rem;">${p.nome} ${p.novo?'<span style="font-size:.6rem;background:rgba(212,168,83,.2);color:#d4a853;padding:.1rem .4rem;border-radius:99px;">NOVO</span>':''}</div>
+        <div style="font-size:.7rem;color:var(--suave);">${p.categoria} · R$ ${p.preco.toFixed(2).replace('.',',')} · Estoque: ${p.estoque}</div>
+        <div style="font-size:.65rem;color:var(--suave);margin-top:.1rem;">
+          ${p.tamanhos?.length?'Tamanhos: '+p.tamanhos.join(', '):''}
+          ${p.cores?.length?' | Cores: '+p.cores.join(', '):''}
+        </div>
+      </div>
+      <div style="display:flex;gap:.35rem;align-items:center;flex-shrink:0;">
+        <span style="font-size:.65rem;padding:.2rem .5rem;border-radius:99px;border:1px solid;${p.ativo?'background:rgba(64,145,108,.15);color:var(--verde-claro);border-color:rgba(64,145,108,.3);':'background:rgba(255,255,255,.04);color:var(--suave);border-color:var(--borda);'}">
+          ${p.ativo?'● Ativo':'○ Inativo'}
+        </span>
+        <button class="btn btn-ghost btn-sm" onclick="editarProdLoja(${p.id})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="removerProdLoja(${p.id})">✕</button>
+      </div>
+    </div>`).join('') || '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum produto.</p>';
+}
+
+let _editProdLojaId = null;
+
+function abrirModalProdLoja() {
+  _editProdLojaId = null;
+  document.getElementById('plm-titulo').textContent = 'Novo produto';
+  ['plm-nome','plm-desc','plm-preco','plm-estoque','plm-tamanhos','plm-cores','plm-genero','plm-img-url'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('plm-cat').value  = 'Moletom';
+  document.getElementById('plm-novo').checked  = false;
+  document.getElementById('plm-ativo').checked = true;
+  document.getElementById('plm-img-preview').style.display = 'none';
+  document.getElementById('prod-loja-modal').classList.add('open');
+}
+
+function editarProdLoja(id) {
+  _editProdLojaId = id;
+  const p = getLojaProdutos().find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('plm-titulo').textContent = 'Editar produto';
+  document.getElementById('plm-nome').value     = p.nome     || '';
+  document.getElementById('plm-cat').value      = p.categoria|| 'Moletom';
+  document.getElementById('plm-desc').value     = p.desc     || '';
+  document.getElementById('plm-preco').value    = p.preco    || '';
+  document.getElementById('plm-estoque').value  = p.estoque  || 0;
+  document.getElementById('plm-tamanhos').value = (p.tamanhos||[]).join(', ');
+  document.getElementById('plm-cores').value    = (p.cores||[]).join(', ');
+  document.getElementById('plm-genero').value   = (p.genero||[]).join(', ');
+  document.getElementById('plm-img-url').value  = p.imagem   || '';
+  document.getElementById('plm-novo').checked   = p.novo     || false;
+  document.getElementById('plm-ativo').checked  = p.ativo !== false;
+  const prev = document.getElementById('plm-img-preview');
+  if (p.imagem) { prev.src=p.imagem; prev.style.display='block'; } else prev.style.display='none';
+  document.getElementById('prod-loja-modal').classList.add('open');
+}
+
+function salvarProdLoja() {
+  const nome  = document.getElementById('plm-nome').value.trim();
+  const preco = parseFloat(document.getElementById('plm-preco').value);
+  if (!nome || !preco) { toast('⚠️ Preencha nome e preço.'); return; }
+
+  const parseLista = id => document.getElementById(id).value.split(',').map(s=>s.trim()).filter(Boolean);
+
+  const prod = {
+    id:        _editProdLojaId || Date.now(),
+    nome,
+    categoria: document.getElementById('plm-cat').value,
+    desc:      document.getElementById('plm-desc').value.trim(),
+    preco,
+    estoque:   parseInt(document.getElementById('plm-estoque').value)||0,
+    tamanhos:  parseLista('plm-tamanhos'),
+    cores:     parseLista('plm-cores'),
+    genero:    parseLista('plm-genero'),
+    imagem:    document.getElementById('plm-img-url').value.trim(),
+    novo:      document.getElementById('plm-novo').checked,
+    ativo:     document.getElementById('plm-ativo').checked,
+    variacaoEstoque: {},
+  };
+
+  const lista = getLojaProdutos();
+  const idx   = lista.findIndex(p=>p.id===_editProdLojaId);
+  if (idx>=0) lista[idx]=prod; else lista.push(prod);
+  set('abcl-loja-produtos', lista);
+
+  document.getElementById('prod-loja-modal').classList.remove('open');
+  renderProdutosAdmin();
+  renderLojaStats();
+  toast(_editProdLojaId ? '✅ Produto atualizado!' : '✅ Produto adicionado!');
+}
+
+function removerProdLoja(id) {
+  if (!confirm('Remover este produto da loja?')) return;
+  set('abcl-loja-produtos', getLojaProdutos().filter(p=>p.id!==id));
+  renderProdutosAdmin(); renderLojaStats();
+  toast('🗑 Produto removido.');
+}
+
+function previewProdLoja() {
+  const url  = document.getElementById('plm-img-url').value.trim();
+  const prev = document.getElementById('plm-img-preview');
+  if (url) { prev.src=url; prev.style.display='block'; } else prev.style.display='none';
+}
+
+function lerImgProdLoja(input) {
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{document.getElementById('plm-img-url').value=e.target.result; previewProdLoja();};
+  reader.readAsDataURL(file);
+}
+
+// Fechar modais ao clicar no overlay
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });

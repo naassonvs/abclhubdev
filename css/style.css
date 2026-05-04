@@ -10,7 +10,7 @@
   --verde:        #2D6A4F;
   --verde-mid:    #40916C;
   --verde-claro:  #74C69D;
-  --laranja:      #D4845A;   /* cor do topo da montanha na logo */
+  --laranja:      #D4845A;
   --fundo:        #0A1610;
   --fundo-card:   #0F1E17;
   --texto:        #F0EDE6;
@@ -18,6 +18,59 @@
   --borda:        rgba(64, 145, 108, 0.2);
   --radius:       6px;
 }
+
+[data-theme="light"] {
+  --fundo:        #F2F7F3;
+  --fundo-card:   #FFFFFF;
+  --texto:        #1A2E22;
+  --texto-suave:  rgba(26, 46, 34, 0.52);
+  --borda:        rgba(45, 106, 79, 0.18);
+}
+
+/* Nav no modo claro */
+[data-theme="light"] #nav {
+  background: rgba(242,247,243,0.97);
+  border-bottom: 1px solid rgba(45,106,79,.12);
+}
+[data-theme="light"] .nav-links a { color: var(--texto); }
+[data-theme="light"] .nav-links a:hover { color: var(--verde); }
+
+/* Cards no modo claro */
+[data-theme="light"] .tema-card,
+[data-theme="light"] .faq-item,
+[data-theme="light"] .form-card {
+  background: #FFFFFF;
+  border-color: rgba(45,106,79,.15);
+}
+
+/* Hero no modo claro */
+[data-theme="light"] .hero { background: linear-gradient(180deg, #e8f2ec 0%, #f2f7f3 100%); }
+[data-theme="light"] .hero-mountains polygon { opacity: .18; }
+
+/* Footer no modo claro */
+[data-theme="light"] footer { background: #e4ede8; border-top: 1px solid rgba(45,106,79,.12); }
+[data-theme="light"] .footer-verse,
+[data-theme="light"] .footer-copy { color: rgba(26,46,34,.5); }
+
+/* Seção loja no modo claro */
+[data-theme="light"] #loja { background: #e8f0eb; }
+
+/* Menu mobile no modo claro */
+[data-theme="light"] #menu-mobile { background: rgba(242,247,243,.98); }
+[data-theme="light"] #menu-mobile a { color: var(--texto); border-color: rgba(45,106,79,.12); }
+
+/* Inputs no modo claro */
+[data-theme="light"] .field input,
+[data-theme="light"] .field select,
+[data-theme="light"] .field textarea {
+  background: rgba(0,0,0,.035);
+  border-color: rgba(45,106,79,.2);
+  color: var(--texto);
+}
+
+/* Theme toggle — integrado na nav (não flutuante) */
+#theme-btn { display: none; } /* oculta o flutuante — usamos o da nav */
+#theme-toggle-btn { font-size: .85rem; }
 
 /* ============================================================
    RESET & BASE

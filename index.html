@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -77,9 +77,16 @@
       <li><a href="#local">Local</a></li>
       <li><a href="#inscricao">Inscrição</a></li>
       <li><a href="#faq">FAQ</a></li>
+      <li><a href="#loja">Loja</a></li>
       <li><a href="#links">Links</a></li>
       <li><a href="admin.html" style="opacity:0.35; font-size:0.78rem;" title="Acesso restrito">⚙</a></li>
     </ul>
+
+    <button onclick="toggleTheme()" id="theme-toggle-btn"
+      title="Alternar tema"
+      style="background:none;border:1px solid rgba(64,145,108,.3);border-radius:99px;padding:.35rem .7rem;font-size:.8rem;cursor:pointer;color:var(--texto);transition:all .2s;margin-right:.25rem;"
+      onmouseover="this.style.borderColor='var(--verde-claro)'"
+      onmouseout="this.style.borderColor='rgba(64,145,108,.3)'">☀️</button>
 
     <a href="#inscricao" class="btn btn-solid" style="font-size:0.73rem; padding:0.55rem 1.2rem;">
       Inscrever-se
@@ -96,8 +103,10 @@
     <a href="#local"     onclick="toggleMenu()">Local</a>
     <a href="#inscricao" onclick="toggleMenu()">Inscrição</a>
     <a href="#faq"       onclick="toggleMenu()">FAQ</a>
+    <a href="#loja"      onclick="toggleMenu()">🛍️ Loja</a>
     <a href="#links"     onclick="toggleMenu()">Links</a>
     <a href="#inscricao" onclick="toggleMenu()" class="btn btn-solid">Inscrever-se</a>
+    <button onclick="toggleTheme();toggleMenu()" style="background:var(--card,rgba(15,30,20,.8));border:1px solid rgba(64,145,108,.3);border-radius:8px;padding:.6rem;font-size:.82rem;color:var(--texto,#f0ede6);cursor:pointer;width:100%;text-align:center;" id="mobile-theme-btn">☀️ Modo claro</button>
     <a href="admin.html" style="font-size:.75rem;opacity:.35;letter-spacing:.08em;" title="Acesso restrito">⚙ Admin</a>
   </div>
 
@@ -599,6 +608,60 @@
   </section>
 
 
+  <!-- ══ LOJA ══════════════════════════════════════════════════ -->
+  <section id="loja" style="padding:5rem 1.5rem; background:var(--fundo, #0A1610);">
+    <div style="max-width:1000px;margin:0 auto;">
+
+      <div class="reveal" style="text-align:center;margin-bottom:2.5rem;">
+        <p style="font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--verde-claro,#74C69D);margin-bottom:.5rem;">LOJA OFICIAL</p>
+        <h2 style="font-family:'Cinzel',serif;font-size:clamp(1.6rem,4vw,2.2rem);color:var(--texto,#F0EDE6);">Produtos do Acampamento</h2>
+        <div style="width:40px;height:2px;background:var(--verde,#2D6A4F);margin:1rem auto .75rem;"></div>
+        <p style="font-size:.85rem;color:rgba(240,237,230,.55);max-width:480px;margin:0 auto;">Moletons, camisetas temáticas, canecas e muito mais. Encomende o seu!</p>
+      </div>
+
+      <!-- Controles do carrossel -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <div id="loja-modo-btns" style="display:flex;gap:.4rem;">
+          <button onclick="setLojaView('carrossel')" id="btn-carrossel"
+            style="padding:.35rem .85rem;border-radius:6px;border:1px solid rgba(64,145,108,.35);background:rgba(64,145,108,.2);color:var(--verde-claro,#74C69D);font-size:.72rem;cursor:pointer;">
+            ← → Carrossel
+          </button>
+          <button onclick="setLojaView('grade')" id="btn-grade"
+            style="padding:.35rem .85rem;border-radius:6px;border:1px solid rgba(64,145,108,.2);background:transparent;color:rgba(240,237,230,.45);font-size:.72rem;cursor:pointer;">
+            ⊞ Grade
+          </button>
+        </div>
+        <a href="loja.html" style="font-size:.78rem;color:var(--verde-claro,#74C69D);text-decoration:none;border:1px solid rgba(64,145,108,.3);padding:.35rem .85rem;border-radius:6px;transition:all .18s;"
+          onmouseover="this.style.background='rgba(64,145,108,.15)'" onmouseout="this.style.background=''">
+          Ver loja completa →
+        </a>
+      </div>
+
+      <!-- CARROSSEL -->
+      <div id="loja-carrossel-wrap" style="position:relative;">
+        <div id="loja-carrossel" style="display:flex;gap:1rem;overflow:hidden;scroll-behavior:smooth;"></div>
+        <button onclick="scrollCarrossel(-1)"
+          style="position:absolute;left:-1rem;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(64,145,108,.3);background:var(--fundo,#0A1610);color:var(--verde-claro,#74C69D);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:2;"
+          onmouseover="this.style.background='rgba(64,145,108,.2)'" onmouseout="this.style.background='var(--fundo,#0A1610)'">‹</button>
+        <button onclick="scrollCarrossel(1)"
+          style="position:absolute;right:-1rem;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;border:1px solid rgba(64,145,108,.3);background:var(--fundo,#0A1610);color:var(--verde-claro,#74C69D);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:2;"
+          onmouseover="this.style.background='rgba(64,145,108,.2)'" onmouseout="this.style.background='var(--fundo,#0A1610)'">›</button>
+        <!-- Dots -->
+        <div id="loja-dots" style="display:flex;gap:.4rem;justify-content:center;margin-top:1rem;"></div>
+      </div>
+
+      <!-- GRADE (oculto por padrão) -->
+      <div id="loja-grade" style="display:none;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;"></div>
+
+      <div style="text-align:center;margin-top:2rem;">
+        <a href="loja.html" class="btn btn-solid" style="display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 2rem;font-family:'Cinzel',serif;font-size:.9rem;text-decoration:none;">
+          🛍️ Acessar a loja completa
+        </a>
+      </div>
+    </div>
+  </section>
+
+
   <!-- ══ FOOTER ═════════════════════════════════════════════════ -->
   <footer>
     <div class="footer-inner">
@@ -632,136 +695,218 @@
   <!-- JS -->
   <script src="js/main.js"></script>
   <script>
+  // ══════════════════════════════════════════════════
+  // DARK MODE / LIGHT MODE
+  // ══════════════════════════════════════════════════
+  (function initTheme() {
+    const saved = localStorage.getItem('abcl-theme') || 'dark';
+    applyTheme(saved);
+  })();
+
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    const isDark = t === 'dark';
+    // Botão nav desktop
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    // Botão menu mobile
+    const mBtn = document.getElementById('mobile-theme-btn');
+    if (mBtn) mBtn.textContent = isDark ? '☀️ Modo claro' : '🌙 Modo escuro';
+    localStorage.setItem('abcl-theme', t);
+  }
+
+  function toggleTheme() {
+    const curr = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(curr === 'dark' ? 'light' : 'dark');
+  }
+
   // ── Rastreador de visitas ─────────────────────────────────
   (function trackVisit() {
     try {
       const key   = 'abcl-visitas';
       const stored = JSON.parse(localStorage.getItem(key)) || { total: 0, visitas: [] };
-
-      // Evitar contar recarregamentos imediatos (< 5 min)
       const agora = Date.now();
       const ultima = stored.visitas[0]?.ts || 0;
       if (agora - ultima < 5 * 60 * 1000) return;
-
-      // Buscar geo via API gratuita (sem auth necessária)
       fetch('https://ip-api.com/json/?fields=city,regionName,country,countryCode,lat,lon,query')
         .then(r => r.json())
         .then(geo => {
           stored.total++;
-          stored.visitas.unshift({
-            ts:      agora,
-            data:    new Date(agora).toLocaleDateString('pt-BR'),
-            hora:    new Date(agora).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}),
-            cidade:  geo.city   || 'Desconhecida',
-            estado:  geo.regionName || '',
-            pais:    geo.country || 'Brasil',
-            paisCode:geo.countryCode || 'BR',
-            ip:      geo.query  || '',
-          });
-          // Manter só últimas 500 visitas
+          stored.visitas.unshift({ ts:agora, data:new Date(agora).toLocaleDateString('pt-BR'), hora:new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), cidade:geo.city||'Desconhecida', estado:geo.regionName||'', pais:geo.country||'Brasil', paisCode:geo.countryCode||'BR', ip:geo.query||'' });
           stored.visitas = stored.visitas.slice(0, 500);
           localStorage.setItem(key, JSON.stringify(stored));
         })
         .catch(() => {
-          // Sem geo, registra só o timestamp
           stored.total++;
-          stored.visitas.unshift({ ts: agora, data: new Date(agora).toLocaleDateString('pt-BR'), hora: new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), cidade:'—', estado:'—', pais:'—', paisCode:'—', ip:'—' });
+          stored.visitas.unshift({ ts:agora, data:new Date(agora).toLocaleDateString('pt-BR'), hora:new Date(agora).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}), cidade:'—', estado:'—', pais:'—', paisCode:'—', ip:'—' });
           stored.visitas = stored.visitas.slice(0, 500);
           localStorage.setItem(key, JSON.stringify(stored));
         });
     } catch(e) {}
   })();
-  </script>
-  <script>
-  // ── Renderiza links do hub na seção do site ──────────────────
+
+  // ── Renderiza links do hub ──────────────────────────────────
   (function renderSiteLinks() {
     const DEFAULT_LINKS = [
-      { icon:'📋', label:'Inscrição',           desc:'Formulário oficial 2026',              url:'https://forms.gle/VAdsxWVp7fedCzD76', bg:'rgba(64,145,108,.25)' },
-      { icon:'📸', label:'Instagram',           desc:'@abcl.oficial',                        url:'https://instagram.com/',              bg:'rgba(225,48,108,.22)' },
-      { icon:'▶️', label:'YouTube',             desc:'Mensagens e louvor',                   url:'https://youtube.com/',                bg:'rgba(255,0,0,.18)' },
-      { icon:'💬', label:'WhatsApp',            desc:'(31) 98826-2599',                      url:'https://wa.me/5531988262599',         bg:'rgba(37,211,102,.2)' },
-      { icon:'📍', label:'Localização',         desc:'Sítio Recanto Del Rey — Queluzito/MG', url:'https://maps.google.com/?q=Queluzito+MG', bg:'rgba(66,133,244,.2)' },
-      { icon:'💰', label:'Doações / PIX',       desc:'Apoie o acampamento',                  url:'#',                                   bg:'rgba(201,169,75,.22)' },
+      { icon:'📋', label:'Inscrição',     desc:'Formulário oficial 2026',              url:'https://forms.gle/VAdsxWVp7fedCzD76', bg:'rgba(64,145,108,.25)' },
+      { icon:'📸', label:'Instagram',     desc:'@abcl.oficial',                        url:'https://instagram.com/',              bg:'rgba(225,48,108,.22)' },
+      { icon:'▶️', label:'YouTube',       desc:'Mensagens e louvor',                   url:'https://youtube.com/',                bg:'rgba(255,0,0,.18)' },
+      { icon:'💬', label:'WhatsApp',      desc:'(31) 98826-2599',                      url:'https://wa.me/5531988262599',         bg:'rgba(37,211,102,.2)' },
+      { icon:'📍', label:'Localização',   desc:'Sítio Recanto Del Rey — Queluzito/MG', url:'https://maps.google.com/?q=Queluzito+MG', bg:'rgba(66,133,244,.2)' },
+      { icon:'💰', label:'Doações / PIX', desc:'Apoie o acampamento',                  url:'#',                                   bg:'rgba(201,169,75,.22)' },
     ];
-
     let links = DEFAULT_LINKS;
-    try {
-      const saved = JSON.parse(localStorage.getItem('abcl-links'));
-      if (Array.isArray(saved) && saved.length) links = saved;
-    } catch(e) {}
-
+    try { const s=JSON.parse(localStorage.getItem('abcl-links')); if(Array.isArray(s)&&s.length) links=s; } catch(e){}
     const container = document.getElementById('site-links-container');
     if (!container) return;
-
     container.innerHTML = links.map(l => `
-      <a href="${l.url || '#'}"
-         target="${l.url && l.url !== '#' ? '_blank' : '_self'}"
-         rel="noopener noreferrer"
-         style="display:flex;align-items:center;gap:1rem;background:rgba(15,30,20,.6);border:1px solid rgba(64,145,108,.18);border-radius:12px;padding:.85rem 1.1rem;text-decoration:none;color:var(--texto);transition:border-color .18s,background .18s,transform .18s;"
-         onmouseover="this.style.borderColor='var(--verde-claro)';this.style.background='rgba(64,145,108,.1)';this.style.transform='translateY(-2px)'"
+      <a href="${l.url||'#'}" target="${l.url&&l.url!=='#'?'_blank':'_self'}" rel="noopener noreferrer"
+         style="display:flex;align-items:center;gap:1rem;background:rgba(15,30,20,.6);border:1px solid rgba(64,145,108,.18);border-radius:12px;padding:.85rem 1.1rem;text-decoration:none;color:var(--texto,#F0EDE6);transition:border-color .18s,background .18s,transform .18s;"
+         onmouseover="this.style.borderColor='var(--verde-claro,#74C69D)';this.style.background='rgba(64,145,108,.1)';this.style.transform='translateY(-2px)'"
          onmouseout="this.style.borderColor='rgba(64,145,108,.18)';this.style.background='rgba(15,30,20,.6)';this.style.transform=''">
-        <div style="width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;background:${l.bg || 'rgba(64,145,108,.2)'}">
-          ${l.icon || '🔗'}
-        </div>
+        <div style="width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;background:${l.bg||'rgba(64,145,108,.2)'}">${l.icon||'🔗'}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:.92rem;">${l.label}</div>
-          ${l.desc ? `<div style="font-size:.75rem;color:rgba(240,237,230,.5);margin-top:.1rem;">${l.desc}</div>` : ''}
+          ${l.desc?`<div style="font-size:.75rem;color:rgba(240,237,230,.5);margin-top:.1rem;">${l.desc}</div>`:''}
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(116,198,157,.6)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </a>
-    `).join('');
+      </a>`).join('');
   })();
+
+  // ══════════════════════════════════════════════════
+  // LOJA — CARROSSEL + GRADE
+  // ══════════════════════════════════════════════════
+  const LOJA_DEFAULT = [
+    {id:1,nome:'Moletom Temático ABCL 2026',categoria:'Moletom',preco:120,imagem:'',ativo:true,novo:true},
+    {id:2,nome:'Camisa Temática ABCL 2026', categoria:'Camisa', preco:55, imagem:'',ativo:true,novo:true},
+    {id:3,nome:'Caneca ABCL 2026',          categoria:'Caneca', preco:35, imagem:'',ativo:true,novo:false},
+    {id:4,nome:'Boné ABCL 2026',            categoria:'Boné',   preco:45, imagem:'',ativo:true,novo:false},
+    {id:5,nome:'Adesivo Pack ABCL',         categoria:'Adesivo',preco:12, imagem:'',ativo:true,novo:false},
+  ];
+
+  const ICON_MAP = {'Moletom':'🧥','Camisa':'👕','Caneca':'☕','Boné':'🧢','Adesivo':'🏷️'};
+  let _lojaView = localStorage.getItem('abcl-loja-view') || 'carrossel';
+  let _carrosselIdx = 0;
+  let _carrosselAuto;
+
+  function getLojaProdutos() {
+    try { const s=JSON.parse(localStorage.getItem('abcl-loja-produtos')); if(s&&s.length) return s.filter(p=>p.ativo); } catch(e){}
+    return LOJA_DEFAULT;
+  }
+
+  function buildCard(p, compact) {
+    const sz = compact ? '160px' : '220px';
+    return `
+      <a href="loja.html" style="flex-shrink:0;width:${sz};text-decoration:none;display:flex;flex-direction:column;background:rgba(15,30,20,.7);border:1px solid rgba(64,145,108,.18);border-radius:12px;overflow:hidden;transition:transform .18s,border-color .18s;"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(116,198,157,.5)'"
+        onmouseout="this.style.transform='';this.style.borderColor='rgba(64,145,108,.18)'">
+        <div style="aspect-ratio:1;background:rgba(64,145,108,.08);display:flex;align-items:center;justify-content:center;font-size:${compact?'2.5rem':'3.5rem'};position:relative;overflow:hidden;">
+          ${p.imagem ? `<img src="${p.imagem}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" loading="lazy" />` : ''}
+          ${p.imagem ? '' : `<span>${ICON_MAP[p.categoria]||'✨'}</span>`}
+          ${p.novo ? `<span style="position:absolute;top:.45rem;left:.45rem;background:#D4A853;color:#060c10;font-size:.55rem;font-weight:700;padding:.15rem .45rem;border-radius:99px;letter-spacing:.06em;">NOVO</span>` : ''}
+        </div>
+        <div style="padding:.65rem .75rem;">
+          <div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(116,198,157,.7);margin-bottom:.2rem;">${p.categoria}</div>
+          <div style="font-size:.8rem;font-weight:600;color:rgba(240,237,230,.9);line-height:1.3;margin-bottom:.3rem;">${p.nome}</div>
+          <div style="font-family:'Cinzel',serif;font-size:.88rem;color:#D4A853;">R$ ${p.preco.toFixed(2).replace('.',',')}</div>
+        </div>
+      </a>`;
+  }
+
+  function renderLojaCarrossel() {
+    const prods = getLojaProdutos();
+    const el = document.getElementById('loja-carrossel');
+    const dots = document.getElementById('loja-dots');
+    if (!el) return;
+    el.innerHTML = prods.map(p => buildCard(p, false)).join('');
+    // Dots
+    dots.innerHTML = prods.map((_,i) => `
+      <div onclick="goCarrossel(${i})" id="dot-${i}"
+        style="width:${i===0?'20px':'8px'};height:8px;border-radius:99px;background:${i===0?'var(--verde-claro,#74C69D)':'rgba(64,145,108,.3)'};cursor:pointer;transition:all .3s;"></div>`).join('');
+    autoCarrossel(prods.length);
+  }
+
+  function renderLojaGrade() {
+    const prods = getLojaProdutos();
+    const el = document.getElementById('loja-grade');
+    if (!el) return;
+    el.innerHTML = prods.map(p => buildCard(p, true)).join('');
+  }
+
+  function goCarrossel(idx) {
+    const el = document.getElementById('loja-carrossel');
+    if (!el) return;
+    const cardW = el.children[0]?.offsetWidth + 16 || 236;
+    el.scrollLeft = cardW * idx;
+    _carrosselIdx = idx;
+    // Atualizar dots
+    el.parentElement.querySelectorAll('[id^="dot-"]').forEach((d,i) => {
+      d.style.width = i === idx ? '20px' : '8px';
+      d.style.background = i === idx ? 'var(--verde-claro,#74C69D)' : 'rgba(64,145,108,.3)';
+    });
+  }
+
+  function scrollCarrossel(dir) {
+    const prods = getLojaProdutos();
+    _carrosselIdx = Math.max(0, Math.min(prods.length - 1, _carrosselIdx + dir));
+    goCarrossel(_carrosselIdx);
+  }
+
+  function autoCarrossel(total) {
+    clearInterval(_carrosselAuto);
+    _carrosselAuto = setInterval(() => {
+      _carrosselIdx = (_carrosselIdx + 1) % total;
+      goCarrossel(_carrosselIdx);
+    }, 4000);
+  }
+
+  // Pausar auto ao hover
+  document.getElementById('loja-carrossel')?.addEventListener('mouseenter', () => clearInterval(_carrosselAuto));
+  document.getElementById('loja-carrossel')?.addEventListener('mouseleave', () => autoCarrossel(getLojaProdutos().length));
+
+  function setLojaView(view) {
+    _lojaView = view;
+    localStorage.setItem('abcl-loja-view', view);
+    const c = document.getElementById('loja-carrossel-wrap');
+    const g = document.getElementById('loja-grade');
+    const bc= document.getElementById('btn-carrossel');
+    const bg= document.getElementById('btn-grade');
+    if (view === 'carrossel') {
+      c.style.display='block'; g.style.display='none';
+      bc.style.background='rgba(64,145,108,.2)'; bc.style.color='var(--verde-claro,#74C69D)'; bc.style.borderColor='rgba(64,145,108,.35)';
+      bg.style.background='transparent'; bg.style.color='rgba(240,237,230,.45)'; bg.style.borderColor='rgba(64,145,108,.2)';
+      renderLojaCarrossel();
+    } else {
+      c.style.display='none'; g.style.display='grid';
+      bg.style.background='rgba(64,145,108,.2)'; bg.style.color='var(--verde-claro,#74C69D)'; bg.style.borderColor='rgba(64,145,108,.35)';
+      bc.style.background='transparent'; bc.style.color='rgba(240,237,230,.45)'; bc.style.borderColor='rgba(64,145,108,.2)';
+      renderLojaGrade();
+    }
+  }
+
+  // Inicializar loja com a view salva
+  setLojaView(_lojaView);
+
+  // ── Hidratar preletores ─────────────────────────────────────
   (function hydratePreletores() {
     try {
       const prels = JSON.parse(localStorage.getItem('abcl-preletores'));
       if (!prels || prels.length < 1) return;
-
-      function initials(nome) {
-        return nome.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-      }
-
+      function initials(nome) { return nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
       const slots = [
-        { num: 'prel1-num', tema: 'prel1-tema', sub: 'prel1-sub', bio: 'prel1-bio', avatar: 'prel1-avatar', nome: 'prel1-nome', local: 'prel1-local', idx: 0 },
-        { num: 'prel2-num', tema: 'prel2-tema', sub: 'prel2-sub', bio: 'prel2-bio', avatar: 'prel2-avatar', nome: 'prel2-nome', local: 'prel2-local', idx: 1 },
+        {num:'prel1-num',tema:'prel1-tema',sub:'prel1-sub',bio:'prel1-bio',avatar:'prel1-avatar',nome:'prel1-nome',local:'prel1-local',idx:0},
+        {num:'prel2-num',tema:'prel2-tema',sub:'prel2-sub',bio:'prel2-bio',avatar:'prel2-avatar',nome:'prel2-nome',local:'prel2-local',idx:1},
       ];
-
       slots.forEach(s => {
-        const p = prels[s.idx];
-        if (!p) return;
-
-        const numEl = document.getElementById(s.num);
-        if (numEl) numEl.textContent = `TEMA 0${s.idx + 1} · ${p.nome.toUpperCase()}`;
-
-        const temaEl = document.getElementById(s.tema);
-        if (temaEl && p.tema) temaEl.textContent = p.tema;
-
-        const subEl = document.getElementById(s.sub);
-        if (subEl && p.sub) subEl.textContent = p.sub;
-
-        const bioEl = document.getElementById(s.bio);
-        if (bioEl) {
-          if (p.bio) { bioEl.textContent = p.bio; bioEl.style.display = ''; }
-          else        { bioEl.style.display = 'none'; }
-        }
-
-        const avatarEl = document.getElementById(s.avatar);
-        if (avatarEl) {
-          if (p.photo) {
-            avatarEl.innerHTML = `<img src="${p.photo}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-          } else {
-            avatarEl.textContent = initials(p.nome);
-          }
-        }
-
-        const nomeEl = document.getElementById(s.nome);
-        if (nomeEl && p.nome) nomeEl.textContent = p.nome;
-
-        const localEl = document.getElementById(s.local);
-        if (localEl && p.cidade) localEl.textContent = p.cidade;
+        const p = prels[s.idx]; if(!p) return;
+        const n=document.getElementById(s.num); if(n) n.textContent=`TEMA 0${s.idx+1} · ${p.nome.toUpperCase()}`;
+        const t=document.getElementById(s.tema); if(t&&p.tema) t.textContent=p.tema;
+        const sb=document.getElementById(s.sub); if(sb&&p.sub) sb.textContent=p.sub;
+        const b=document.getElementById(s.bio); if(b){if(p.bio){b.textContent=p.bio;b.style.display='';}else b.style.display='none';}
+        const av=document.getElementById(s.avatar); if(av){if(p.photo){av.innerHTML=`<img src="${p.photo}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;}else av.textContent=initials(p.nome);}
+        const nm=document.getElementById(s.nome); if(nm&&p.nome) nm.textContent=p.nome;
+        const lc=document.getElementById(s.local); if(lc&&p.cidade) lc.textContent=p.cidade;
       });
-    } catch(e) { /* usa os valores padrão do HTML */ }
+    } catch(e){}
   })();
   </script>
-
-</body>
-</html>
