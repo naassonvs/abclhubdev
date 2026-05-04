@@ -1186,6 +1186,18 @@ window.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════════════
 const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
 const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+function trySet(k, v) {
+  try {
+    set(k, v);
+    return true;
+  } catch (err) {
+    if (err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''))) {
+      toast('⚠️ Espaço do navegador cheio. Reduza a imagem do produto ou remova itens antigos.');
+      return false;
+    }
+    throw err;
+  }
+}
 
 const DEFAULT_LINKS = [
   { id:1, icon:'📋', label:'Inscrição', desc:'Formulário oficial 2026', url:'https://forms.gle/VAdsxWVp7fedCzD76', bg:'rgba(64,145,108,.25)' },
@@ -2369,7 +2381,7 @@ function salvarProdLoja() {
   const lista = getLojaProdutos();
   const idx   = lista.findIndex(p=>p.id===_editProdLojaId);
   if (idx>=0) lista[idx]=prod; else lista.push(prod);
-  set('abcl-loja-produtos', lista);
+  if (!trySet('abcl-loja-produtos', lista)) return;
 
   document.getElementById('prod-loja-modal').classList.remove('open');
   renderProdutosAdmin();
@@ -2391,9 +2403,46 @@ function previewProdLoja() {
 }
 
 function lerImgProdLoja(input) {
-  const file=input.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{document.getElementById('plm-img-url').value=e.target.result; previewProdLoja();};
+  const file = input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    toast('⚠️ Selecione um arquivo de imagem.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const maxLado = 1200;
+      const scale = Math.min(1, maxLado / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      let quality = 0.85;
+      let dataUrl = canvas.toDataURL('image/jpeg', quality);
+      while (dataUrl.length > 450000 && quality > 0.45) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+
+      document.getElementById('plm-img-url').value = dataUrl;
+      previewProdLoja();
+      if (dataUrl.length > 450000) {
+        toast('⚠️ Imagem ainda grande. Prefira arquivos menores para evitar erro de armazenamento.');
+      } else {
+        toast('🖼️ Imagem otimizada automaticamente.');
+      }
+    };
+    img.onerror = () => toast('⚠️ Não foi possível ler esta imagem.');
+    img.src = e.target.result;
+  };
   reader.readAsDataURL(file);
 }
 
