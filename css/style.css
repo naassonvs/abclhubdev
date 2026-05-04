@@ -22,10 +22,15 @@
 [data-theme="light"] {
   --fundo:        #F2F7F3;
   --fundo-card:   #FFFFFF;
-  --texto:        #1A2E22;
-  --texto-suave:  rgba(26, 46, 34, 0.52);
+  --texto:        #0f2017;
+  --texto-suave:  rgba(15, 32, 23, 0.78);
   --borda:        rgba(45, 106, 79, 0.18);
 }
+[data-theme="light"] .corpo,
+[data-theme="light"] p,
+[data-theme="light"] .faq-a,
+[data-theme="light"] .footer-verse,
+[data-theme="light"] .footer-copy { color: var(--texto-suave); }
 
 /* Nav no modo claro */
 [data-theme="light"] #nav {
@@ -70,7 +75,7 @@
 
 /* Theme toggle — integrado na nav (não flutuante) */
 #theme-btn { display: none; } /* oculta o flutuante — usamos o da nav */
-#theme-toggle-btn { font-size: .85rem; }
+#theme-toggle-btn { font-size: .85rem; display:flex; align-items:center; justify-content:center; gap:.35rem; min-width:130px; }
 
 /* ============================================================
    RESET & BASE

@@ -924,6 +924,13 @@
           </div>
           <div id="loja-produtos-list"></div>
         </div>
+        <div class="section-card" style="margin-top:1.25rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h2>🎵 Hinos / Cânticos</h2>
+            <button class="btn btn-solid btn-sm" onclick="adicionarHinoAdmin()">+ Novo hino</button>
+          </div>
+          <div id="hinos-admin-list"></div>
+        </div>
 
         <!-- Pedidos recentes -->
         <div class="section-card" style="margin-top:1.25rem;">
@@ -1235,6 +1242,9 @@ function initAdmin() {
   renderPrels();
   loadConteudo();
   loadVisual();
+  renderLojaStats();
+  renderProdutosAdmin();
+  renderHinosAdmin();
 }
 
 // ── DASHBOARD ──
@@ -2315,6 +2325,8 @@ function renderProdutosAdmin() {
         <span style="font-size:.65rem;padding:.2rem .5rem;border-radius:99px;border:1px solid;${p.ativo?'background:rgba(64,145,108,.15);color:var(--verde-claro);border-color:rgba(64,145,108,.3);':'background:rgba(255,255,255,.04);color:var(--suave);border-color:var(--borda);'}">
           ${p.ativo?'● Ativo':'○ Inativo'}
         </span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAtivoProdLoja(${p.id})">${p.ativo?'⏸️':'▶️'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="duplicarProdLoja(${p.id})">📄</button>
         <button class="btn btn-ghost btn-sm" onclick="editarProdLoja(${p.id})">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="removerProdLoja(${p.id})">✕</button>
       </div>
@@ -2396,6 +2408,26 @@ function removerProdLoja(id) {
   toast('🗑 Produto removido.');
 }
 
+function duplicarProdLoja(id) {
+  const base = getLojaProdutos().find(p => p.id === id);
+  if (!base) return;
+  const copia = { ...base, id: Date.now(), nome: `${base.nome} (Cópia)`, variacaoEstoque: { ...(base.variacaoEstoque || {}) } };
+  const lista = [...getLojaProdutos(), copia];
+  if (!trySet('abcl-loja-produtos', lista)) return;
+  renderProdutosAdmin(); renderLojaStats();
+  toast('✅ Produto duplicado!');
+}
+
+function toggleAtivoProdLoja(id) {
+  const lista = getLojaProdutos();
+  const idx = lista.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  lista[idx].ativo = !(lista[idx].ativo !== false);
+  if (!trySet('abcl-loja-produtos', lista)) return;
+  renderProdutosAdmin(); renderLojaStats();
+  toast(lista[idx].ativo ? '✅ Produto ativado.' : '⚫ Produto desativado.');
+}
+
 function previewProdLoja() {
   const url  = document.getElementById('plm-img-url').value.trim();
   const prev = document.getElementById('plm-img-preview');
@@ -2450,6 +2482,25 @@ function lerImgProdLoja(input) {
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
+
+function getHinos(){ return get('abcl-hinos') || []; }
+function renderHinosAdmin() {
+  const el = document.getElementById('hinos-admin-list');
+  if (!el) return;
+  const hinos = getHinos();
+  el.innerHTML = hinos.map(h => `
+    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:.5rem;margin-bottom:.5rem;">
+      <input value="${h.titulo||''}" onchange="editarHinoCampo(${h.id},'titulo',this.value)" placeholder="Título do hino" />
+      <input value="${h.drive||''}" onchange="editarHinoCampo(${h.id},'drive',this.value)" placeholder="Link Google Drive (PPT)" />
+      <label style="font-size:.75rem;display:flex;align-items:center;gap:.35rem;"><input type="checkbox" ${h.ativo!==false?'checked':''} onchange="editarHinoCampo(${h.id},'ativo',this.checked)" /> Ativo</label>
+      <button class="btn btn-danger btn-sm" onclick="removerHinoAdmin(${h.id})">✕</button>
+    </div>
+  `).join('') || '<p style="color:var(--suave);font-size:.82rem;">Nenhum hino cadastrado ainda.</p>';
+}
+function salvarHinos(lista){ if (!trySet('abcl-hinos', lista)) return false; renderHinosAdmin(); return true; }
+function adicionarHinoAdmin(){ salvarHinos([...getHinos(), {id:Date.now(),titulo:'',drive:'',ativo:true}]); }
+function editarHinoCampo(id,campo,valor){ const l=getHinos(); const i=l.findIndex(h=>h.id===id); if(i<0)return; l[i][campo]=valor; salvarHinos(l); }
+function removerHinoAdmin(id){ salvarHinos(getHinos().filter(h=>h.id!==id)); }
 </script>
 <button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
 </body>
