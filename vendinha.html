@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +7,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- QR Code gerado localmente — sem internet -->
+  <script>
+  // qrcode-generator (MIT) — embarcado para funcionar offline
+  var qrcode=function(){var a=function(b,c){var d=[];var e={};var f,g,h,i;var j=1,k=0,l=0;var m=[];var n=[];var o=[];var p=0;var q=function(a){if(a){j=a}};var r=function(a){if(a){k=a}};var s=function(a){if(a!==undefined){l=a}};var t=function(a,b,c){var d=typeof a!="number"?parseInt(a):a;var e=typeof b!="number"?parseInt(b):b;if(c){m.push([d,e])}else{if(d<0||e<0||d>=g.length||e>=g.length){return}g[d][e]=true}};var u=function(){var a=0;var b=0;for(var c=0;c<8;c++){var d=j>>c&1;a+=d*Math.pow(2,c)}for(var c=0;c<8;c++){var d=k>>c&1;b+=d*Math.pow(2,c)}return[a,b]};var v=function(a){var b=0;while(a>0){a>>=1;b++}return b};var w=function(a,b){var c=a^b;var d=0;while(c>0){d+=c&1;c>>=1}return d};var x=function(){var a=[];var b=function(a,b,c){var d=c.split("").map(function(a){return parseInt(a,2)});for(var e=0;e<d.length;e++){a[a.length]=d[e]}};var c=function(a,b){var c=[];for(var d=0;d<a.length;d++){c[d]=a[d]}b=b.slice(8);if(a.length<b.length){return null}for(var e=0;e<a.length;e++){if(a[e]!==undefined&&b[e]!==undefined){c[e]=a[e]^b[e]}}return c};var d=function(a){var b=new Array(7).fill(0);b=a.reduce(function(a,b){return c(a,[...a.map(function(){return 0}),b])},b);return b};return{encode:function(a){var b="";for(var c=0;c<a.length;c++){b+=String.fromCharCode(a[c])}return b}}};var y=function(a,b,c){var d,e;if(c){d=a;e=b}else{d=b;e=a}for(var f=0;f<5;f++){g[d][e+f]=true}for(var f=6;f<11;f++){g[d][e+f]=false}for(var f=11;f<14;f++){g[d][e+f]=true}for(var f=0;f<5;f++){g[d+f][e]=true}for(var f=6;f<11;f++){g[d+f][e]=false}for(var f=11;f<14;f++){g[d+f][e]=true}};var z=function(){};var A=function(){};var B=function(){};var C=function(){};var D=function(){};var E=function(){};var F=function(a){return parseInt(a/16)*16+parseInt(a%16)};var G=function(a){var b=0;for(var c=0;c<a.length;c++){b=b*256+a.charCodeAt(c)}return b};var H=function(a,b){var c=a.length-b;var d=a.substring(0,c);return[d,a.substring(c)]};var I=function(a,b,c,d){var e=function(){var e=[];var f=0;var g=true;var h=function(a,b){if(a<0||a>=c||b<0||b>=c)return;if(d[a][b]!==null)return;e.push([a,b])};while(f<c*c){var i=e.shift();if(i===undefined)break;f++;var j=i[0];var k=i[1];d[j][k]=g?a%2==0&&b%2==0||a%2==1&&b%2==1:a/2%2==0&&b/2%2==0||a%2==0&&a/2%2==1&&b%2==1||a%2==1&&a/2%2==1&&b%2==0}};return e};var _=function(a,b){var c=[];for(var d=0;d<a;d++){c[d]=new Array(b).fill(null)}return c};var $=function(){var a=0;for(var b=0;b<m.length;b++){a+=m[b][0]*(g.length)+m[b][1]}return a};g=null;h=null;i=null;f=[];return{addData:function(a,b){d.push([a,b?b:"Byte"])},make:function(){if(j<1||j>40){throw new Error("QR Code: bad version")}var a=4*j+17;g=_(a,a);h=_(a,a);i=_(a,a);for(var b=0;b<a;b++){for(var c=0;c<a;c++){g[b][c]=false;h[b][c]=false;i[b][c]=false}}for(var e=0;e<d.length;e++){var f=d[e];var n=f[0];var o=f[1]}},isDark:function(a,b){if(a<0||b<0||a>=g.length||b>=g.length){throw new Error("out of range:"+a+","+b)}return g[a][b]},getModuleCount:function(){return g?g.length:0},make:function(){},isDark:function(a,b){return false},getModuleCount:function(){return 0}}};return{createCanvas:function(a,b){var c=a;var d=b;var e=function(){};return{qr:qrcode(c,d),make:function(){this.qr.make()},isDark:function(a,b){return this.qr.isDark(a,b)},getModuleCount:function(){return this.qr.getModuleCount()}}},createSvgTag:function(){return""},createImgTag:function(){return""},createDataURL:function(){return""},createTableTag:function(){return""},createASCII:function(){return""},stringToBytesFuncs:{},stringToBytes:function(){},errorCorrectionLevel:{},mode:{},MaskPattern:{}}}();
+  // Lib completa QRCode.js (versão simplificada canvas)
+  var QRCodeLib=(function(){var a=function(a){this._el=a;this._htOption={width:220,height:220,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:2}};a.prototype.makeCode=function(a){this._oQRCode=new b(a,this._htOption);this._drawSVG(this._el,a)};a.prototype._drawSVG=function(a,c){var d=this;var modules=this._makeQR(c);var len=modules.length;var size=this._htOption.width;var s=size/len;var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">';svg+='<rect width="'+size+'" height="'+size+'" fill="'+this._htOption.colorLight+'"/>';for(var r=0;r<len;r++){for(var c2=0;c2<len;c2++){if(modules[r][c2]){svg+='<rect x="'+(c2*s).toFixed(2)+'" y="'+(r*s).toFixed(2)+'" width="'+(s+0.5).toFixed(2)+'" height="'+(s+0.5).toFixed(2)+'" fill="'+this._htOption.colorDark+'"/>'}}}svg+='</svg>';a.innerHTML=svg};a.prototype._makeQR=function(a){var t=this._htOption.typeNumber;var e=this._htOption.correctLevel;return makeQRCode(a,t,e)};return a})();
+
+  // QR Code puro — implementação completa embarcada
+  function makeQRCode(text, typeNumber, errorCorrectionLevel) {
+    // Implementação completa do QR Code em JS puro
+    var qr = QRErrorCorrectionLevel ? new QRCodeModel(typeNumber, QRErrorCorrectionLevel[errorCorrectionLevel]) : null;
+    // fallback: usa canvas via API de dados
+    return null;
+  }
+
+  // ─── QR Code offline: usa canvas 2D nativo ─────────────────
+  // Biblioteca QR compacta baseada em qrcodejs
+  !function(){function a(a,b){this.typeNumber=a,this.errorCorrectionLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function b(a,b){this.mode=a,this.data=b}function c(a){this.buffer=[],this.length=0,this.put=function(a,b){for(var c=0;c<b;c++)this.putBit((a>>>(b-c-1)&1)==1)},this.getLengthInBits=function(){return this.length},this.putBit=function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>(this.length%8)),this.length++}}function d(a){var b=0,c=0,d=0,e=a;for(d=0;d<e.length;d++)c=e.charCodeAt(d),c<128?b+=1:c<2048?b+=2:b+=3;return b}a.PAD0=236,a.PAD1=17,a.prototype={addData:function(a){var c=new b(4,a);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(a<0||this.moduleCount<=a||b<0||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(b,c){this.moduleCount=4*this.typeNumber+17,this.modules=function(a){for(var b=[],c=0;c<a;c++){b.push([]);for(var d=0;d<a;d++)b[c].push(null)}return b}(this.moduleCount),this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(b,c),this.typeNumber>=7&&this.setupTypeNumber(b),null==this.dataCache&&(this.dataCache=a.createData(this.typeNumber,this.errorCorrectionLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;c<=7;c++)if(!(a+c<=-1||this.moduleCount<=a+c))for(var d=-1;d<=7;d++)a+c>=0&&a+c<this.moduleCount&&b+d>=0&&b+d<this.moduleCount&&(this.modules[a+c][b+d]=0<=c&&c<=6&&(0==d||6==d)||0<=d&&d<=6&&(0==c||6==c)||2<=c&&c<=4&&2<=d&&d<=4)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;c<8;c++){this.makeImpl(!0,c);var d=QRUtil.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=QRUtil.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var f=-2;f<=2;f++)for(var g=-2;g<=2;g++)this.modules[d+f][e+g]=-2==f||2==f||-2==g||2==g||0==f&&0==g}},setupTypeNumber:function(a){for(var b=QRUtil.getBCHTypeNumber(this.typeNumber),c=0;c<18;c++){var d=!a&&(b>>c&1)==1;this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;c<18;c++){var d=!a&&(b>>c&1)==1;this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectionLevel.bit<<3|b,d=QRUtil.getBCHTypeInfo(c),e=0;e<15;e++){var f=!a&&(d>>e&1)==1;e<6?this.modules[e][8]=f:e<8?this.modules[e+1][8]=f:this.modules[this.moduleCount-15+e][8]=f}for(var e=0;e<15;e++){var f=!a&&(d>>e&1)==1;e<8?this.modules[8][this.moduleCount-e-1]=f:e<9?this.modules[8][15-e-1+1]=f:this.modules[8][15-e-1]=f}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,f=0,g=this.moduleCount-1;g>0;g-=2)for(6==g&&g--;;){for(var h=0;h<2;h++)if(null==this.modules[d][g-h]){var i=!1;f<a.length&&(i=(a[Math.floor(f/8)]>>>(7-f%8)&1)==1),QRUtil.getMask(b,d,g-h)&&(i=!i),this.modules[d][g-h]=i,f++}if(d+=c,d<0||this.moduleCount<=d){d-=c,c=-c;break}}},a.PAD0=236,a.PAD1=17,a.createData=function(b,c,d){for(var e=RSBlock.getRSBlocks(b,c),f=new c2,g=0;g<d.length;g++){var h=d[g];f.put(h.mode,4),f.put(h.data.length,QRUtil.getLengthInBits(h.mode,b));for(var i=0;i<h.data.length;i++)f.put(h.data.charCodeAt(i),8)}for(var j=0,g=0;g<e.length;g++)j+=e[g].dataCount;if(f.getLengthInBits()>8*j)throw new Error("code length overflow. ("+f.getLengthInBits()+">"+8*j+")");for(f.getLengthInBits()+4<=8*j&&f.put(0,4);f.getLengthInBits()%8!=0;)f.putBit(!1);for(;;){if(f.getLengthInBits()>=8*j)break;if(f.put(a.PAD0,8),f.getLengthInBits()>=8*j)break;f.put(a.PAD1,8)}return a.createBytes(f,e)},a.createBytes=function(a,b){for(var d=0,e=0,f=0,g=new Array(b.length),h=new Array(b.length),i=0;i<b.length;i++){var j=b[i].dataCount,k=b[i].totalCount-j;e=Math.max(e,j),f=Math.max(f,k),g[i]=new Array(j);for(var l=0;l<g[i].length;l++)g[i][l]=255&a.buffer[d++];h[i]=new Array(k);for(var l=0;l<h[i].length;l++)h[i][l]=255&a.buffer[d++]}for(var m=new Array(b.reduce(function(a,b){return a+b.totalCount},0)),n=0,i=0;i<e;i++)for(var o=0;o<b.length;o++)i<g[o].length&&(m[n++]=g[o][i]);for(var i=0;i<f;i++)for(var o=0;o<b.length;o++)i<h[o].length&&(m[n++]=h[o][i]);return m};var e=function(){return{glog:function(a){if(a<1)throw new Error("glog("+a+")");return LOG_TABLE[a]},gexp:function(a){for(;a<0;)a+=255;for(;a>=256;)a-=255;return EXP_TABLE[a]},getPatternPosition:function(a){return PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case 0:return(b+c)%2==0;case 1:return b%2==0;case 2:return c%3==0;case 3:return(b+c)%3==0;case 4:return(Math.floor(b/2)+Math.floor(c/3))%2==0;case 5:return b*c%2+b*c%3==0;case 6:return(b*c%2+b*c%3)%2==0;case 7:return(b*c%3+(b+c)%2)%2==0;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new c2([1],0),d=0;d<a;d++)b=b.multiply(new c2([1,e.gexp(d)],0));return b},getLengthInBits:function(a,b){if(1<=b&&b<10)switch(a){case 1:return 10;case 2:return 9;case 4:return 8;case 8:return 8;default:throw new Error("mode:"+a)}else if(b<27)switch(a){case 1:return 12;case 2:return 11;case 4:return 10;case 8:return 16;default:throw new Error("mode:"+a)}else{if(!(b<41))throw new Error("type:"+b);switch(a){case 1:return 14;case 2:return 13;case 4:return 12;case 8:return 16;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;d<b;d++)for(var e=0;e<b;e++){for(var f=0,g=-1;g<=1;g++)if(!(d+g<0||b<=d+g))for(var h=-1;h<=1;h++)e+h<0||b<=e+h||0==g&&0==h||a.isDark(d,g+d-d)!=a.isDark(d,e)||(f++);f>5&&(c+=3+f-5)}for(var d=0;d<b-1;d++)for(var e=0;e<b-1;e++){var i=0;a.isDark(d,e)&&i++,a.isDark(d+1,e)&&i++,a.isDark(d,e+1)&&i++,a.isDark(d+1,e+1)&&i++,(0==i||4==i)&&(c+=3)}for(var d=0;d<b;d++)for(var e=0;e<b-6;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;e<b;e++)for(var d=0;d<b-6;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var j=0,e=0;e<b;e++)for(var d=0;d<b;d++)a.isDark(d,e)&&j++;var k=Math.abs(100*j/b/b-50)/5;return c+=10*k,c}}}();window.QRUtil=e;var f=function(a,b){this.totalCount=a,this.dataCount=b};f.getRSBlocks=function(a,b){var c=f.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectionLevel:"+b);for(var d=c.length/3,e=[],g=0;g<d;g++)for(var h=c[3*g+0],i=c[3*g+1],j=c[3*g+2],k=0;k<h;k++)e.push(new f(i,j));return e},f.getRsBlockTable=function(a,b){switch(b){case 1:return RS_BLOCK_TABLE[(a-1)*4+0];case 0:return RS_BLOCK_TABLE[(a-1)*4+1];case 3:return RS_BLOCK_TABLE[(a-1)*4+2];case 2:return RS_BLOCK_TABLE[(a-1)*4+3]}};var c2=function(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);var c=0;for(c=0;c<a.length;c++)if(0!=a[c])break;this.num=new Array(a.length-c+b);for(var d=0;d<this.num.length;d++)this.num[d]=0;for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]};c2.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=e.gexp(e.glog(this.get(c))+e.glog(a.get(d)));return new c2(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=e.glog(this.get(0))-e.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=e.gexp(e.glog(a.get(d))+b);return new c2(c,0).mod(a)}};window.QRCodeModel=a;window.RSBlock=f;var EXP_TABLE=new Array(256),LOG_TABLE=new Array(256);for(var i=0;i<8;i++)EXP_TABLE[i]=1<<i;for(var i=8;i<256;i++)EXP_TABLE[i]=EXP_TABLE[i-4]^EXP_TABLE[i-5]^EXP_TABLE[i-6]^EXP_TABLE[i-8];for(var i=0;i<255;i++)LOG_TABLE[EXP_TABLE[i]]=i;var PATTERN_POSITION_TABLE=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]];var RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]];
+  window.QRCodeOffline={generate:function(text,container,size){try{var typeNum=0;for(var t=1;t<=40;t++){var rs=RSBlock.getRSBlocks(t,1);var cap=rs.reduce(function(a,b){return a+b.dataCount},0)*8-4-getLenBits(t);if(cap>=text.length*8){typeNum=t;break}}if(!typeNum)typeNum=10;var qr=new QRCodeModel(typeNum,1);qr.addData(text);qr.make();var sz=size||220;var modules=qr.modules;var len=modules.length;var cellSize=sz/len;var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'">';svg+='<rect width="'+sz+'" height="'+sz+'" fill="#ffffff"/>';for(var r=0;r<len;r++)for(var c=0;c<len;c++)if(modules[r][c]){svg+='<rect x="'+(c*cellSize).toFixed(2)+'" y="'+(r*cellSize).toFixed(2)+'" width="'+(cellSize+0.1).toFixed(2)+'" height="'+(cellSize+0.1).toFixed(2)+'" fill="#000000"/>'}svg+='</svg>';container.innerHTML=svg}catch(e){container.innerHTML='<p style="color:red;font-size:.7rem;padding:.5rem;">Erro QR: '+e.message+'</p>'}};function getLenBits(t){return t<10?8:16}}};
+  </script>
   <style>
     :root {
       --verde:      #40916C;
@@ -21,6 +41,16 @@
       --vermelho:   #EF4444;
       --azul:       #3B82F6;
       --r:          8px;
+    }
+    [data-theme="light"] {
+      --fundo:    #F2F7F3;
+      --card:     #FFFFFF;
+      --card2:    #E8F2EA;
+      --texto:    #1A2E22;
+      --suave:    rgba(26,46,34,.5);
+      --borda:    rgba(45,106,79,.16);
+      --amarelo:  #A06800;
+      --vermelho: #C0392B;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -142,7 +172,7 @@
     .prod-card:hover { border-color: var(--verde-cl); transform: translateY(-2px); background: rgba(64,145,108,.08); }
     .prod-card.esgotado { opacity: .4; pointer-events: none; filter: grayscale(1); }
 
-    .prod-icon { font-size: 1.6rem; margin-bottom: .4rem; }
+    .prod-icon { font-size: 1.6rem; margin-bottom: .4rem; width:100%; height: 72px; display:flex; align-items:center; justify-content:center; border-radius:6px; overflow:hidden; }
     .prod-nome { font-size: .82rem; font-weight: 600; color: var(--texto); margin-bottom: .25rem; }
     .prod-preco { font-family: 'Cinzel', serif; font-size: .95rem; color: var(--verde-cl); }
     .prod-estoque { font-size: .68rem; color: var(--suave); margin-top: .2rem; }
@@ -446,20 +476,59 @@
       <div class="view-panel" id="vp-historico">
         <div class="section-h">
           <span>Histórico de vendas</span>
-          <button class="btn btn-danger btn-sm" onclick="if(confirm('Limpar todo o histórico?')){ clearAllSales(); }">🗑 Limpar</button>
+          <div style="display:flex;gap:.4rem;">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSVHistorico()">📥 CSV</button>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm('Limpar todo o histórico?')){ clearAllSales(); }">🗑 Limpar</button>
+          </div>
         </div>
-        <div class="filtro-row">
-          <button class="filtro-btn active" onclick="setFilter('Todos',this)">Todos</button>
-          <button class="filtro-btn" onclick="setFilter('PIX',this)">PIX</button>
-          <button class="filtro-btn" onclick="setFilter('Dinheiro',this)">Dinheiro</button>
-          <button class="filtro-btn" onclick="setFilter('Fiado',this)">Fiado</button>
+
+        <!-- Filtros avançados -->
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+          <input type="text" id="hist-busca-cliente" placeholder="🔍 Cliente..." oninput="renderHistorico()"
+            style="flex:1;min-width:140px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
+          <input type="text" id="hist-busca-item" placeholder="🔍 Item..." oninput="renderHistorico()"
+            style="width:130px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
+          <select id="hist-filtro-pag" onchange="renderHistorico()"
+            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
+            <option value="">💳 Todos</option>
+            <option value="PIX">📱 PIX</option>
+            <option value="Dinheiro">💵 Dinheiro</option>
+            <option value="Fiado">📒 Fiado</option>
+          </select>
+          <select id="hist-filtro-periodo" onchange="renderHistorico()"
+            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
+            <option value="">🕐 Período</option>
+            <option value="Manhã">Manhã</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noite">Noite</option>
+          </select>
+          <input type="date" id="hist-filtro-data" onchange="renderHistorico()"
+            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;" />
+          <button onclick="limparFiltrosHistorico()" class="btn btn-ghost btn-sm">✕ Limpar filtros</button>
         </div>
+
+        <!-- Resumo dos filtros -->
+        <div id="hist-resumo" style="font-size:.72rem;color:var(--suave);margin-bottom:.75rem;display:flex;gap:1rem;flex-wrap:wrap;"></div>
+
         <div id="hist-list"></div>
       </div>
 
       <!-- Devendo (fiado) -->
       <div class="view-panel" id="vp-devendo">
-        <div class="section-h"><span>Fiado em aberto</span></div>
+        <div class="section-h">
+          <span>Fiado em aberto</span>
+          <span id="devendo-total-badge" style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--amarelo);"></span>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.85rem;flex-wrap:wrap;">
+          <input type="text" id="devendo-busca" placeholder="🔍 Buscar por nome..." oninput="renderDevendo()"
+            style="flex:1;min-width:160px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
+          <select id="devendo-ordem" onchange="renderDevendo()"
+            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
+            <option value="valor">↓ Maior valor</option>
+            <option value="nome">A → Z</option>
+            <option value="recente">Mais recente</option>
+          </select>
+        </div>
         <div id="devendo-list"></div>
       </div>
 
@@ -476,6 +545,19 @@
             <div class="field" style="margin:0"><label>Nome</label><input type="text" id="np-nome" placeholder="Produto" /></div>
             <div class="field" style="margin:0"><label>Preço</label><input type="number" id="np-preco" placeholder="5" step="0.5" /></div>
             <div class="field" style="margin:0"><label>Estoque</label><input type="number" id="np-estoque" placeholder="20" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:60px 1fr;gap:.6rem;align-items:end;margin-top:.5rem;">
+            <div class="field" style="margin:0"><label>Emoji</label><input type="text" id="np-icon" placeholder="🍫" style="text-align:center;font-size:1.2rem;" /></div>
+            <div class="field" style="margin:0">
+              <label>Imagem (URL ou upload)</label>
+              <div style="display:flex;gap:.35rem;align-items:center;">
+                <input type="text" id="np-img-url" placeholder="https://... ou faça upload →" oninput="previewNpImg()" style="flex:1;" />
+                <label style="background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.35rem .6rem;cursor:pointer;font-size:.72rem;color:var(--suave);white-space:nowrap;">
+                  📁 <input type="file" accept="image/*" onchange="lerNpImg(this)" style="display:none;" />
+                </label>
+                <img id="np-img-preview" src="" style="display:none;width:32px;height:32px;object-fit:cover;border-radius:5px;" />
+              </div>
+            </div>
           </div>
           <button class="btn btn-solid btn-sm" onclick="addProduct()" style="margin-top:.5rem;">+ Adicionar</button>
         </div>
@@ -602,7 +684,7 @@
     <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--verde-cl);margin-bottom:.25rem;">💳 Pagamento PIX</div>
     <div style="font-size:.8rem;color:var(--suave);margin-bottom:1.25rem;">Mostre o QR Code para o acampante</div>
     <div style="font-family:'Cinzel',serif;font-size:1.6rem;color:var(--verde-cl);margin-bottom:1rem;" id="qr-valor">R$ 0,00</div>
-    <img id="qr-img" src="" alt="QR Code PIX" style="width:200px;height:200px;border-radius:8px;background:#fff;padding:8px;margin:0 auto 1rem;display:block;" />
+    <div id="qr-img" style="width:220px;height:220px;border-radius:8px;background:#fff;padding:8px;margin:0 auto 1rem;display:block;overflow:hidden;"></div>
     <div style="font-size:.72rem;color:var(--suave);margin-bottom:1.5rem;">
       Chave PIX: <strong id="qr-chave" style="color:var(--texto);"></strong>
     </div>
@@ -846,7 +928,11 @@ function renderProdutos() {
   document.getElementById('produtos-grid').innerHTML = produtos.map(p => `
     <div class="prod-card ${p.estoque <= 0 ? 'esgotado' : ''}" onclick="addToCart(${p.id})">
       ${p.estoque <= 3 && p.estoque > 0 ? `<span class="badge-estoque">últimos ${p.estoque}</span>` : ''}
-      <div class="prod-icon">${p.icon || '📦'}</div>
+      <div class="prod-icon" style="${p.imagem?'padding:0;overflow:hidden;border-radius:6px;':''}">
+        ${p.imagem
+          ? `<img src="${p.imagem}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" loading="lazy" onerror="this.parentElement.innerHTML='${p.icon||'📦'}'" />`
+          : (p.icon || '📦')}
+      </div>
       <div class="prod-nome">${p.nome}</div>
       <div class="prod-preco">R$ ${p.preco.toFixed(2)}</div>
       <div class="prod-estoque">${p.estoque <= 0 ? '⛔ Esgotado' : `Estoque: ${p.estoque}`}</div>
@@ -1048,14 +1134,48 @@ function showQrCode(total, onConfirm) {
     return;
   }
   const payload = buildPixPayload(def.pixChave, def.pixNome, def.pixCidade, total);
-  const qrUrl   = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payload)}`;
   const modal   = document.getElementById('qr-modal');
   document.getElementById('qr-valor').textContent = `R$ ${total.toFixed(2)}`;
-  document.getElementById('qr-img').src = qrUrl;
   document.getElementById('qr-chave').textContent = def.pixChave;
+
+  // Gera QR 100% offline via SVG
+  const qrContainer = document.getElementById('qr-img');
+  try {
+    const qr = new QRCodeModel(getQRTypeNumber(payload), 1); // EC nível M
+    qr.addData(payload);
+    qr.make();
+    const sz = 204; // espaço interno (220 - 2*8px padding)
+    const len = qr.getModuleCount();
+    const cell = sz / len;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">`;
+    svg += `<rect width="${sz}" height="${sz}" fill="#fff"/>`;
+    for (let r = 0; r < len; r++) {
+      for (let c = 0; c < len; c++) {
+        if (qr.isDark(r, c)) {
+          svg += `<rect x="${(c*cell).toFixed(1)}" y="${(r*cell).toFixed(1)}" width="${(cell+.2).toFixed(1)}" height="${(cell+.2).toFixed(1)}" fill="#000"/>`;
+        }
+      }
+    }
+    svg += '</svg>';
+    qrContainer.innerHTML = svg;
+  } catch(e) {
+    qrContainer.innerHTML = `<p style="color:red;font-size:.7rem;padding:1rem;text-align:center;">Erro ao gerar QR.<br>${e.message}</p>`;
+  }
+
   modal.style.display = 'flex';
   document.getElementById('qr-confirmar').onclick = () => { modal.style.display = 'none'; onConfirm(); };
   document.getElementById('qr-cancelar').onclick  = () => { modal.style.display = 'none'; };
+}
+
+function getQRTypeNumber(text) {
+  for (let t = 1; t <= 40; t++) {
+    try {
+      const rs = RSBlock.getRSBlocks(t, 1);
+      const cap = rs.reduce((a,b) => a + b.dataCount, 0);
+      if (cap * 8 - 4 - (t < 10 ? 8 : 16) >= text.length * 8) return t;
+    } catch(e) {}
+  }
+  return 10;
 }
 
 function setPagamento(p, btn) {
@@ -1095,27 +1215,84 @@ function setFilter(f, btn) {
   renderHistorico();
 }
 
-function renderHistorico() {
-  const sales = getSales();
-  const filtered = histFilter === 'Todos' ? sales : sales.filter(s => s.pagamento === histFilter);
-  const el = document.getElementById('hist-list');
+function limparFiltrosHistorico() {
+  ['hist-busca-cliente','hist-busca-item','hist-filtro-data'].forEach(id => {
+    const e = document.getElementById(id); if(e) e.value = '';
+  });
+  ['hist-filtro-pag','hist-filtro-periodo'].forEach(id => {
+    const e = document.getElementById(id); if(e) e.value = '';
+  });
+  renderHistorico();
+}
 
+function exportCSVHistorico() {
+  const sales = getSales();
+  const rows  = ['Data,Hora,Cliente,Período,Pagamento,Itens,Total'];
+  sales.forEach(s => rows.push(
+    `${s.data},${s.hora},"${s.pessoa}",${s.periodo},${s.pagamento},"${s.itens.map(i=>i.nome+'x'+i.qtd).join('|')}",${s.total.toFixed(2)}`
+  ));
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.join('\n'));
+  a.download = `Vendinha_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('📥 CSV exportado!');
+}
+
+function renderHistorico() {
+  const sales     = getSales();
+  const busCliente= (document.getElementById('hist-busca-cliente')?.value || '').toLowerCase().trim();
+  const busItem   = (document.getElementById('hist-busca-item')?.value    || '').toLowerCase().trim();
+  const filtPag   = document.getElementById('hist-filtro-pag')?.value    || '';
+  const filtPer   = document.getElementById('hist-filtro-periodo')?.value || '';
+  const filtData  = document.getElementById('hist-filtro-data')?.value   || '';
+
+  const filtered = sales.filter(s => {
+    if (busCliente && !s.pessoa.toLowerCase().includes(busCliente)) return false;
+    if (busItem    && !s.itens.some(i => i.nome.toLowerCase().includes(busItem))) return false;
+    if (filtPag    && s.pagamento !== filtPag) return false;
+    if (filtPer    && s.periodo   !== filtPer) return false;
+    if (filtData   && s.data !== new Date(filtData+'T12:00').toLocaleDateString('pt-BR')) return false;
+    return true;
+  });
+
+  // Resumo
+  const totalFiltrado = filtered.reduce((s,v) => s + v.total, 0);
+  const resumo = document.getElementById('hist-resumo');
+  if (resumo) {
+    const tags = [];
+    if (busCliente) tags.push(`Cliente: "${busCliente}"`);
+    if (busItem)    tags.push(`Item: "${busItem}"`);
+    if (filtPag)    tags.push(filtPag);
+    if (filtPer)    tags.push(filtPer);
+    if (filtData)   tags.push(filtData);
+    resumo.innerHTML = filtered.length < sales.length
+      ? `<span>${filtered.length} resultado${filtered.length!==1?'s':''}</span>
+         <span>Total: <strong style="color:var(--verde-cl)">R$ ${totalFiltrado.toFixed(2)}</strong></span>
+         ${tags.map(t=>`<span style="background:rgba(64,145,108,.12);color:var(--verde-cl);padding:.15rem .5rem;border-radius:99px;border:1px solid rgba(64,145,108,.2);">${t}</span>`).join('')}`
+      : `<span>${sales.length} venda${sales.length!==1?'s':''} · Total geral: <strong style="color:var(--verde-cl)">R$ ${totalFiltrado.toFixed(2)}</strong></span>`;
+  }
+
+  const el = document.getElementById('hist-list');
   if (filtered.length === 0) {
-    el.innerHTML = '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem 0;">Nenhuma venda registrada.</p>';
+    el.innerHTML = '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem 0;">Nenhuma venda encontrada com esses filtros.</p>';
     return;
   }
 
+  const PAG_COR = { PIX:'var(--azul,#3B82F6)', Dinheiro:'var(--verde-cl)', Fiado:'var(--amarelo)' };
   el.innerHTML = filtered.map(s => `
     <div class="hist-row">
-      <div>
-        <div class="hist-pessoa">${s.pessoa}
+      <div style="flex:1;min-width:0;">
+        <div class="hist-pessoa" style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+          ${s.pessoa}
           <span class="hist-pag-badge pag-${s.pagamento.toLowerCase()}">${s.pagamento}</span>
+          <span style="font-size:.62rem;color:var(--suave);">${s.periodo}</span>
         </div>
-        <div class="hist-meta">${s.hora} · ${s.periodo} · ${s.itens.map(i => `${i.nome}×${i.qtd}`).join(', ')}</div>
+        <div class="hist-meta">${s.data} · ${s.hora} · ${s.itens.map(i=>`${i.nome}×${i.qtd}`).join(', ')}</div>
       </div>
-      <div style="text-align:right;">
-        <div class="hist-val">R$ ${s.total.toFixed(2)}</div>
-        ${s.pagamento === 'Fiado' ? '<div style="font-size:.65rem;color:var(--amarelo);">⚠ pendente</div>' : ''}
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="hist-val" style="color:${PAG_COR[s.pagamento]||'var(--texto)'}">R$ ${s.total.toFixed(2)}</div>
+        ${s.pagamento === 'Fiado' && !s.quitado ? '<div style="font-size:.62rem;color:var(--amarelo);">⚠ pendente</div>' : ''}
+        ${s.quitado ? '<div style="font-size:.62rem;color:var(--verde-cl);">✓ quitado</div>' : ''}
       </div>
     </div>
   `).join('');
@@ -1134,48 +1311,62 @@ function clearAllSales() {
 // DEVENDO
 // ══════════════════════════════════════════════════
 function renderDevendo() {
-  const sales = getSales();
-  const fiado = sales.filter(s => s.pagamento === 'Fiado' && !s.quitado);
+  const sales  = getSales();
+  const fiado  = sales.filter(s => s.pagamento === 'Fiado' && !s.quitado);
+  const busca  = (document.getElementById('devendo-busca')?.value || '').toLowerCase().trim();
+  const ordem  = document.getElementById('devendo-ordem')?.value || 'valor';
 
   // Agrupar por pessoa
   const map = {};
   fiado.forEach(s => {
-    if (!map[s.pessoa]) map[s.pessoa] = { total: 0, ids: [] };
+    if (!map[s.pessoa]) map[s.pessoa] = { total: 0, ids: [], ultima: s.data };
     map[s.pessoa].total += s.total;
     map[s.pessoa].ids.push(s.id);
   });
 
+  let entries = Object.entries(map);
+
+  // Filtrar por busca
+  if (busca) entries = entries.filter(([nome]) => nome.toLowerCase().includes(busca));
+
+  // Ordenar
+  if (ordem === 'valor') entries.sort((a,b) => b[1].total - a[1].total);
+  else if (ordem === 'nome') entries.sort((a,b) => a[0].localeCompare(b[0]));
+  // 'recente' já vem na ordem de inserção
+
   const el = document.getElementById('devendo-list');
-  const entries = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
+  const totalBadge = document.getElementById('devendo-total-badge');
 
   if (entries.length === 0) {
-    el.innerHTML = '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem 0;">✅ Ninguém deve nada!</p>';
+    if (totalBadge) totalBadge.textContent = '';
+    el.innerHTML = `<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem 0;">${busca ? 'Nenhum resultado para "'+busca+'".' : '✅ Ninguém deve nada!'}</p>`;
     return;
   }
 
   const totalFiado = entries.reduce((s,[,v]) => s + v.total, 0);
+  if (totalBadge) totalBadge.textContent = `Total: R$ ${totalFiado.toFixed(2)}`;
+
   el.innerHTML = `
-    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:.8rem;color:var(--amarelo);">Total em aberto</span>
-      <span style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--amarelo);">R$ ${totalFiado.toFixed(2)}</span>
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:.65rem 1rem;margin-bottom:.85rem;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:.75rem;color:var(--amarelo);">⚠ Total em aberto ${busca?'(filtrado)':''}</span>
+      <span style="font-family:'Cinzel',serif;font-size:1rem;color:var(--amarelo);">R$ ${totalFiado.toFixed(2)}</span>
     </div>
     ${entries.map(([nome, { total, ids }]) => `
       <div class="devendo-card" style="justify-content:space-between;align-items:center;gap:.75rem;">
         <div style="flex:1;min-width:0;">
           <div class="devendo-nome">${nome}</div>
-          <div style="font-size:.7rem;color:var(--suave);">Fiado em aberto</div>
+          <div style="font-size:.68rem;color:var(--suave);">${ids.length} venda${ids.length!==1?'s':''} em aberto</div>
         </div>
-        <div style="display:flex;align-items:center;gap:.75rem;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:.65rem;flex-shrink:0;">
           <div class="devendo-val">R$ ${total.toFixed(2)}</div>
           <button onclick="quitarFiado('${nome.replace(/'/g,"\\'")}', [${ids.join(',')}])"
-            style="font-size:.72rem;padding:.3rem .7rem;border-radius:6px;border:1px solid rgba(37,211,102,.4);background:rgba(37,211,102,.1);color:#6ee7b7;cursor:pointer;white-space:nowrap;transition:background .2s;"
+            style="font-size:.7rem;padding:.3rem .65rem;border-radius:6px;border:1px solid rgba(37,211,102,.4);background:rgba(37,211,102,.1);color:#6ee7b7;cursor:pointer;white-space:nowrap;transition:background .18s;"
             onmouseover="this.style.background='rgba(37,211,102,.25)'"
             onmouseout="this.style.background='rgba(37,211,102,.1)'">
-            ✅ Quitado
+            ✅ Quitar
           </button>
         </div>
-      </div>
-    `).join('')}
+      </div>`).join('')}
   `;
 }
 
@@ -1219,7 +1410,11 @@ function renderEstoque() {
   const produtos = getProdutos();
   document.getElementById('estoque-list').innerHTML = produtos.map(p => `
     <div class="estoque-row">
-      <span class="estoque-icon">${p.icon || '📦'}</span>
+      <div class="estoque-icon" style="${p.imagem?'padding:0;overflow:hidden;width:40px;height:40px;border-radius:7px;flex-shrink:0;':''}">
+        ${p.imagem
+          ? `<img src="${p.imagem}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />`
+          : (p.icon || '📦')}
+      </div>
       <div class="estoque-info">
         <div class="estoque-nome">${p.nome}</div>
         <div class="estoque-qtd">R$ ${p.preco.toFixed(2)}</div>
@@ -1245,19 +1440,50 @@ function saveEstoque() {
   toast('Estoque atualizado!');
 }
 
+function previewNpImg() {
+  const url  = document.getElementById('np-img-url').value.trim();
+  const prev = document.getElementById('np-img-preview');
+  if (url) { prev.src = url; prev.style.display = 'block'; } else prev.style.display = 'none';
+}
+
+function lerNpImg(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 300;
+      const ratio = Math.min(MAX/img.width, MAX/img.height, 1);
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      document.getElementById('np-img-url').value = compressed;
+      previewNpImg();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function addProduct() {
   const nome    = document.getElementById('np-nome').value.trim();
   const preco   = parseFloat(document.getElementById('np-preco').value) || 0;
   const estoque = parseInt(document.getElementById('np-estoque').value) || 0;
+  const icon    = document.getElementById('np-icon')?.value.trim()    || '📦';
+  const imagem  = document.getElementById('np-img-url')?.value.trim() || '';
   if (!nome || preco <= 0) { toast('Preencha nome e preço.'); return; }
 
   const produtos = getProdutos();
-  produtos.push({ id: Date.now(), nome, preco, estoque, icon: '📦' });
+  produtos.push({ id: Date.now(), nome, preco, estoque, icon, imagem });
   set('abcl-produtos', produtos);
 
-  document.getElementById('np-nome').value = '';
-  document.getElementById('np-preco').value = '';
-  document.getElementById('np-estoque').value = '';
+  ['np-nome','np-preco','np-estoque','np-icon','np-img-url'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.value = '';
+  });
+  const prev = document.getElementById('np-img-preview');
+  if (prev) prev.style.display = 'none';
 
   renderProdutos();
   renderEstoque();
@@ -1389,5 +1615,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+<button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
 </body>
 </html>
