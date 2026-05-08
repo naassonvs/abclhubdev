@@ -77,17 +77,19 @@
       <li><a href="#local">Local</a></li>
       <li><a href="#inscricao">Inscrição</a></li>
       <li><a href="#faq">FAQ</a></li>
-      <li><a href="#hinos">Hinos</a></li>
       <li><a href="#loja">Loja</a></li>
       <li><a href="#links">Links</a></li>
-      <li><a href="admin.html" style="opacity:0.65; font-size:0.78rem;" title="Acesso restrito">ADMIN</a></li>
+      <li><a href="canticos.html" style="color:var(--verde-claro);">🎶 Cânticos</a></li>
+      <li><a href="admin.html" style="opacity:0.32;font-size:0.72rem;letter-spacing:.06em;" title="Acesso restrito">ADMIN</a></li>
     </ul>
 
     <button onclick="toggleTheme()" id="theme-toggle-btn"
       title="Alternar tema"
-      style="background:none;border:1px solid rgba(64,145,108,.3);border-radius:99px;padding:.35rem .7rem;font-size:.8rem;cursor:pointer;color:var(--texto);transition:all .2s;margin-right:.25rem;"
+      style="display:flex;align-items:center;gap:.4rem;background:none;border:1px solid rgba(64,145,108,.3);border-radius:99px;padding:.3rem .75rem;font-size:.72rem;cursor:pointer;color:var(--texto);transition:all .2s;margin-right:.25rem;white-space:nowrap;"
       onmouseover="this.style.borderColor='var(--verde-claro)'"
-      onmouseout="this.style.borderColor='rgba(64,145,108,.3)'">☀️ Tema claro</button>
+      onmouseout="this.style.borderColor='rgba(64,145,108,.3)'">
+      <span id="theme-icon">☀️</span><span id="theme-label">Claro</span>
+    </button>
 
     <a href="#inscricao" class="btn btn-solid" style="font-size:0.73rem; padding:0.55rem 1.2rem;">
       Inscrever-se
@@ -104,12 +106,14 @@
     <a href="#local"     onclick="toggleMenu()">Local</a>
     <a href="#inscricao" onclick="toggleMenu()">Inscrição</a>
     <a href="#faq"       onclick="toggleMenu()">FAQ</a>
-    <a href="#hinos"      onclick="toggleMenu()">Hinos</a>
     <a href="#loja"      onclick="toggleMenu()">🛍️ Loja</a>
     <a href="#links"     onclick="toggleMenu()">Links</a>
+    <a href="canticos.html">🎶 Cânticos</a>
+    <a href="admin.html" onclick="toggleMenu()" style="font-size:.75rem;opacity:.32;letter-spacing:.06em;">ADMIN</a>
     <a href="#inscricao" onclick="toggleMenu()" class="btn btn-solid">Inscrever-se</a>
-    <button onclick="toggleTheme();toggleMenu()" style="background:var(--card,rgba(15,30,20,.8));border:1px solid rgba(64,145,108,.3);border-radius:8px;padding:.6rem;font-size:.82rem;color:var(--texto,#f0ede6);cursor:pointer;width:100%;text-align:center;" id="mobile-theme-btn">☀️ Modo claro</button>
-    <a href="admin.html" style="font-size:.75rem;opacity:.65;letter-spacing:.08em;" title="Acesso restrito">ADMIN</a>
+    <button onclick="toggleTheme();toggleMenu()" style="background:var(--card,rgba(15,30,20,.8));border:1px solid rgba(64,145,108,.3);border-radius:8px;padding:.6rem;font-size:.82rem;color:var(--texto,#f0ede6);cursor:pointer;width:100%;text-align:center;display:flex;align-items:center;justify-content:center;gap:.4rem;" id="mobile-theme-btn">
+      <span id="mobile-theme-icon">☀️</span><span id="mobile-theme-label">Modo claro</span>
+    </button>
   </div>
 
 
@@ -172,15 +176,6 @@
           A partir de 14 anos
         </span>
       </div>
-    </div>
-  </section>
-
-  <section class="faq" id="hinos">
-    <div class="container faq-inner">
-      <span class="label">LOUVOR</span>
-      <h2 class="titulo">Hinos e Cânticos</h2>
-      <p class="corpo" style="margin-top:.7rem;">Acesse os hinos que serão cantados no acampamento e baixe os slides (PPT).</p>
-      <div id="hinos-list" class="faq-list"></div>
     </div>
   </section>
 
@@ -598,6 +593,9 @@
   </section>
 
 
+  </section>
+
+
   <!-- ══ LINKS ══════════════════════════════════════════════════ -->
   <section id="links" style="padding: 5rem 1.5rem; background: linear-gradient(180deg, var(--fundo) 0%, rgba(15,30,20,0.6) 100%);">
     <div style="max-width: 680px; margin: 0 auto;">
@@ -689,7 +687,6 @@
       <p class="footer-copy">
         © 2026 Mocidade da Casa de Oração · Rua Cônego João Pio, 60, Lourdes — Conselheiro Lafaiete/MG
       </p>
-
     </div>
   </footer>
 
@@ -708,12 +705,16 @@
   function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     const isDark = t === 'dark';
-    // Botão nav desktop
-    const btn = document.getElementById('theme-toggle-btn');
-    if (btn) btn.textContent = isDark ? '☀️ Tema claro' : '🌙 Tema escuro';
-    // Botão menu mobile
-    const mBtn = document.getElementById('mobile-theme-btn');
-    if (mBtn) mBtn.textContent = isDark ? '☀️ Modo claro' : '🌙 Modo escuro';
+    // Ícone e label desktop
+    const icon  = document.getElementById('theme-icon');
+    const label = document.getElementById('theme-label');
+    if (icon)  icon.textContent  = isDark ? '☀️' : '🌙';
+    if (label) label.textContent = isDark ? 'Claro' : 'Escuro';
+    // Mobile
+    const mIcon  = document.getElementById('mobile-theme-icon');
+    const mLabel = document.getElementById('mobile-theme-label');
+    if (mIcon)  mIcon.textContent  = isDark ? '☀️' : '🌙';
+    if (mLabel) mLabel.textContent = isDark ? 'Modo claro' : 'Modo escuro';
     localStorage.setItem('abcl-theme', t);
   }
 
@@ -721,14 +722,6 @@
     const curr = document.documentElement.getAttribute('data-theme') || 'dark';
     applyTheme(curr === 'dark' ? 'light' : 'dark');
   }
-  function renderHinosSite() {
-    const el = document.getElementById('hinos-list');
-    if (!el) return;
-    let hinos = [];
-    try { hinos = (JSON.parse(localStorage.getItem('abcl-hinos')) || []).filter(h => h.ativo !== false); } catch(e){}
-    el.innerHTML = hinos.map(h => `<div class="faq-item" style="padding:1rem 0;"><div class="faq-q" style="cursor:default;"><span>${h.titulo || 'Hino'}</span><a class="btn btn-ghost" style="font-size:.75rem;" href="${h.drive || '#'}" target="_blank" rel="noopener">Baixar PPT</a></div></div>`).join('') || '<p class="corpo">Em breve publicaremos a lista de hinos.</p>';
-  }
-  renderHinosSite();
 
   // ── Rastreador de visitas ─────────────────────────────────
   (function trackVisit() {

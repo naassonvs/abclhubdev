@@ -1,354 +1,279 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ABCL 2026 — Cânticos</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cânticos — ABCL</title>
   <style>
-    :root[data-theme="dark"] {
-      --bg:        #080D12; --bg2:     #0C1420;
-      --card:      #101B2A; --card2:   #142030;
-      --texto:     #EDE8DF; --suave:   rgba(237,232,223,0.45);
-      --borda:     rgba(100,160,220,0.18);
-      --azul:      #3B82F6; --azul-cl: #93C5FD; --azul-mid:#2563EB;
-      --dourado:   #D4A853; --verde:   #40916C;
-      --input-bg:  rgba(255,255,255,0.04);
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0e0f;
+      --card: #111618;
+      --card2: #1a1f22;
+      --borda: #2a3135;
+      --suave: #7a8a92;
+      --texto: #e8eef4;
+      --verde-cl: #34d399;
+      --verde-claro: #6ee7b7;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    :root[data-theme="light"] {
-      --bg:        #F0F4F8; --bg2:     #E5ECF3;
-      --card:      #FFFFFF; --card2:   #F5F8FB;
-      --texto:     #0D1B2A; --suave:   rgba(13,27,42,0.55);
-      --borda:     rgba(37,99,235,0.18);
-      --azul:      #1D4ED8; --azul-cl: #1D4ED8; --azul-mid:#2563EB;
-      --dourado:   #92620E; --verde:   #2D6A4F;
-      --input-bg:  rgba(0,0,0,0.04);
+    html, body { width: 100%; height: 100%; font-family: var(--font); background: var(--bg); color: var(--texto); }
+    body { display: flex; flex-direction: column; }
+    .header {
+      background: linear-gradient(135deg, rgba(52,211,153,.08) 0%, rgba(110,231,183,.04) 100%);
+      border-bottom: 1px solid var(--borda);
+      padding: 2rem 1.5rem;
+      text-align: center;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--texto); min-height:100vh; transition:background .3s,color .3s; }
-
-    /* ── TOP BAR ── */
-    .top-bar {
-      background:var(--card); border-bottom:1px solid var(--borda);
-      padding:.65rem 1.5rem; display:flex; align-items:center; justify-content:space-between;
-      position:sticky; top:0; z-index:50;
+    .header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; font-family: 'Cinzel', serif; color: var(--verde-claro); }
+    .header p { font-size: 0.9rem; color: var(--suave); }
+    .container { flex: 1; max-width: 1000px; width: 100%; margin: 0 auto; padding: 1.5rem; }
+    .controls { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center; }
+    .search { flex: 1; min-width: 200px; }
+    .search input { width: 100%; padding: 0.75rem 1rem; background: var(--card2); border: 1px solid var(--borda); border-radius: 8px; color: var(--texto); font-size: 0.9rem; outline: none; }
+    .search input:focus { border-color: var(--verde-cl); }
+    .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .filter-btn { padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--borda); border-radius: 20px; color: var(--suave); font-size: 0.82rem; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { border-color: var(--verde-cl); color: var(--verde-cl); background: rgba(52,211,153,.08); }
+    .lista-canticos { display: grid; gap: 1.5rem; }
+    .cantico-item { background: var(--card2); border: 1px solid var(--borda); border-radius: 12px; padding: 1.5rem; transition: border-color 0.2s; cursor: pointer; }
+    .cantico-item:hover { border-color: var(--verde-cl); }
+    .cantico-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
+    .cantico-icone { width: 48px; height: 48px; background: var(--card); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+    .cantico-info h2 { font-size: 1.15rem; margin-bottom: 0.4rem; color: var(--verde-claro); }
+    .cantico-meta { font-size: 0.8rem; color: var(--suave); margin-bottom: 0.6rem; }
+    .cantico-meta span { margin-right: 1rem; }
+    .cantico-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .tag { font-size: 0.7rem; background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 0.2rem 0.6rem; color: var(--suave); }
+    .cantico-letra-preview { font-size: 0.85rem; color: var(--suave); line-height: 1.6; margin-bottom: 1rem; max-height: 100px; overflow: hidden; }
+    .cantico-actions { display: flex; gap: 0.75rem; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 7px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: var(--verde-cl); color: var(--bg); font-weight: 500; }
+    .btn-primary:hover { background: var(--verde-claro); }
+    .btn-ghost { background: transparent; border: 1px solid var(--borda); color: var(--texto); }
+    .btn-ghost:hover { border-color: var(--verde-cl); color: var(--verde-cl); }
+    
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 2rem; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-family: 'Cinzel', serif; color: var(--verde-claro); margin-bottom: 1.5rem; font-size: 1.3rem; }
+    .modal-section { margin-bottom: 1.5rem; }
+    .modal-section label { display: block; font-size: 0.8rem; color: var(--suave); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .modal-section p { font-size: 0.9rem; line-height: 1.6; color: var(--texto); white-space: pre-wrap; }
+    .modal-section .meta { font-size: 0.8rem; color: var(--suave); margin-bottom: 0.5rem; }
+    .modal-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; }
+    .modal-actions .btn { padding: 0.6rem 1.5rem; }
+    
+    /* Responsivo */
+    @media (max-width: 768px) {
+      .header { padding: 1.5rem 1rem; }
+      .header h1 { font-size: 1.8rem; }
+      .container { padding: 1rem; }
+      .controls { flex-direction: column; align-items: stretch; }
+      .search input { width: 100%; }
+      .filters { width: 100%; }
+      .cantico-item { padding: 1rem; }
+      .modal { padding: 1.5rem; }
     }
-    .top-bar-left { display:flex; align-items:center; gap:.75rem; }
-    .top-bar-left img { width:28px; height:28px; }
-    .top-bar-title { font-family:'Cinzel',serif; font-size:.9rem; color:var(--azul-cl); }
-    .top-bar-sub   { font-size:.62rem; color:var(--suave); }
-    .top-bar-right { display:flex; gap:.5rem; align-items:center; }
-
-    /* ── HERO ── */
-    .hero {
-      text-align:center; padding:3rem 1.5rem 2rem;
-      background:radial-gradient(ellipse at 50% 0%, rgba(37,99,235,.15) 0%, transparent 65%);
-      border-bottom:1px solid var(--borda);
-    }
-    .hero-badge { display:inline-block; font-size:.6rem; letter-spacing:.2em; text-transform:uppercase; color:var(--azul-cl); border:1px solid var(--borda); border-radius:99px; padding:.2rem .8rem; margin-bottom:.85rem; }
-    .hero-title { font-family:'Cinzel',serif; font-size:clamp(1.5rem,5vw,2.2rem); margin-bottom:.4rem; }
-    .hero-sub { font-size:.85rem; color:var(--suave); max-width:480px; margin:0 auto; line-height:1.6; }
-
-    /* ── BUSCA ── */
-    .busca-bar {
-      max-width:700px; margin:0 auto; padding:1.25rem 1.5rem;
-      display:flex; gap:.5rem;
-    }
-    .busca-input {
-      flex:1; background:var(--input-bg); border:1px solid var(--borda);
-      border-radius:10px; padding:.7rem 1rem; font-size:1rem;
-      color:var(--texto); outline:none; font-family:'Inter',sans-serif;
-      transition:border-color .2s;
-    }
-    .busca-input:focus { border-color:var(--azul-mid); }
-    .busca-input::placeholder { color:var(--suave); opacity:.6; }
-    .filtro-sel {
-      background:var(--input-bg); border:1px solid var(--borda);
-      border-radius:10px; padding:.65rem .85rem; font-size:.82rem;
-      color:var(--texto); outline:none; cursor:pointer;
-    }
-    .filtro-sel option { background:var(--card); }
-
-    /* ── PAGE LAYOUT ── */
-    .page { max-width:700px; margin:0 auto; padding:.5rem 1.5rem 5rem; }
-
-    /* ── CARD CÂNTICO ── */
-    .cantico-card {
-      background:var(--card); border:1px solid var(--borda); border-radius:14px;
-      margin-bottom:.85rem; overflow:hidden; transition:border-color .2s, box-shadow .2s;
-    }
-    .cantico-card:hover { border-color:var(--azul-cl); box-shadow:0 4px 20px rgba(37,99,235,.12); }
-    .cantico-header {
-      display:flex; align-items:center; gap:.85rem;
-      padding:1rem 1.25rem; cursor:pointer;
-    }
-    .cantico-num { font-family:'Cinzel',serif; font-size:1rem; color:var(--azul-cl); min-width:28px; }
-    .cantico-info { flex:1; min-width:0; }
-    .cantico-titulo { font-family:'Cinzel',serif; font-size:.95rem; margin-bottom:.15rem; }
-    .cantico-meta { font-size:.7rem; color:var(--suave); }
-    .cantico-tags { display:flex; gap:.3rem; flex-wrap:wrap; margin-top:.35rem; }
-    .tag { font-size:.6rem; padding:.15rem .5rem; border-radius:99px; background:rgba(37,99,235,.12); color:var(--azul-cl); border:1px solid rgba(37,99,235,.2); }
-    .cantico-actions { display:flex; gap:.35rem; align-items:center; flex-shrink:0; }
-    .cantico-btn {
-      width:34px; height:34px; border-radius:8px; border:1px solid var(--borda);
-      background:var(--card2); color:var(--suave); font-size:.9rem;
-      cursor:pointer; display:flex; align-items:center; justify-content:center;
-      transition:all .15s; text-decoration:none;
-    }
-    .cantico-btn:hover { border-color:var(--azul-cl); color:var(--azul-cl); background:rgba(37,99,235,.1); }
-    .cantico-btn.ppt { color:var(--dourado); border-color:rgba(212,168,83,.3); }
-    .cantico-btn.ppt:hover { background:rgba(212,168,83,.1); border-color:var(--dourado); }
-
-    /* ── LETRA ── */
-    .cantico-letra {
-      display:none; padding:0 1.25rem 1.25rem;
-      border-top:1px solid var(--borda); margin-top:0;
-    }
-    .cantico-letra.open { display:block; }
-    .letra-texto {
-      font-family:'Lora',serif; font-size:.88rem; line-height:2;
-      color:var(--suave); white-space:pre-wrap; padding-top:1rem;
-    }
-    .letra-refrao {
-      font-family:'Lora',serif; font-size:.88rem; line-height:2;
-      color:var(--texto); font-weight:500; border-left:3px solid var(--azul-cl);
-      padding-left:.85rem; margin:.75rem 0; white-space:pre-wrap;
-    }
-    .letra-section-title { font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color:var(--azul-cl); margin:.75rem 0 .25rem; }
-
-    /* ── VAZIO ── */
-    .vazio { text-align:center; padding:4rem 1rem; color:var(--suave); font-size:.85rem; }
-    .vazio .vazio-icon { font-size:3rem; margin-bottom:1rem; }
-
-    /* ── BTN ── */
-    .btn { display:inline-flex; align-items:center; gap:.35rem; padding:.45rem .9rem; border-radius:7px; font-size:.78rem; font-family:'Inter',sans-serif; cursor:pointer; transition:all .18s; border:1px solid transparent; font-weight:500; }
-    .btn-solid { background:var(--azul-mid); color:#fff; border-color:var(--azul-mid); }
-    .btn-solid:hover { background:var(--azul); }
-    .btn-ghost { background:transparent; color:var(--texto); border-color:var(--borda); }
-    .btn-ghost:hover { border-color:var(--azul-cl); color:var(--azul-cl); }
-    .btn-sm { padding:.3rem .65rem; font-size:.72rem; }
-
-    /* ── TOAST ── */
-    .toast { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(80px); background:var(--azul-mid); color:#fff; padding:.6rem 1.25rem; border-radius:8px; font-size:.82rem; z-index:999; transition:transform .3s; pointer-events:none; }
-    .toast.show { transform:translateX(-50%) translateY(0); }
-
-    /* ── CONTAGEM ── */
-    .contagem { font-size:.72rem; color:var(--suave); text-align:right; margin-bottom:.75rem; }
-
-    @media (max-width:500px) {
-      .busca-bar { flex-wrap:wrap; }
-      .top-bar-sub { display:none; }
-    }
+    
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--suave); }
+    .empty p { font-size: 0.95rem; margin: 1rem 0; }
+    
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--verde-cl); color: var(--bg); padding: 1rem 1.5rem; border-radius: 8px; font-weight: 500; z-index: 2000; opacity: 0; transition: opacity 0.3s; }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🎶 Cânticos e Hinos</h1>
+    <p>Letras, tons, apresentações e categorias</p>
+  </div>
 
-<!-- TOP BAR -->
-<div class="top-bar">
-  <div class="top-bar-left">
-    <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
-    <div>
-      <div class="top-bar-title">ABCL — Cânticos</div>
-      <div class="top-bar-sub">Acampamento Bíblico 2026</div>
+  <!-- MAIN -->
+  <div class="container">
+    <!-- CONTROLES -->
+    <div class="controls">
+      <div class="search">
+        <input type="text" id="search-input" placeholder="🔍 Buscar por título, autor ou tag..." />
+      </div>
+      <div class="filters" id="filter-buttons"></div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="lista-canticos" id="lista-canticos"></div>
+    <div id="empty-state" class="empty" style="display:none;">
+      <p>Nenhum cântico encontrado.</p>
     </div>
   </div>
-  <div class="top-bar-right">
-    <button onclick="toggleTheme()" id="theme-btn"
-      style="background:var(--card2);border:1px solid var(--borda);border-radius:99px;padding:.3rem .75rem;font-size:.72rem;color:var(--suave);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:.35rem;"
-      onmouseover="this.style.borderColor='var(--azul-cl)'" onmouseout="this.style.borderColor='var(--borda)'">
-      <span id="t-icon">☀️</span><span id="t-label">Claro</span>
-    </button>
-    <a href="index.html" class="btn btn-ghost btn-sm">← Site</a>
+
+  <!-- MODAL: Visualizar Cântico -->
+  <div class="modal-overlay" id="modal-cantico" onclick="if(event.target === this) fecharModal()">
+    <div class="modal">
+      <h2 id="modal-titulo">Título do cântico</h2>
+      
+      <div class="modal-section">
+        <label>Autor / Compositor</label>
+        <p id="modal-autor" style="color: var(--suave);">—</p>
+      </div>
+
+      <div class="modal-section">
+        <label>Categoria · Tom</label>
+        <div class="meta"><span id="modal-categoria">—</span> · <span id="modal-tom">—</span></div>
+      </div>
+
+      <div class="modal-section" id="modal-tags-sect" style="display:none;">
+        <label>Tags</label>
+        <div id="modal-tags" style="display:flex;gap:0.5rem;flex-wrap:wrap;"></div>
+      </div>
+
+      <div class="modal-section">
+        <label>Letra</label>
+        <p id="modal-letra" style="font-family: monospace; font-size: 0.9rem;"></p>
+      </div>
+
+      <div class="modal-section" id="modal-drive-sect" style="display:none;">
+        <label>Apresentação (Google Drive)</label>
+        <p><a id="modal-drive-link" href="#" target="_blank" style="color: var(--verde-cl); text-decoration: none;">📥 Abrir apresentação →</a></p>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-badge">ABCL 2026 · Louvor</div>
-  <h1 class="hero-title">🎶 Cânticos do Acampamento</h1>
-  <p class="hero-sub">Letras, hinários e apresentações dos hinos e louvores do acampamento.</p>
-</div>
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
 
-<!-- BUSCA -->
-<div class="busca-bar">
-  <input class="busca-input" id="busca" type="text" placeholder="🔍 Buscar por título, autor ou tema..." oninput="renderCanticos()" />
-  <select class="filtro-sel" id="filtro-cat" onchange="renderCanticos()">
-    <option value="">Todas as categorias</option>
-    <option>Hino</option>
-    <option>Louvor</option>
-    <option>Cântico</option>
-    <option>Adoração</option>
-  </select>
-</div>
+  <script>
+    // ══ STORAGE ══
+    const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+    const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
-<!-- PAGE -->
-<div class="page">
-  <div class="contagem" id="contagem"></div>
-  <div id="canticos-list"></div>
-  <div class="vazio" id="vazio" style="display:none;">
-    <div class="vazio-icon">🎵</div>
-    <p>Nenhum cântico encontrado.<br>Tente outro termo de busca.</p>
-  </div>
-</div>
+    // ══ DADOS PADRÃO ══
+    const CANTICOS_DEFAULT = [
+      {id:1, titulo:'Grande És Tu', autor:'Carl Boberg / Stuart K. Hine', categoria:'Hino', tom:'Ré', tags:['clássico','adoração'], drive:'', letra:'[verso]\nSenhor meu Deus, quando eu maravilhado\nContemplo o mundo que as Tuas mãos criou,\n\n[refrão]\nEntão minh\'alma canta, então minh\'alma canta:\nQuão grande és Tu, quão grande és Tu!', ativo:true},
+      {id:2, titulo:'Castelo Forte', autor:'Martinho Lutero', categoria:'Hino', tom:'Fá', tags:['clássico','Reforma'], drive:'', letra:'[verso]\nUm poderoso castelo é o nosso Deus,\nUm bom escudo e forte arma.\n\n[refrão]\nO Senhor é nossa esperança e proteção,\nEle é nossa salvação!', ativo:true},
+      {id:3, titulo:'Preciso de Ti', autor:'Tradicional', categoria:'Hino', tom:'Sol', tags:['clássico','súplica'], drive:'', letra:'[verso]\nPreciso de Ti, Senhor,\nA toda hora preciso de Ti.\n\n[refrão]\nNas horas de gozo, nas horas de dor,\nPreciso de Ti, meu Salvador.', ativo:true},
+      {id:4, titulo:'A Deus Seja a Glória', autor:'Fanny Crosby', categoria:'Hino', tom:'Lá', tags:['louvor','vitória'], drive:'', letra:'[verso]\nA Deus seja a glória, grandes coisas Ele fez!\n\n[refrão]\nLouvai, louvai ao Senhor!', ativo:true},
+      {id:5, titulo:'Sola Scriptura', autor:'Hinário ABCL', categoria:'Cântico', tom:'Mi', tags:['acampamento','Reforma'], drive:'', letra:'[verso]\nSomente a Escritura nos guia na verdade.\n\n[refrão]\nSola Scriptura, Sola Fide!', ativo:true},
+    ];
 
-<div class="toast" id="toast"></div>
+    function getCanticos() {
+      const s = get('abcl-canticos');
+      if (s && s.length) return s;
+      set('abcl-canticos', CANTICOS_DEFAULT);
+      return CANTICOS_DEFAULT;
+    }
 
-<script>
-// ── Tema ──
-(function(){ const t=localStorage.getItem('abcl-theme')||'dark'; applyT(t); })();
-function applyT(t){
-  document.documentElement.setAttribute('data-theme',t);
-  const d=t==='dark';
-  document.getElementById('t-icon').textContent=d?'☀️':'🌙';
-  document.getElementById('t-label').textContent=d?'Claro':'Escuro';
-  localStorage.setItem('abcl-theme',t);
-}
-function toggleTheme(){ applyT(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); }
+    // ══ RENDER ══
+    function render() {
+      const busca = (document.getElementById('search-input')?.value || '').toLowerCase();
+      const filtroAtivo = document.querySelector('.filter-btn.active')?.dataset.filtro || '';
+      const todos = getCanticos().filter(c => c.ativo !== false);
+      
+      let lista = todos;
+      if (busca) {
+        lista = lista.filter(c =>
+          (c.titulo||'').toLowerCase().includes(busca) ||
+          (c.autor||'').toLowerCase().includes(busca) ||
+          (c.tags||[]).some(t=>t.toLowerCase().includes(busca))
+        );
+      }
+      if (filtroAtivo) {
+        lista = lista.filter(c => (c.tags||[]).includes(filtroAtivo) || c.categoria === filtroAtivo);
+      }
 
-// ── Storage ──
-const get=k=>{try{return JSON.parse(localStorage.getItem(k));}catch{return null;}};
-
-// ── Dados padrão ──
-const CANTICOS_DEFAULT = [
-  {
-    id:1, titulo:'Grande És Tu', autor:'Carl Boberg / Stuart K. Hine', categoria:'Hino',
-    tom:'Ré', tags:['clássico','adoração'],
-    pptLink:'',
-    versos:[
-      { tipo:'verso', texto:'Senhor meu Deus, quando eu maravilhado\nContemplo o mundo que as Tuas mãos criou,\nOs astros mil que ao céu puseste pregados,\nO vasto mundo que em Teus braços repousou,' },
-      { tipo:'refrao', texto:'Então minh\'alma canta, então minh\'alma canta:\nQuão grande és Tu, quão grande és Tu!\nEntão minh\'alma canta, então minh\'alma canta:\nQuão grande és Tu, quão grande és Tu!' },
-      { tipo:'verso', texto:'Quando Jesus voltando vem do céu\nCom grande glória para nos salvar,\nQue alegria quando inclino o meu joelho\nE o meu Senhor puder contemplar!' },
-    ]
-  },
-  {
-    id:2, titulo:'Castelo Forte', autor:'Martinho Lutero', categoria:'Hino',
-    tom:'Fá', tags:['clássico','Reforma'],
-    pptLink:'',
-    versos:[
-      { tipo:'verso', texto:'Castelo forte é nosso Deus,\nEscudo e amparo bom;\nNos livra dos poderes seus\nO Eterno e bom Senhor.' },
-      { tipo:'verso', texto:'Um forte adversário há,\nNenhum igual na Terra;\nCom grande força virá\nE nos moverá guerra.' },
-    ]
-  },
-  {
-    id:3, titulo:'Preciso de Ti', autor:'Tradicionais', categoria:'Hino',
-    tom:'Sol', tags:['clássico','súplica'],
-    pptLink:'',
-    versos:[
-      { tipo:'verso', texto:'Preciso de Ti, preciso de Ti,\nSem Ti, meu Jesus, não posso seguir;\nPreciso de Ti, oh preciso de Ti,\nEm cada momento preciso de Ti.' },
-    ]
-  },
-  {
-    id:4, titulo:'A Deus Seja a Glória', autor:'Fanny Crosby / William H. Doane', categoria:'Hino',
-    tom:'Lá', tags:['louvor','vitória'],
-    pptLink:'',
-    versos:[
-      { tipo:'verso', texto:'A Deus seja a glória pelas coisas que Ele fez!\nCom Seu grande poder nos salvou de uma vez;\nAos cativos abriu as eternas prisões\nE Ele mesmo entrou em nossos corações.' },
-      { tipo:'refrao', texto:'Louvai-O, louvai-O, louvai-O, ó povo!\nLouvai-O, louvai-O, dai louvor ao Senhor;\nLouvai-O, louvai-O, louvai-O, ó povo!\nLouvai-O, louvai-O, dai louvor ao Senhor.' },
-    ]
-  },
-  {
-    id:5, titulo:'Sola Scriptura', autor:'Hinário do Acampamento', categoria:'Cântico',
-    tom:'Mi', tags:['acampamento','Reforma'],
-    pptLink:'',
-    versos:[
-      { tipo:'verso', texto:'Somente a Escritura, Palavra de Deus,\nÉ regra e padrão para fé e obedição;\nNem tradição humana, nem papas nem reis,\nMas somente Cristo e Sua salvação.' },
-    ]
-  },
-];
-
-function getCanticos() {
-  const s = get('abcl-canticos');
-  if (s && s.length) return s;
-  return CANTICOS_DEFAULT;
-}
-
-// ── RENDER ──
-let _abertos = new Set();
-
-function renderCanticos() {
-  const lista  = getCanticos();
-  const busca  = document.getElementById('busca').value.toLowerCase().trim();
-  const catFil = document.getElementById('filtro-cat').value;
-
-  const filtrados = lista.filter(c => {
-    const termo = `${c.titulo} ${c.autor} ${(c.tags||[]).join(' ')}`.toLowerCase();
-    if (busca && !termo.includes(busca)) return false;
-    if (catFil && c.categoria !== catFil) return false;
-    return true;
-  });
-
-  const el    = document.getElementById('canticos-list');
-  const vazio = document.getElementById('vazio');
-  const count = document.getElementById('contagem');
-
-  count.textContent = `${filtrados.length} cântico${filtrados.length!==1?'s':''}`;
-
-  if (filtrados.length === 0) { el.innerHTML=''; vazio.style.display='block'; return; }
-  vazio.style.display = 'none';
-
-  el.innerHTML = filtrados.map((c, idx) => {
-    const isOpen = _abertos.has(c.id);
-    const hasPpt = !!c.pptLink;
-    const letra  = (c.versos||[]).map(v => {
-      if (v.tipo === 'refrao') return `<div class="letra-section-title">Refrão</div><div class="letra-refrao">${v.texto}</div>`;
-      if (v.tipo === 'ponte')  return `<div class="letra-section-title">Ponte</div><div class="letra-texto">${v.texto}</div>`;
-      return `<div class="letra-section-title">Verso</div><div class="letra-texto">${v.texto}</div>`;
-    }).join('');
-
-    return `
-    <div class="cantico-card" id="card-${c.id}">
-      <div class="cantico-header" onclick="toggleLetra(${c.id})">
-        <div class="cantico-num">${String(idx+1).padStart(2,'0')}</div>
-        <div class="cantico-info">
-          <div class="cantico-titulo">${c.titulo}</div>
-          <div class="cantico-meta">${c.autor||'—'}${c.tom?' · Tom: '+c.tom:''}</div>
-          <div class="cantico-tags">
-            ${c.categoria?`<span class="tag">${c.categoria}</span>`:''}
-            ${(c.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}
+      const container = document.getElementById('lista-canticos');
+      const empty = document.getElementById('empty-state');
+      if (!lista.length) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      container.innerHTML = lista.map(c => `
+        <div class="cantico-item" onclick="abrirModal(${c.id})">
+          <div class="cantico-header">
+            <div class="cantico-icone">🎵</div>
+            <div class="cantico-info" style="flex:1;">
+              <h2>${c.titulo || '(sem título)'}</h2>
+              <div class="cantico-meta">
+                <span>${c.autor || '—'}</span>
+                <span>${c.categoria || '—'}</span>
+                ${c.tom ? `<span>Tom: ${c.tom}</span>` : ''}
+              </div>
+              ${(c.tags||[]).length ? `<div class="cantico-tags">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''}
+              ${c.letra ? `<div class="cantico-letra-preview">${formatarLetra(c.letra).substring(0, 150)}...</div>` : ''}
+            </div>
           </div>
-        </div>
-        <div class="cantico-actions" onclick="event.stopPropagation()">
-          ${hasPpt ? `<a href="${c.pptLink}" target="_blank" rel="noopener" class="cantico-btn ppt" title="Baixar PPT">📊</a>` : ''}
-          <button onclick="copiarLetra(${c.id})" class="cantico-btn" title="Copiar letra">📋</button>
-          <button class="cantico-btn" title="${isOpen?'Fechar':'Ver letra'}" style="font-size:.7rem;color:var(--suave);">${isOpen?'▲':'▼'}</button>
-        </div>
-      </div>
-      <div class="cantico-letra ${isOpen?'open':''}" id="letra-${c.id}">
-        ${letra || '<p style="font-size:.78rem;color:var(--suave);padding-top:1rem;">Letra não cadastrada.</p>'}
-      </div>
-    </div>`;
-  }).join('');
-}
+        </div>`).join('');
+    }
 
-function toggleLetra(id) {
-  const el = document.getElementById(`letra-${id}`);
-  const card = document.getElementById(`card-${id}`);
-  if (!el) return;
-  const isOpen = _abertos.has(id);
-  if (isOpen) { _abertos.delete(id); el.classList.remove('open'); }
-  else { _abertos.add(id); el.classList.add('open'); }
-  // Atualizar ícone da seta no botão
-  const btn = card.querySelector('.cantico-actions button:last-child');
-  if (btn) btn.textContent = _abertos.has(id) ? '▲' : '▼';
-}
+    function formatarLetra(letra) {
+      return letra.replace(/\[verso\]|\[refrão\]|\[ponte\]/g, '').trim();
+    }
 
-function copiarLetra(id) {
-  const c = getCanticos().find(x=>x.id===id);
-  if (!c) return;
-  const texto = `🎶 ${c.titulo}\n${c.autor||''}\n\n` +
-    (c.versos||[]).map(v => {
-      const lab = v.tipo==='refrao'?'[Refrão]':v.tipo==='ponte'?'[Ponte]':'';
-      return (lab?lab+'\n':'') + v.texto;
-    }).join('\n\n');
-  navigator.clipboard?.writeText(texto).then(()=>toast('📋 Letra copiada!')).catch(()=>toast('Erro ao copiar.'));
-}
+    // ══ MODAL ══
+    function abrirModal(id) {
+      const c = getCanticos().find(x => x.id === id);
+      if (!c) return;
+      
+      document.getElementById('modal-titulo').textContent = c.titulo || '(sem título)';
+      document.getElementById('modal-autor').textContent = c.autor || '—';
+      document.getElementById('modal-categoria').textContent = c.categoria || '—';
+      document.getElementById('modal-tom').textContent = c.tom || '—';
 
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); }
+      if ((c.tags||[]).length) {
+        document.getElementById('modal-tags-sect').style.display = 'block';
+        document.getElementById('modal-tags').innerHTML = c.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+      } else {
+        document.getElementById('modal-tags-sect').style.display = 'none';
+      }
 
-renderCanticos();
-</script>
+      document.getElementById('modal-letra').textContent = c.letra || '(sem letra)';
+
+      if (c.drive) {
+        document.getElementById('modal-drive-sect').style.display = 'block';
+        document.getElementById('modal-drive-link').href = c.drive;
+      } else {
+        document.getElementById('modal-drive-sect').style.display = 'none';
+      }
+
+      document.getElementById('modal-cantico').classList.add('open');
+    }
+
+    function fecharModal() {
+      document.getElementById('modal-cantico').classList.remove('open');
+    }
+
+    // ══ FILTROS ══
+    function renderFiltros() {
+      const todos = getCanticos().filter(c => c.ativo !== false);
+      const categorias = [...new Set(todos.map(c => c.categoria).filter(Boolean))];
+      const tags = [...new Set(todos.flatMap(c => c.tags || []))];
+      
+      const filtrosUnicos = ['Todos', ...categorias, ...tags];
+      const container = document.getElementById('filter-buttons');
+      container.innerHTML = filtrosUnicos.map((f, i) => `
+        <button class="filter-btn${i === 0 ? ' active' : ''}" data-filtro="${f === 'Todos' ? '' : f}" onclick="document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');render();">${f}</button>`).join('');
+    }
+
+    // ══ INIT ══
+    document.getElementById('search-input').addEventListener('input', render);
+    
+    // Sincronizar a cada 500ms com storage (para detectar mudanças do admin)
+    setInterval(() => {
+      if (Date.now() - (window._lastCanticosCheck || 0) > 500) {
+        render();
+        window._lastCanticosCheck = Date.now();
+      }
+    }, 500);
+
+    renderFiltros();
+    render();
+  </script>
 </body>
 </html>

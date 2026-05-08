@@ -438,6 +438,8 @@
       <div class="nav-label">Ferramentas</div>
       <button class="nav-item" onclick="window.open('vendinha.html','_blank')">🛒 Vendinha</button>
       <button class="nav-item" onclick="window.open('livraria.html','_blank')">📚 Livraria</button>
+      <button class="nav-item" onclick="window.open('canticos.html','_blank')">🎵 Cânticos</button>
+      <button class="nav-item" onclick="switchTab('gestao-canticos', this)">⚙️ Gerir Cânticos</button>
       <button class="nav-item" onclick="window.open('loja.html','_blank')">🛍️ Loja</button>
       <button class="nav-item" onclick="switchTab('gestao-loja', this)">⚙️ Gerir Loja</button>
       <button class="nav-item" onclick="window.open('financeiro.html','_blank')">💰 Financeiro</button>
@@ -924,12 +926,27 @@
           </div>
           <div id="loja-produtos-list"></div>
         </div>
+
+        <!-- Categorias -->
         <div class="section-card" style="margin-top:1.25rem;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-            <h2>🎵 Hinos / Cânticos</h2>
-            <button class="btn btn-solid btn-sm" onclick="adicionarHinoAdmin()">+ Novo hino</button>
+            <h2>🏷️ Categorias</h2>
+            <button class="btn btn-solid btn-sm" onclick="abrirModalCategoria()">+ Nova categoria</button>
           </div>
-          <div id="hinos-admin-list"></div>
+          <div id="loja-categorias-list"></div>
+        </div>
+
+        <!-- Config -->
+        <div class="section-card" style="margin-top:1.25rem;">
+          <h2 style="margin-bottom:1rem;">⚙️ Configurações da Loja</h2>
+          <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
+            <div class="field" style="max-width:200px;margin:0;">
+              <label>⏱ Carrossel (segundos)</label>
+              <input type="number" id="cfg-carrossel-tempo" min="1" max="30" value="2"
+                oninput="salvarCfgLoja()" style="width:100%;" />
+            </div>
+            <div style="font-size:.75rem;color:var(--suave);padding-top:.3rem;">Tempo de troca automática das imagens do produto na loja.</div>
+          </div>
         </div>
 
         <!-- Pedidos recentes -->
@@ -944,7 +961,96 @@
         </div>
       </div>
 
+      <!-- ══ GESTÃO CÂNTICOS ══ -->
+      <div class="tab" id="tab-gestao-canticos">
+        <div class="page-header">
+          <div><h1>🎶 Gestão de Cânticos</h1><p>Letras, hinários e links de apresentação PPT</p></div>
+          <div style="display:flex;gap:.5rem;">
+            <button class="btn btn-ghost btn-sm" onclick="window.open('canticos.html','_blank')">👁 Ver Página</button>
+            <button class="btn btn-solid btn-sm" onclick="abrirModalCantico()">+ Novo cântico</button>
+          </div>
+        </div>
+
+        <!-- Busca rápida -->
+        <div class="section-card" style="margin-bottom:1rem;">
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <input type="text" id="cantico-busca" placeholder="🔍 Buscar cântico..."
+              oninput="renderCanticosAdmin()"
+              style="flex:1;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.5rem .85rem;font-size:.88rem;color:var(--texto);outline:none;" />
+            <span id="cantico-count" style="font-size:.72rem;color:var(--suave);white-space:nowrap;"></span>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div id="canticos-admin-list"></div>
+        </div>
+      </div>
+
     </main>
+  </div>
+</div>
+
+<!-- ══ MODAL: CÂNTICO ══ -->
+<div class="modal-overlay" id="cantico-modal">
+  <div class="modal" style="max-width:620px;width:100%;max-height:92vh;overflow-y:auto;">
+    <h3 id="cm-titulo" style="font-family:'Cinzel',serif;color:var(--verde-claro);margin-bottom:1.25rem;">Novo cântico</h3>
+    <input type="hidden" id="cm-id" />
+    <div class="field-row">
+      <div class="field"><label>Título *</label><input type="text" id="cm-nome" placeholder="Ex: Grande És Tu" /></div>
+      <div class="field"><label>Autor</label><input type="text" id="cm-autor" placeholder="Ex: Carl Boberg" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Categoria</label>
+        <select id="cm-categoria">
+          <option value="Hino">Hino</option>
+          <option value="Cântico">Cântico</option>
+          <option value="Louvor">Louvor</option>
+          <option value="Adoração">Adoração</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="field"><label>Tom</label><input type="text" id="cm-tom" placeholder="Ex: Ré, Fá, Sol..." /></div>
+    </div>
+    <div class="field">
+      <label>Tags <span style="font-size:.62rem;font-weight:400;color:var(--suave);">separadas por vírgula</span></label>
+      <input type="text" id="cm-tags" placeholder="clássico, adoração, acampamento" />
+    </div>
+    <div class="field">
+      <label>Link PPT (Google Drive)</label>
+      <input type="text" id="cm-drive" placeholder="https://drive.google.com/file/..." />
+      <span style="font-size:.68rem;color:var(--suave);">Cole o link de compartilhamento do Google Drive. Aparece como botão 📥 na página.</span>
+    </div>
+    <div class="field">
+      <label>Letra completa</label>
+      <span style="font-size:.68rem;color:var(--suave);display:block;margin-bottom:.4rem;">Use <code style="background:var(--card2);padding:.1rem .35rem;border-radius:4px;">[verso]</code>, <code style="background:var(--card2);padding:.1rem .35rem;border-radius:4px;">[refrão]</code> e <code style="background:var(--card2);padding:.1rem .35rem;border-radius:4px;">[ponte]</code> para marcar as seções.</span>
+      <textarea id="cm-letra" rows="10" placeholder="[verso]&#10;Senhor meu Deus...&#10;&#10;[refrão]&#10;Então minh'alma canta..."></textarea>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;margin:.5rem 0;">
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;">
+        <input type="checkbox" id="cm-ativo" checked style="width:15px;height:15px;" /> Ativo (visível na página)
+      </label>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost" onclick="document.getElementById('cantico-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-solid" onclick="salvarCantico()">💾 Salvar cântico</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CATEGORIA ══ -->
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal" style="max-width:380px;width:100%;">
+    <h3 id="cat-modal-titulo" style="font-family:'Cinzel',serif;color:var(--verde-claro);margin-bottom:1.25rem;">Nova categoria</h3>
+    <input type="hidden" id="cat-modal-idx" value="-1" />
+    <div class="field-row">
+      <div class="field"><label>Nome *</label><input type="text" id="cat-nome" placeholder="Ex: Pulseira" /></div>
+      <div class="field" style="max-width:90px;"><label>Ícone (emoji)</label><input type="text" id="cat-icone" placeholder="💎" maxlength="4" /></div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost" onclick="document.getElementById('cat-modal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-solid" onclick="salvarCategoria()">💾 Salvar</button>
+    </div>
   </div>
 </div>
 
@@ -956,11 +1062,7 @@
     <div class="field-row">
       <div class="field"><label>Nome *</label><input type="text" id="plm-nome" placeholder="Ex: Moletom Temático ABCL 2026" /></div>
       <div class="field"><label>Categoria</label>
-        <select id="plm-cat">
-          <option value="Moletom">🧥 Moletom</option><option value="Camisa">👕 Camisa</option>
-          <option value="Caneca">☕ Caneca</option><option value="Boné">🧢 Boné</option>
-          <option value="Adesivo">🏷️ Adesivo</option><option value="Outros">✨ Outros</option>
-        </select>
+        <select id="plm-cat" style="min-width:140px;"></select>
       </div>
     </div>
     <div class="field"><label>Descrição</label><textarea id="plm-desc" rows="3" placeholder="Descreva o produto..."></textarea></div>
@@ -974,10 +1076,10 @@
       <div class="field"><label>Gênero / Corte</label><input type="text" id="plm-genero" placeholder="Masculino, Feminino, Infantil" /></div>
     </div>
     <div class="field">
-      <label>Imagem (URL ou upload)</label>
-      <input type="text" id="plm-img-url" placeholder="https://..." oninput="previewProdLoja()" style="margin-bottom:.35rem;" />
-      <input type="file" id="plm-img-file" accept="image/*" onchange="lerImgProdLoja(this)" style="font-size:.78rem;color:var(--suave);" />
-      <img id="plm-img-preview" src="" style="display:none;max-width:120px;border-radius:8px;margin-top:.5rem;object-fit:cover;" />
+      <label>Imagens do produto <span style="font-size:.62rem;font-weight:400;color:var(--suave);">URLs separadas por vírgula, ou faça upload</span></label>
+      <input type="text" id="plm-img-url" placeholder="https://img1.com, https://img2.com..." oninput="previewProdLoja()" style="margin-bottom:.35rem;" />
+      <input type="file" id="plm-img-file" accept="image/*" multiple onchange="lerImgProdLoja(this)" style="font-size:.78rem;color:var(--suave);margin-bottom:.5rem;" />
+      <div id="plm-img-previews" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.35rem;"></div>
     </div>
     <div style="display:flex;gap:1.25rem;margin:.75rem 0;font-size:.82rem;">
       <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;"><input type="checkbox" id="plm-novo" style="width:15px;height:15px;" /> Badge "NOVO"</label>
@@ -1244,7 +1346,10 @@ function initAdmin() {
   loadVisual();
   renderLojaStats();
   renderProdutosAdmin();
+  renderCategoriasAdmin();
+  carregarCfgLoja();
   renderHinosAdmin();
+  renderCanticosAdmin();
 }
 
 // ── DASHBOARD ──
@@ -1684,6 +1789,7 @@ function switchTab(name, btn) {
   if (name === 'dashboard')   renderDashboard();
   if (name === 'formularios') initFormularios();
   if (name === 'gestao-loja') initGestaoloja();
+  if (name === 'gestao-canticos') initGestaoCanticos();
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 }
 
@@ -2284,6 +2390,8 @@ function getLojaProdutos() {
 function initGestaoloja() {
   renderLojaStats();
   renderProdutosAdmin();
+  renderCategoriasAdmin();
+  carregarCfgLoja();
 }
 
 function renderLojaStats() {
@@ -2333,16 +2441,93 @@ function renderProdutosAdmin() {
     </div>`).join('') || '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum produto.</p>';
 }
 
+// ── Categorias ──
+const CATEGORIAS_DEFAULT = [
+  {nome:'Moletom',icone:'🧥'},{nome:'Camisa',icone:'👕'},{nome:'Caneca',icone:'☕'},
+  {nome:'Boné',icone:'🧢'},{nome:'Adesivo',icone:'🏷️'},{nome:'Outros',icone:'✨'}
+];
+function getCategorias() {
+  const s = get('abcl-loja-categorias');
+  if (s && s.length) return s;
+  set('abcl-loja-categorias', CATEGORIAS_DEFAULT);
+  return CATEGORIAS_DEFAULT;
+}
+function renderCategoriasAdmin() {
+  const cats = getCategorias();
+  const el = document.getElementById('loja-categorias-list');
+  if (!el) return;
+  // Populate select in product modal
+  const sel = document.getElementById('plm-cat');
+  if (sel) sel.innerHTML = cats.map(c=>`<option value="${c.nome}">${c.icone} ${c.nome}</option>`).join('');
+  if (!cats.length) { el.innerHTML='<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:1rem;">Nenhuma categoria.</p>'; return; }
+  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:.5rem;">` +
+    cats.map((c,i)=>`
+      <div style="display:flex;align-items:center;gap:.5rem;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.4rem .8rem;font-size:.82rem;">
+        <span>${c.icone}</span><span>${c.nome}</span>
+        <button class="btn btn-ghost btn-sm" style="padding:.15rem .5rem;font-size:.7rem;" onclick="editarCategoria(${i})">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="padding:.15rem .5rem;font-size:.7rem;" onclick="removerCategoria(${i})">🗑</button>
+      </div>`).join('') + `</div>`;
+}
+function abrirModalCategoria(idx) {
+  document.getElementById('cat-modal-idx').value = idx !== undefined ? idx : -1;
+  if (idx !== undefined) {
+    const c = getCategorias()[idx];
+    document.getElementById('cat-modal-titulo').textContent = 'Editar categoria';
+    document.getElementById('cat-nome').value = c.nome;
+    document.getElementById('cat-icone').value = c.icone||'';
+  } else {
+    document.getElementById('cat-modal-titulo').textContent = 'Nova categoria';
+    document.getElementById('cat-nome').value = '';
+    document.getElementById('cat-icone').value = '';
+  }
+  document.getElementById('cat-modal').classList.add('open');
+}
+function editarCategoria(idx) { abrirModalCategoria(idx); }
+function removerCategoria(idx) {
+  if (!confirm('Remover esta categoria?')) return;
+  const cats = getCategorias();
+  cats.splice(idx, 1);
+  set('abcl-loja-categorias', cats);
+  renderCategoriasAdmin();
+  toast('🗑 Categoria removida.');
+}
+function salvarCategoria() {
+  const nome = document.getElementById('cat-nome').value.trim();
+  if (!nome) { toast('⚠️ Informe o nome da categoria.'); return; }
+  const icone = document.getElementById('cat-icone').value.trim() || '✨';
+  const idx = parseInt(document.getElementById('cat-modal-idx').value);
+  const cats = getCategorias();
+  if (idx >= 0) cats[idx] = {nome,icone};
+  else cats.push({nome,icone});
+  set('abcl-loja-categorias', cats);
+  document.getElementById('cat-modal').classList.remove('open');
+  renderCategoriasAdmin();
+  toast(idx>=0 ? '✅ Categoria atualizada!' : '✅ Categoria adicionada!');
+}
+
+// ── Config Loja ──
+function carregarCfgLoja() {
+  const cfg = get('abcl-loja-config') || {};
+  const el = document.getElementById('cfg-carrossel-tempo');
+  if (el) el.value = cfg.carrosselTempo || 2;
+}
+function salvarCfgLoja() {
+  const tempo = parseInt(document.getElementById('cfg-carrossel-tempo').value) || 2;
+  set('abcl-loja-config', {carrosselTempo: tempo});
+}
+
 let _editProdLojaId = null;
+let _prodImagens = [];
 
 function abrirModalProdLoja() {
   _editProdLojaId = null;
+  _prodImagens = [];
   document.getElementById('plm-titulo').textContent = 'Novo produto';
   ['plm-nome','plm-desc','plm-preco','plm-estoque','plm-tamanhos','plm-cores','plm-genero','plm-img-url'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('plm-cat').value  = 'Moletom';
+  document.getElementById('plm-cat').value  = getCategorias()[0]?.nome || 'Moletom';
   document.getElementById('plm-novo').checked  = false;
   document.getElementById('plm-ativo').checked = true;
-  document.getElementById('plm-img-preview').style.display = 'none';
+  document.getElementById('plm-img-previews').innerHTML = '';
   document.getElementById('prod-loja-modal').classList.add('open');
 }
 
@@ -2352,18 +2537,19 @@ function editarProdLoja(id) {
   if (!p) return;
   document.getElementById('plm-titulo').textContent = 'Editar produto';
   document.getElementById('plm-nome').value     = p.nome     || '';
-  document.getElementById('plm-cat').value      = p.categoria|| 'Moletom';
+  document.getElementById('plm-cat').value      = p.categoria|| (getCategorias()[0]?.nome||'Moletom');
   document.getElementById('plm-desc').value     = p.desc     || '';
   document.getElementById('plm-preco').value    = p.preco    || '';
   document.getElementById('plm-estoque').value  = p.estoque  || 0;
   document.getElementById('plm-tamanhos').value = (p.tamanhos||[]).join(', ');
   document.getElementById('plm-cores').value    = (p.cores||[]).join(', ');
   document.getElementById('plm-genero').value   = (p.genero||[]).join(', ');
-  document.getElementById('plm-img-url').value  = p.imagem   || '';
+  // Carregar imagens no array interno
+  _prodImagens = p.imagens && p.imagens.length ? [...p.imagens] : (p.imagem ? [p.imagem] : []);
+  sincronizarCampoUrls();
+  renderProdImagensPreviews();
   document.getElementById('plm-novo').checked   = p.novo     || false;
   document.getElementById('plm-ativo').checked  = p.ativo !== false;
-  const prev = document.getElementById('plm-img-preview');
-  if (p.imagem) { prev.src=p.imagem; prev.style.display='block'; } else prev.style.display='none';
   document.getElementById('prod-loja-modal').classList.add('open');
 }
 
@@ -2373,6 +2559,11 @@ function salvarProdLoja() {
   if (!nome || !preco) { toast('⚠️ Preencha nome e preço.'); return; }
 
   const parseLista = id => document.getElementById(id).value.split(',').map(s=>s.trim()).filter(Boolean);
+  // Sincronizar URLs do campo com o array antes de salvar
+  const urlsTexto = document.getElementById('plm-img-url').value.split(',').map(s=>s.trim()).filter(s=>s.startsWith('http'));
+  const base64s = _prodImagens.filter(s=>s.startsWith('data:'));
+  const urlsNovas = urlsTexto.filter(u=>!_prodImagens.includes(u));
+  const imagens = [...base64s, ..._prodImagens.filter(s=>!s.startsWith('data:')), ...urlsNovas];
 
   const prod = {
     id:        _editProdLojaId || Date.now(),
@@ -2384,7 +2575,8 @@ function salvarProdLoja() {
     tamanhos:  parseLista('plm-tamanhos'),
     cores:     parseLista('plm-cores'),
     genero:    parseLista('plm-genero'),
-    imagem:    document.getElementById('plm-img-url').value.trim(),
+    imagens,
+    imagem:    imagens[0] || '',
     novo:      document.getElementById('plm-novo').checked,
     ativo:     document.getElementById('plm-ativo').checked,
     variacaoEstoque: {},
@@ -2428,60 +2620,206 @@ function toggleAtivoProdLoja(id) {
   toast(lista[idx].ativo ? '✅ Produto ativado.' : '⚫ Produto desativado.');
 }
 
+// Array interno que guarda as imagens do produto em edição (suporta base64 e URLs)
+
+function getProdImagensDocampo() {
+  // Lê o campo de URLs externas e mescla com o array interno
+  const urlsTexto = document.getElementById('plm-img-url').value
+    .split('\n').join(',')
+    .split(',').map(s=>s.trim()).filter(s=>s && s.startsWith('http'));
+  // Mantém base64 já existentes no array interno e adiciona URLs novas não duplicadas
+  const base64s = _prodImagens.filter(s=>s.startsWith('data:'));
+  const urlsNovas = urlsTexto.filter(u=>!_prodImagens.includes(u));
+  return [...base64s, ..._prodImagens.filter(s=>!s.startsWith('data:')), ...urlsNovas];
+}
+
+function sincronizarCampoUrls() {
+  // Mostra apenas URLs externas no campo de texto (base64 ficam só no array)
+  const urls = _prodImagens.filter(s=>s.startsWith('http'));
+  document.getElementById('plm-img-url').value = urls.join(', ');
+}
+
 function previewProdLoja() {
-  const url  = document.getElementById('plm-img-url').value.trim();
-  const prev = document.getElementById('plm-img-preview');
-  if (url) { prev.src=url; prev.style.display='block'; } else prev.style.display='none';
+  // Ao digitar URLs no campo, sincronizar para o array interno
+  const urlsTexto = document.getElementById('plm-img-url').value
+    .split(',').map(s=>s.trim()).filter(s=>s.startsWith('http'));
+  // Manter base64 existentes, substituir URLs pelas do campo
+  _prodImagens = [..._prodImagens.filter(s=>s.startsWith('data:')), ...urlsTexto];
+  renderProdImagensPreviews();
+}
+
+function renderProdImagensPreviews() {
+  const wrap = document.getElementById('plm-img-previews');
+  if (!_prodImagens.length) { wrap.innerHTML=''; return; }
+  wrap.innerHTML = _prodImagens.map((src,i)=>`
+    <div style="position:relative;display:inline-block;">
+      <img src="${src}" style="width:70px;height:70px;object-fit:cover;border-radius:7px;border:1px solid var(--borda);" />
+      <span style="position:absolute;top:-4px;right:-4px;background:var(--card2);color:var(--suave);font-size:.6rem;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--borda);line-height:1;"
+        onclick="removerImgPreview(${i})">✕</span>
+    </div>`).join('');
+}
+
+function removerImgPreview(idx) {
+  _prodImagens.splice(idx, 1);
+  sincronizarCampoUrls();
+  renderProdImagensPreviews();
 }
 
 function lerImgProdLoja(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    toast('⚠️ Selecione um arquivo de imagem.');
-    return;
-  }
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  let processadas = 0;
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const maxLado = 1200;
-      const scale = Math.min(1, maxLado / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-
-      let quality = 0.85;
-      let dataUrl = canvas.toDataURL('image/jpeg', quality);
-      while (dataUrl.length > 450000 && quality > 0.45) {
-        quality -= 0.1;
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
-      }
-
-      document.getElementById('plm-img-url').value = dataUrl;
-      previewProdLoja();
-      if (dataUrl.length > 450000) {
-        toast('⚠️ Imagem ainda grande. Prefira arquivos menores para evitar erro de armazenamento.');
-      } else {
-        toast('🖼️ Imagem otimizada automaticamente.');
-      }
+  files.forEach(file => {
+    if (!file.type.startsWith('image/')) { toast('⚠️ Selecione apenas arquivos de imagem.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const maxLado = 1200;
+        const scale = Math.min(1, maxLado / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        let quality = 0.85;
+        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        while (dataUrl.length > 450000 && quality > 0.45) { quality -= 0.1; dataUrl = canvas.toDataURL('image/jpeg', quality); }
+        _prodImagens.push(dataUrl);
+        processadas++;
+        if (processadas === files.length) {
+          sincronizarCampoUrls();
+          renderProdImagensPreviews();
+          toast(`🖼️ ${files.length} imagem(ns) adicionada(s).`);
+        }
+      };
+      img.onerror = () => toast('⚠️ Não foi possível ler uma imagem.');
+      img.src = e.target.result;
     };
-    img.onerror = () => toast('⚠️ Não foi possível ler esta imagem.');
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
 }
 
 // Fechar modais ao clicar no overlay
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
 });
+
+// ══ GESTÃO CÂNTICOS ══
+const CANTICOS_DEFAULT = [
+  {id:1, titulo:'Grande És Tu', autor:'Carl Boberg / Stuart K. Hine', categoria:'Hino', tom:'Ré', tags:['clássico','adoração'], drive:'', letra:'[verso]\nSenhor meu Deus, quando eu maravilhado\nContemplo o mundo que as Tuas mãos criou,\n\n[refrão]\nEntão minh\'alma canta, então minh\'alma canta:\nQuão grande és Tu, quão grande és Tu!', ativo:true},
+  {id:2, titulo:'Castelo Forte', autor:'Martinho Lutero', categoria:'Hino', tom:'Fá', tags:['clássico','Reforma'], drive:'', letra:'[verso]\nUm poderoso castelo é o nosso Deus,\nUm bom escudo e forte arma.\n\n[refrão]\nO Senhor é nossa esperança e proteção,\nEle é nossa salvação!', ativo:true},
+  {id:3, titulo:'Preciso de Ti', autor:'Tradicional', categoria:'Hino', tom:'Sol', tags:['clássico','súplica'], drive:'', letra:'[verso]\nPreciso de Ti, Senhor,\nA toda hora preciso de Ti.\n\n[refrão]\nNas horas de gozo, nas horas de dor,\nPreciso de Ti, meu Salvador.', ativo:true},
+  {id:4, titulo:'A Deus Seja a Glória', autor:'Fanny Crosby', categoria:'Hino', tom:'Lá', tags:['louvor','vitória'], drive:'', letra:'[verso]\nA Deus seja a glória, grandes coisas Ele fez!\n\n[refrão]\nLouvai, louvai ao Senhor!', ativo:true},
+  {id:5, titulo:'Sola Scriptura', autor:'Hinário ABCL', categoria:'Cântico', tom:'Mi', tags:['acampamento','Reforma'], drive:'', letra:'[verso]\nSomente a Escritura nos guia na verdade.\n\n[refrão]\nSola Scriptura, Sola Fide!', ativo:true},
+];
+
+function getCanticos() {
+  const s = get('abcl-canticos');
+  if (s && s.length) return s;
+  set('abcl-canticos', CANTICOS_DEFAULT);
+  return CANTICOS_DEFAULT;
+}
+
+function initGestaoCanticos() {
+  renderCanticosAdmin();
+}
+
+function renderCanticosAdmin() {
+  const busca = (document.getElementById('cantico-busca')?.value || '').toLowerCase();
+  const todos = getCanticos();
+  const lista = busca ? todos.filter(c =>
+    (c.titulo||'').toLowerCase().includes(busca) ||
+    (c.autor||'').toLowerCase().includes(busca) ||
+    (c.tags||[]).some(t=>t.toLowerCase().includes(busca))
+  ) : todos;
+
+  const countEl = document.getElementById('cantico-count');
+  if (countEl) countEl.textContent = `${lista.length} cântico${lista.length!==1?'s':''}`;
+
+  const el = document.getElementById('canticos-admin-list');
+  if (!el) return;
+  if (!lista.length) {
+    el.innerHTML = '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum cântico encontrado.</p>';
+    return;
+  }
+  el.innerHTML = lista.map(c => `
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.85rem 0;border-bottom:1px solid var(--borda);">
+      <div style="width:36px;height:36px;background:var(--card2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:.88rem;color:var(--texto);">${c.titulo||'(sem título)'}</div>
+        <div style="font-size:.72rem;color:var(--suave);">${[c.autor,c.categoria,c.tom?'Tom: '+c.tom:''].filter(Boolean).join(' · ')}</div>
+        ${(c.tags||[]).length ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.3rem;">${(c.tags).map(t=>`<span style="font-size:.62rem;background:var(--card2);border:1px solid var(--borda);border-radius:99px;padding:.1rem .55rem;color:var(--suave);">${t}</span>`).join('')}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:.35rem;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="editarCantico(${c.id})" title="Editar">✏️</button>
+        <button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:rgba(239,68,68,.8);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:.3rem .6rem;cursor:pointer;" onclick="removerCantico(${c.id})" title="Remover">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function abrirModalCantico() {
+  document.getElementById('cm-id').value = '';
+  document.getElementById('cm-titulo').textContent = 'Novo cântico';
+  document.getElementById('cm-nome').value = '';
+  document.getElementById('cm-autor').value = '';
+  document.getElementById('cm-categoria').value = 'Hino';
+  document.getElementById('cm-tom').value = '';
+  document.getElementById('cm-tags').value = '';
+  document.getElementById('cm-drive').value = '';
+  document.getElementById('cm-letra').value = '';
+  document.getElementById('cm-ativo').checked = true;
+  document.getElementById('cantico-modal').classList.add('open');
+}
+
+function editarCantico(id) {
+  const c = getCanticos().find(x=>x.id===id);
+  if (!c) return;
+  document.getElementById('cm-id').value = id;
+  document.getElementById('cm-titulo').textContent = 'Editar cântico';
+  document.getElementById('cm-nome').value = c.titulo || '';
+  document.getElementById('cm-autor').value = c.autor || '';
+  document.getElementById('cm-categoria').value = c.categoria || 'Hino';
+  document.getElementById('cm-tom').value = c.tom || '';
+  document.getElementById('cm-tags').value = (c.tags||[]).join(', ');
+  document.getElementById('cm-drive').value = c.drive || '';
+  document.getElementById('cm-letra').value = c.letra || '';
+  document.getElementById('cm-ativo').checked = c.ativo !== false;
+  document.getElementById('cantico-modal').classList.add('open');
+}
+
+function salvarCantico() {
+  const titulo = document.getElementById('cm-nome').value.trim();
+  if (!titulo) { toast('⚠️ Informe o título do cântico.'); return; }
+  const idVal = document.getElementById('cm-id').value;
+  const id = idVal ? parseInt(idVal) : Date.now();
+  const cantico = {
+    id,
+    titulo,
+    autor:     document.getElementById('cm-autor').value.trim(),
+    categoria: document.getElementById('cm-categoria').value,
+    tom:       document.getElementById('cm-tom').value.trim(),
+    tags:      document.getElementById('cm-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    drive:     document.getElementById('cm-drive').value.trim(),
+    letra:     document.getElementById('cm-letra').value,
+    ativo:     document.getElementById('cm-ativo').checked,
+  };
+  const lista = getCanticos();
+  const idx = lista.findIndex(c=>c.id===id);
+  if (idx >= 0) lista[idx] = cantico; else lista.push(cantico);
+  if (!trySet('abcl-canticos', lista)) return;
+  document.getElementById('cantico-modal').classList.remove('open');
+  renderCanticosAdmin();
+  toast(idVal ? '✅ Cântico atualizado!' : '✅ Cântico adicionado!');
+}
+
+function removerCantico(id) {
+  if (!confirm('Remover este cântico?')) return;
+  set('abcl-canticos', getCanticos().filter(c=>c.id!==id));
+  renderCanticosAdmin();
+  toast('🗑 Cântico removido.');
+}
 
 function getHinos(){ return get('abcl-hinos') || []; }
 function renderHinosAdmin() {
