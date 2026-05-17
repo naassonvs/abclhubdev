@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABCL Hub — Entrar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --preto: #0a0a0a;
+      --branco: #f5f2eb;
+      --laranja: #e85d04;
+      --laranja-escuro: #c44d03;
+      --cinza: #1a1a1a;
+      --cinza-medio: #2a2a2a;
+      --cinza-claro: #888;
+      --erro: #e63946;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--preto);
+      color: var(--branco);
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── LADO ESQUERDO ── */
+    .lado-esquerdo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lado-esquerdo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(232,93,4,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(232,93,4,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .grade {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-icone {
+      width: 42px;
+      height: 42px;
+      background: var(--laranja);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-texto {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-texto span {
+      color: var(--laranja);
+    }
+
+    .hero-area {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      background: rgba(232,93,4,0.15);
+      border: 1px solid rgba(232,93,4,0.3);
+      color: var(--laranja);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+    }
+
+    .hero-titulo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(36px, 4vw, 56px);
+      line-height: 1.05;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+    }
+
+    .hero-titulo em {
+      font-style: normal;
+      color: var(--laranja);
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--cinza-claro);
+      line-height: 1.7;
+      max-width: 380px;
+    }
+
+    .stats-area {
+      display: flex;
+      gap: 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      color: var(--branco);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--cinza-claro);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* ── LADO DIREITO ── */
+    .lado-direito {
+      width: 460px;
+      background: var(--cinza);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 48px;
+      position: relative;
+      border-left: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .form-header {
+      margin-bottom: 40px;
+    }
+
+    .form-titulo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .form-subtitulo {
+      font-size: 14px;
+      color: var(--cinza-claro);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: var(--cinza-medio);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 32px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--cinza-claro);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab.ativo {
+      background: var(--laranja);
+      color: white;
+    }
+
+    /* Botão Google */
+    .btn-google {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: var(--branco);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+
+    .btn-google:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-google svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Divisor */
+    .divisor {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .divisor-linha {
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .divisor-texto {
+      font-size: 12px;
+      color: var(--cinza-claro);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Campos */
+    .campo {
+      margin-bottom: 16px;
+    }
+
+    .campo label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--cinza-claro);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .campo input {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--cinza-medio);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      color: var(--branco);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .campo input:focus {
+      border-color: var(--laranja);
+    }
+
+    .campo input::placeholder {
+      color: #555;
+    }
+
+    /* Esqueci senha */
+    .esqueci {
+      text-align: right;
+      margin-top: -8px;
+      margin-bottom: 16px;
+    }
+
+    .esqueci a {
+      font-size: 13px;
+      color: var(--laranja);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .esqueci a:hover {
+      text-decoration: underline;
+    }
+
+    /* Botão principal */
+    .btn-entrar {
+      width: 100%;
+      padding: 16px;
+      background: var(--laranja);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-entrar:hover {
+      background: var(--laranja-escuro);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(232,93,4,0.3);
+    }
+
+    .btn-entrar:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-entrar.carregando::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      animation: shimmer 1.2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Mensagem de erro/sucesso */
+    .mensagem {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .mensagem.erro {
+      background: rgba(230,57,70,0.1);
+      border: 1px solid rgba(230,57,70,0.3);
+      color: #ff6b7a;
+      display: block;
+    }
+
+    .mensagem.sucesso {
+      background: rgba(56,176,0,0.1);
+      border: 1px solid rgba(56,176,0,0.3);
+      color: #6fcf6f;
+      display: block;
+    }
+
+    /* Rodapé do form */
+    .form-rodape {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--cinza-claro);
+    }
+
+    .form-rodape a {
+      color: var(--laranja);
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .loading-overlay.ativo {
+      display: flex;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(232,93,4,0.2);
+      border-top-color: var(--laranja);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Animação de entrada */
+    .lado-direito {
+      animation: slideIn 0.5s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .hero-area {
+      animation: fadeUp 0.7s ease 0.1s both;
+    }
+
+    @keyframes fadeUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .lado-esquerdo { padding: 32px 24px; flex: none; }
+      .hero-titulo { font-size: 32px; }
+      .stats-area { display: none; }
+      .lado-direito { width: 100%; padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Lado Esquerdo -->
+  <div class="lado-esquerdo">
+    <div class="grade"></div>
+
+    <div class="logo-area">
+      <div class="logo-icone">⛺</div>
+      <div class="logo-texto">ABCL<span>Hub</span></div>
+    </div>
+
+    <div class="hero-area">
+      <div class="hero-tag">Plataforma do Acampamento</div>
+      <h1 class="hero-titulo">
+        Tudo num<br>
+        só <em>lugar.</em>
+      </h1>
+      <p class="hero-desc">
+        Gerencie vendas, inscrições, hinos e muito mais. 
+        A central completa do seu acampamento.
+      </p>
+    </div>
+
+    <div class="stats-area">
+      <div class="stat">
+        <span class="stat-num" id="statVendas">—</span>
+        <span class="stat-label">Vendas</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statInscritos">—</span>
+        <span class="stat-label">Inscritos</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statHinos">—</span>
+        <span class="stat-label">Hinos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lado Direito -->
+  <div class="lado-direito">
+    <div class="form-header">
+      <h2 class="form-titulo">Bem-vindo 👋</h2>
+      <p class="form-subtitulo">Entre na sua conta para continuar</p>
+    </div>
+
+    <!-- Tabs Login / Cadastro -->
+    <div class="tabs">
+      <button class="tab ativo" onclick="alternarTab('entrar')">Entrar</button>
+      <button class="tab" onclick="alternarTab('cadastrar')">Criar conta</button>
+    </div>
+
+    <!-- Mensagem de feedback -->
+    <div class="mensagem" id="mensagem"></div>
+
+    <!-- Botão Google -->
+    <button class="btn-google" onclick="logarComGoogle()">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continuar com Google
+    </button>
+
+    <div class="divisor">
+      <div class="divisor-linha"></div>
+      <span class="divisor-texto">ou</span>
+      <div class="divisor-linha"></div>
+    </div>
+
+    <!-- Form Entrar -->
+    <div id="formEntrar">
+      <div class="campo">
+        <label>Email</label>
+        <input type="email" id="emailEntrar" placeholder="seu@email.com" />
+      </div>
+      <div class="campo">
+        <label>Senha</label>
+        <input type="password" id="senhaEntrar" placeholder="••••••••" 
+               onkeydown="if(event.key==='Enter') entrarComEmail()" />
+      </div>
+      <div class="esqueci">
+        <a onclick="esqueceuSenha()">Esqueceu a senha?</a>
+      </div>
+      <button class="btn-entrar" id="btnEntrar" onclick="entrarComEmail()">
+        Entrar
+      </button>
+    </div>
+
+    <!-- Form Cadastrar -->
+    <div id="formCadastrar" style="display:none;">
+      <div class="campo">
+        <label>Nome completo</label>
+        <input type="text" id="nomeCadastrar" placeholder="Seu nome" />
+      </div>
+      <div class="campo">
+        <label>Email</label>
+        <input type="email" id="emailCadastrar" placeholder="seu@email.com" />
+      </div>
+      <div class="campo">
+        <label>Senha</label>
+        <input type="password" id="senhaCadastrar" placeholder="mínimo 6 caracteres"
+               onkeydown="if(event.key==='Enter') cadastrar()" />
+      </div>
+      <button class="btn-entrar" id="btnCadastrar" onclick="cadastrar()">
+        Criar conta
+      </button>
+      <p style="font-size:12px; color:#555; margin-top:12px; text-align:center;">
+        Sua conta será analisada pelo administrador.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Firebase CDN -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // ── FIREBASE CONFIG ──
+    const firebaseConfig = {
+      apiKey: "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+      authDomain: "abcl-hub-dev.firebaseapp.com",
+      projectId: "abcl-hub-dev",
+      storageBucket: "abcl-hub-dev.firebasestorage.app",
+      messagingSenderId: "243573406078",
+      appId: "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ── HELPERS ──
+    function mostrarLoading(v) {
+      document.getElementById('loadingOverlay').classList.toggle('ativo', v);
+    }
+
+    function mostrarMensagem(texto, tipo = 'erro') {
+      const el = document.getElementById('mensagem');
+      el.textContent = texto;
+      el.className = `mensagem ${tipo}`;
+    }
+
+    function limparMensagem() {
+      const el = document.getElementById('mensagem');
+      el.className = 'mensagem';
+    }
+
+    // ── TABS ──
+    function alternarTab(tab) {
+      const entrar = tab === 'entrar';
+      document.getElementById('formEntrar').style.display = entrar ? 'block' : 'none';
+      document.getElementById('formCadastrar').style.display = entrar ? 'none' : 'block';
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('ativo', entrar ? i === 0 : i === 1);
+      });
+      limparMensagem();
+    }
+
+    // ── REDIRECIONAR POR PERFIL ──
+    async function redirecionarPorPerfil(uid) {
+      try {
+        const doc = await db.collection('usuarios').doc(uid).get();
+        
+        if (!doc.exists) {
+          // Primeiro acesso — perfil ainda não criado
+          mostrarMensagem('Conta criada! Aguardando aprovação do administrador.', 'sucesso');
+          await auth.signOut();
+          mostrarLoading(false);
+          return;
+        }
+
+        const dados = doc.data();
+
+        if (!dados.aprovado) {
+          mostrarMensagem('Conta ainda não aprovada. Fale com o administrador.', 'erro');
+          await auth.signOut();
+          mostrarLoading(false);
+          return;
+        }
+
+        // Redirecionar por perfil
+        switch (dados.perfil_tipo) {
+          case 'admin':
+            window.location.href = 'admin.html';
+            break;
+          case 'coordenacao':
+            window.location.href = 'vendinha.html';
+            break;
+          default:
+            window.location.href = 'index.html';
+        }
+
+      } catch (erro) {
+        console.error('Erro ao buscar perfil:', erro);
+        mostrarMensagem('Erro ao carregar perfil. Tente novamente.');
+        mostrarLoading(false);
+      }
+    }
+
+    // ── CRIAR PERFIL NO FIRESTORE ──
+    async function criarPerfil(user, nomeExtra = '') {
+      const ref = db.collection('usuarios').doc(user.uid);
+      const existe = await ref.get();
+
+      if (!existe.exists) {
+        await ref.set({
+          uid: user.uid,
+          nome: nomeExtra || user.displayName || 'Usuário',
+          email: user.email,
+          foto_url: user.photoURL || '',
+          provedor: user.providerData[0]?.providerId || 'email',
+          perfil_tipo: 'participante',
+          aprovado: false,
+          ativo: true,
+          criado_em: firebase.firestore.Timestamp.now(),
+          ultimo_acesso: firebase.firestore.Timestamp.now()
+        });
+      } else {
+        // Atualizar último acesso
+        await ref.update({
+          ultimo_acesso: firebase.firestore.Timestamp.now()
+        });
+      }
+    }
+
+    // ── LOGIN GOOGLE ──
+    async function logarComGoogle() {
+      limparMensagem();
+      mostrarLoading(true);
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await auth.signInWithPopup(provider);
+        await criarPerfil(result.user);
+        await redirecionarPorPerfil(result.user.uid);
+      } catch (erro) {
+        mostrarLoading(false);
+        if (erro.code === 'auth/popup-closed-by-user') return;
+        mostrarMensagem('Erro ao entrar com Google. Tente novamente.');
+        console.error(erro);
+      }
+    }
+
+    // ── LOGIN EMAIL/SENHA ──
+    async function entrarComEmail() {
+      limparMensagem();
+      const email = document.getElementById('emailEntrar').value.trim();
+      const senha = document.getElementById('senhaEntrar').value;
+
+      if (!email || !senha) {
+        mostrarMensagem('Preencha email e senha.');
+        return;
+      }
+
+      mostrarLoading(true);
+      try {
+        const result = await auth.signInWithEmailAndPassword(email, senha);
+        await criarPerfil(result.user);
+        await redirecionarPorPerfil(result.user.uid);
+      } catch (erro) {
+        mostrarLoading(false);
+        switch (erro.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            mostrarMensagem('Email ou senha incorretos.');
+            break;
+          case 'auth/too-many-requests':
+            mostrarMensagem('Muitas tentativas. Aguarde alguns minutos.');
+            break;
+          default:
+            mostrarMensagem('Erro ao entrar. Tente novamente.');
+            console.error(erro);
+        }
+      }
+    }
+
+    // ── CADASTRO ──
+    async function cadastrar() {
+      limparMensagem();
+      const nome = document.getElementById('nomeCadastrar').value.trim();
+      const email = document.getElementById('emailCadastrar').value.trim();
+      const senha = document.getElementById('senhaCadastrar').value;
+
+      if (!nome || !email || !senha) {
+        mostrarMensagem('Preencha todos os campos.');
+        return;
+      }
+      if (senha.length < 6) {
+        mostrarMensagem('A senha deve ter pelo menos 6 caracteres.');
+        return;
+      }
+
+      mostrarLoading(true);
+      try {
+        const result = await auth.createUserWithEmailAndPassword(email, senha);
+        await result.user.updateProfile({ displayName: nome });
+        await criarPerfil(result.user, nome);
+        mostrarLoading(false);
+        mostrarMensagem('Conta criada! Aguardando aprovação do administrador.', 'sucesso');
+        document.getElementById('nomeCadastrar').value = '';
+        document.getElementById('emailCadastrar').value = '';
+        document.getElementById('senhaCadastrar').value = '';
+        setTimeout(() => alternarTab('entrar'), 3000);
+      } catch (erro) {
+        mostrarLoading(false);
+        switch (erro.code) {
+          case 'auth/email-already-in-use':
+            mostrarMensagem('Este email já está cadastrado.');
+            break;
+          case 'auth/invalid-email':
+            mostrarMensagem('Email inválido.');
+            break;
+          case 'auth/weak-password':
+            mostrarMensagem('Senha muito fraca. Use pelo menos 6 caracteres.');
+            break;
+          default:
+            mostrarMensagem('Erro ao criar conta. Tente novamente.');
+            console.error(erro);
+        }
+      }
+    }
+
+    // ── ESQUECEU SENHA ──
+    async function esqueceuSenha() {
+      const email = document.getElementById('emailEntrar').value.trim();
+      if (!email) {
+        mostrarMensagem('Digite seu email acima antes de redefinir a senha.');
+        return;
+      }
+      try {
+        await auth.sendPasswordResetEmail(email);
+        mostrarMensagem('Email de redefinição enviado! Verifique sua caixa de entrada.', 'sucesso');
+      } catch (erro) {
+        if (erro.code === 'auth/user-not-found') {
+          mostrarMensagem('Email não encontrado.');
+        } else {
+          mostrarMensagem('Erro ao enviar email. Tente novamente.');
+        }
+      }
+    }
+
+    // ── VERIFICAR SE JÁ ESTÁ LOGADO ──
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        mostrarLoading(true);
+        await redirecionarPorPerfil(user.uid);
+      }
+    });
+
+    // ── CARREGAR STATS ──
+    async function carregarStats() {
+      try {
+        const [vendas, inscritos, hinos] = await Promise.all([
+          db.collection('vendas').get(),
+          db.collection('inscricoes').get(),
+          db.collection('canticos').get()
+        ]);
+        document.getElementById('statVendas').textContent = vendas.size || '0';
+        document.getElementById('statInscritos').textContent = inscritos.size || '0';
+        document.getElementById('statHinos').textContent = hinos.size || '0';
+      } catch (e) {
+        // Sem dados ainda, mantém os traços
+      }
+    }
+
+    carregarStats();
+  </script>
+</body>
+</html>

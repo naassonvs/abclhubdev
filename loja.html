@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<!-- Firebase Init -->
+<script>
+const firebaseConfig = {
+  apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+  authDomain:        "abcl-hub-dev.firebaseapp.com",
+  projectId:         "abcl-hub-dev",
+  storageBucket:     "abcl-hub-dev.firebasestorage.app",
+  messagingSenderId: "243573406078",
+  appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+</script>
+
+<!-- Módulos ABCL -->
+<script src="offline-sync.js"></script>
+<script src="vendas-firebase.js"></script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL 2026 — Loja</title>
@@ -303,7 +325,17 @@
         <span style="font-size:.82rem;color:var(--suave);">Total</span>
         <span class="sacola-total-val" id="sacola-total">R$ 0,00</span>
       </div>
-      <button class="sacola-checkout-btn" onclick="checkout()">💬 Pedir pelo WhatsApp</button>
+      <!-- Forma de pagamento na loja -->
+      <div style="margin-bottom:.75rem;">
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.4rem;">Forma de pagamento</div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          <button class="loja-pag-btn active" data-pag="PIX" onclick="selecionarPagLoja(this)" type="button" style="flex:1;padding:.4rem .6rem;border-radius:7px;font-size:.76rem;border:1px solid var(--borda);background:var(--verde-cl);color:#fff;cursor:pointer;transition:all .18s;">📲 PIX</button>
+          <button class="loja-pag-btn" data-pag="Dinheiro" onclick="selecionarPagLoja(this)" type="button" style="flex:1;padding:.4rem .6rem;border-radius:7px;font-size:.76rem;border:1px solid var(--borda);background:transparent;color:var(--suave);cursor:pointer;transition:all .18s;">💵 Dinheiro</button>
+          <button class="loja-pag-btn" data-pag="Crédito" onclick="selecionarPagLoja(this)" type="button" style="flex:1;padding:.4rem .6rem;border-radius:7px;font-size:.76rem;border:1px solid var(--borda);background:transparent;color:var(--suave);cursor:pointer;transition:all .18s;">💳 Crédito</button>
+          <button class="loja-pag-btn" data-pag="Débito" onclick="selecionarPagLoja(this)" type="button" style="flex:1;padding:.4rem .6rem;border-radius:7px;font-size:.76rem;border:1px solid var(--borda);background:transparent;color:var(--suave);cursor:pointer;transition:all .18s;">💳 Débito</button>
+        </div>
+      </div>
+      <button class="sacola-checkout-btn" onclick="checkout()">💬 Finalizar Pedido</button>
     </div>
   </div>
 </div>
@@ -620,8 +652,18 @@ function fecharSacola(e) {
   document.getElementById('sacola-overlay').classList.remove('open');
 }
 
+// ── Seleção de pagamento na loja ──
+let lojaPagamento = 'PIX';
+function selecionarPagLoja(btn) {
+  document.querySelectorAll('.loja-pag-btn').forEach(b => {
+    b.style.background = 'transparent'; b.style.color = 'var(--suave)'; b.style.borderColor = 'var(--borda)';
+  });
+  btn.style.background = 'var(--verde-cl)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--verde-cl)';
+  lojaPagamento = btn.dataset.pag;
+}
+
 // ── Checkout ──
-function checkout() {
+async function checkout() {
   if (sacola.length===0) { toast('Sua sacola está vazia.'); return; }
   const nome   = prompt('Seu nome completo:');
   if (!nome?.trim()) { toast('Nome obrigatório.'); return; }
@@ -633,6 +675,7 @@ function checkout() {
     ``,
     `👤 *${nome.trim()}*`,
     tel ? `📱 ${tel.trim()}` : '',
+    `💳 Pagamento: ${lojaPagamento}`,
     ``,
     `*ITENS:*`,
     ...sacola.map(i=>`  • ${i.nome}${[i.tamanho,i.cor,i.genero].filter(Boolean).length?' ('+[i.tamanho,i.cor,i.genero].filter(Boolean).join(', ')+')':''} ×${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`),
@@ -642,7 +685,7 @@ function checkout() {
     `_Pedido via Loja ABCL 2026_`,
   ].filter(Boolean);
 
-  // Registrar no financeiro
+  // Registrar no financeiro local
   try {
     const receitas = get('abcl-fin-receitas') || [];
     receitas.unshift({
@@ -653,7 +696,36 @@ function checkout() {
     set('abcl-fin-receitas', receitas);
   } catch(e){}
 
-  const whats = get('abcl-definicoes')?.pixChave ? '5531988262599' : '5531988262599';
+  // ── Firebase / Offline Sync ──
+  try {
+    if (typeof VendasFirebase !== 'undefined' && typeof OfflineSync !== 'undefined') {
+      const venda = {
+        tipo:            'loja',
+        produtos:        sacola.map(i=>({ id:i.uid||i.id, nome:i.nome, preco:i.preco, qtd:i.qtd, tamanho:i.tamanho, cor:i.cor })),
+        subtotal:        total,
+        desconto:        0,
+        total:           total,
+        eh_oferta:       false,
+        valor_oferta:    null,
+        status_oferta:   null,
+        forma_pagamento: lojaPagamento,
+        cartao_tipo:     ['Crédito','Débito'].includes(lojaPagamento) ? lojaPagamento : null,
+        operador_uid:    'cliente_' + Date.now(),
+        operador_nome:   nome.trim(),
+        operador_tel:    tel?.trim() || '',
+        ano_acampamento: new Date().getFullYear(),
+        data:            new Date().toLocaleDateString('pt-BR'),
+        hora:            new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      };
+      if (navigator.onLine) {
+        await VendasFirebase.salvarVendaFirebase(venda, 'loja');
+      } else {
+        await OfflineSync.adicionarFilaSincronizacao(venda);
+      }
+    }
+  } catch(err) { console.warn('Firebase loja (non-critical):', err.message); }
+
+  const whats = '5531988262599';
   window.open(`https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener');
   sacola = [];
   renderSacola();

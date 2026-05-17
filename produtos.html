@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Produtos — ABCL Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --preto: #0a0a0a;
+      --branco: #f5f2eb;
+      --laranja: #e85d04;
+      --laranja-escuro: #c44d03;
+      --cinza: #1a1a1a;
+      --cinza-medio: #222;
+      --cinza-borda: rgba(255,255,255,0.08);
+      --cinza-claro: #888;
+      --verde: #2d9a4e;
+      --erro: #e63946;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--preto);
+      color: var(--branco);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--cinza-borda);
+      background: var(--cinza);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .header-logo span { color: var(--laranja); }
+
+    .header-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-voltar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid var(--cinza-borda);
+      border-radius: 8px;
+      color: var(--cinza-claro);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .btn-voltar:hover {
+      border-color: var(--laranja);
+      color: var(--branco);
+    }
+
+    /* ── TABS MÓDULO ── */
+    .modulos-tabs {
+      display: flex;
+      gap: 0;
+      padding: 24px 32px 0;
+      border-bottom: 1px solid var(--cinza-borda);
+    }
+
+    .modulo-tab {
+      padding: 12px 28px;
+      border: none;
+      background: transparent;
+      color: var(--cinza-claro);
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modulo-tab:hover { color: var(--branco); }
+
+    .modulo-tab.ativo {
+      color: var(--laranja);
+      border-bottom-color: var(--laranja);
+    }
+
+    /* ── LAYOUT PRINCIPAL ── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 0;
+      min-height: calc(100vh - 120px);
+    }
+
+    /* ── FORMULÁRIO ── */
+    .form-area {
+      padding: 32px;
+      border-right: 1px solid var(--cinza-borda);
+    }
+
+    .form-titulo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .form-subtitulo {
+      font-size: 13px;
+      color: var(--cinza-claro);
+      margin-bottom: 32px;
+    }
+
+    .secao {
+      margin-bottom: 28px;
+    }
+
+    .secao-titulo {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--cinza-claro);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--cinza-borda);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .campo {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .campo label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--cinza-claro);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .campo input,
+    .campo select,
+    .campo textarea {
+      padding: 12px 14px;
+      background: var(--cinza-medio);
+      border: 1px solid var(--cinza-borda);
+      border-radius: 10px;
+      color: var(--branco);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    .campo input:focus,
+    .campo select:focus,
+    .campo textarea:focus {
+      border-color: var(--laranja);
+    }
+
+    .campo input::placeholder,
+    .campo textarea::placeholder { color: #444; }
+
+    .campo select option { background: var(--cinza); }
+
+    .campo textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    /* Tamanhos Loja */
+    .tamanhos-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tamanho-btn {
+      padding: 6px 14px;
+      background: var(--cinza-medio);
+      border: 1px solid var(--cinza-borda);
+      border-radius: 8px;
+      color: var(--cinza-claro);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .tamanho-btn.selecionado {
+      background: rgba(232,93,4,0.15);
+      border-color: var(--laranja);
+      color: var(--laranja);
+    }
+
+    /* Cores Loja */
+    .cores-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .cor-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .cor-btn.selecionada {
+      border-color: var(--branco);
+      transform: scale(1.1);
+    }
+
+    .cor-btn.selecionada::after {
+      content: '✓';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+
+    /* Botões ação */
+    .acoes {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .btn-salvar {
+      flex: 1;
+      padding: 14px;
+      background: var(--laranja);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-salvar:hover {
+      background: var(--laranja-escuro);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(232,93,4,0.25);
+    }
+
+    .btn-salvar:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-limpar {
+      padding: 14px 20px;
+      background: transparent;
+      border: 1px solid var(--cinza-borda);
+      border-radius: 12px;
+      color: var(--cinza-claro);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-limpar:hover {
+      border-color: var(--erro);
+      color: var(--erro);
+    }
+
+    /* Mensagem */
+    .mensagem {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .mensagem.erro {
+      background: rgba(230,57,70,0.1);
+      border: 1px solid rgba(230,57,70,0.3);
+      color: #ff6b7a;
+      display: block;
+    }
+
+    .mensagem.sucesso {
+      background: rgba(45,154,78,0.1);
+      border: 1px solid rgba(45,154,78,0.3);
+      color: #6fcf6f;
+      display: block;
+    }
+
+    /* ── LISTA DE PRODUTOS ── */
+    .lista-area {
+      padding: 32px;
+      background: var(--cinza);
+      overflow-y: auto;
+      max-height: calc(100vh - 120px);
+    }
+
+    .lista-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .lista-titulo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .lista-count {
+      font-size: 12px;
+      color: var(--cinza-claro);
+      background: var(--cinza-medio);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .produto-card {
+      background: var(--cinza-medio);
+      border: 1px solid var(--cinza-borda);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .produto-card:hover {
+      border-color: rgba(232,93,4,0.3);
+    }
+
+    .produto-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .produto-nome {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .produto-acoes {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-mini {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .btn-mini-edit {
+      background: rgba(232,93,4,0.1);
+      color: var(--laranja);
+    }
+
+    .btn-mini-edit:hover { background: rgba(232,93,4,0.25); }
+
+    .btn-mini-del {
+      background: rgba(230,57,70,0.1);
+      color: var(--erro);
+    }
+
+    .btn-mini-del:hover { background: rgba(230,57,70,0.25); }
+
+    .produto-info {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .produto-tag {
+      font-size: 12px;
+      color: var(--cinza-claro);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .produto-tag strong {
+      color: var(--branco);
+      font-weight: 500;
+    }
+
+    .badge-estoque {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 100px;
+      font-weight: 600;
+    }
+
+    .badge-ok { background: rgba(45,154,78,0.2); color: #6fcf6f; }
+    .badge-baixo { background: rgba(230,57,70,0.2); color: #ff6b7a; }
+
+    .lista-vazia {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--cinza-claro);
+    }
+
+    .lista-vazia-icone { font-size: 40px; margin-bottom: 12px; }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.ativo { display: flex; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(232,93,4,0.2);
+      border-top-color: var(--laranja);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; }
+      .lista-area { max-height: none; border-top: 1px solid var(--cinza-borda); }
+      .form-area { border-right: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">ABCL<span>Hub</span> — Produtos</div>
+  <div class="header-nav">
+    <a href="admin.html" class="btn-voltar">← Voltar ao Admin</a>
+  </div>
+</div>
+
+<!-- Tabs Módulo -->
+<div class="modulos-tabs">
+  <button class="modulo-tab ativo" onclick="trocarModulo('vendinha')">🛒 Vendinha</button>
+  <button class="modulo-tab" onclick="trocarModulo('livraria')">📚 Livraria</button>
+  <button class="modulo-tab" onclick="trocarModulo('loja')">👕 Loja</button>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Formulário -->
+  <div class="form-area">
+    <div class="mensagem" id="mensagem"></div>
+
+    <!-- ═══ VENDINHA ═══ -->
+    <div id="form-vendinha">
+      <div class="form-titulo">🛒 Novo Produto — Vendinha</div>
+      <p class="form-subtitulo">Inclua tamanho/sabor no próprio nome (ex: Água 500ml, Suco Laranja 300ml, bala)</p>
+
+      <div class="secao">
+        <div class="secao-titulo">Informações do produto</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="campo">
+            <label>Nome do produto *</label>
+            <input type="text" id="v-nome" placeholder="Ex: Água 500ml, Suco Laranja 300ml" />
+          </div>
+          <div class="grid-2">
+            <div class="campo">
+              <label>Preço de venda (R$) *</label>
+              <input type="number" id="v-preco" placeholder="0,00" step="0.01" min="0" />
+            </div>
+            <div class="campo">
+              <label>Estoque inicial</label>
+              <input type="number" id="v-estoque" placeholder="0" min="0" />
+            </div>
+          </div>
+          <div class="campo">
+            <label>Alerta de estoque baixo</label>
+            <input type="number" id="v-estoque-min" placeholder="5" min="0" />
+          </div>
+          <div class="campo">
+            <label>Observação (opcional)</label>
+            <textarea id="v-obs" placeholder="Alguma observação sobre o produto..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="acoes">
+        <button class="btn-salvar" onclick="salvarProduto('vendinha')">✓ Salvar Produto</button>
+        <button class="btn-limpar" onclick="limparForm('vendinha')">Limpar</button>
+      </div>
+    </div>
+
+    <!-- ═══ LIVRARIA ═══ -->
+    <div id="form-livraria" style="display:none;">
+      <div class="form-titulo">📚 Novo Produto — Livraria</div>
+      <p class="form-subtitulo">Cadastre livros e materiais disponíveis para venda</p>
+
+      <div class="secao">
+        <div class="secao-titulo">Dados do livro</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="campo">
+            <label>Título do livro *</label>
+            <input type="text" id="l-titulo" placeholder="Ex: Bíblia de Estudo NVI" />
+          </div>
+          <div class="grid-2">
+            <div class="campo">
+              <label>Autor</label>
+              <input type="text" id="l-autor" placeholder="Nome do autor" />
+            </div>
+            <div class="campo">
+              <label>Editora</label>
+              <input type="text" id="l-editora" placeholder="Nome da editora" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="campo">
+              <label>Categoria</label>
+              <select id="l-categoria">
+                <option value="">Selecione...</option>
+                <option>Bíblias</option>
+                <option>Devocionais</option>
+                <option>Teologia</option>
+                <option>Infantil</option>
+                <option>Jovens</option>
+                <option>Família</option>
+                <option>Acampamento</option>
+                <option>Outros</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label>ISBN</label>
+              <input type="text" id="l-isbn" placeholder="978-..." />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Valores e estoque</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="grid-2">
+            <div class="campo">
+              <label>Preço de venda (R$) *</label>
+              <input type="number" id="l-preco" placeholder="0,00" step="0.01" min="0" />
+            </div>
+            <div class="campo">
+              <label>Custo (R$)</label>
+              <input type="number" id="l-custo" placeholder="0,00" step="0.01" min="0" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="campo">
+              <label>Estoque inicial</label>
+              <input type="number" id="l-estoque" placeholder="0" min="0" />
+            </div>
+            <div class="campo">
+              <label>Alerta estoque baixo</label>
+              <input type="number" id="l-estoque-min" placeholder="2" min="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Capa e descrição</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="campo">
+            <label>URL da capa (opcional)</label>
+            <input type="text" id="l-capa" placeholder="https://... ou deixe em branco para buscar automaticamente" />
+          </div>
+          <div class="campo">
+            <label>Descrição / Resumo</label>
+            <textarea id="l-descricao" placeholder="Resumo do livro (aparece no preview ao passar o mouse)..." style="min-height:100px;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="acoes">
+        <button class="btn-salvar" onclick="salvarProduto('livraria')">✓ Salvar Livro</button>
+        <button class="btn-limpar" onclick="limparForm('livraria')">Limpar</button>
+      </div>
+    </div>
+
+    <!-- ═══ LOJA ═══ -->
+    <div id="form-loja" style="display:none;">
+      <div class="form-titulo">👕 Novo Produto — Loja</div>
+      <p class="form-subtitulo">Cadastre produtos com tamanhos e cores disponíveis</p>
+
+      <div class="secao">
+        <div class="secao-titulo">Informações do produto</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="campo">
+            <label>Nome do produto *</label>
+            <input type="text" id="lj-nome" placeholder="Ex: Camiseta ABCL 2025" />
+          </div>
+          <div class="grid-2">
+            <div class="campo">
+              <label>Preço de venda (R$) *</label>
+              <input type="number" id="lj-preco" placeholder="0,00" step="0.01" min="0" />
+            </div>
+            <div class="campo">
+              <label>Custo (R$)</label>
+              <input type="number" id="lj-custo" placeholder="0,00" step="0.01" min="0" />
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="campo">
+              <label>Estoque geral</label>
+              <input type="number" id="lj-estoque" placeholder="0" min="0" />
+            </div>
+            <div class="campo">
+              <label>Alerta estoque baixo</label>
+              <input type="number" id="lj-estoque-min" placeholder="3" min="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Tamanhos disponíveis</div>
+        <div class="tamanhos-grid" id="tamanhos-grid">
+          <!-- Infantil -->
+          <button class="tamanho-btn" onclick="toggleTamanho(this, '2 anos')">2 anos</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, '4 anos')">4 anos</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, '6 anos')">6 anos</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, '8 anos')">8 anos</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, '10 anos')">10 anos</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, '12 anos')">12 anos</button>
+          <!-- Adulto -->
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'PP')">PP</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'P')">P</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'M')">M</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'G')">G</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'GG')">GG</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'XGG')">XGG</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'XXGG')">XXGG</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'XXXGG')">XXXGG</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'XXXGG')">Único</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'XXXGG')">5 unidades</button>
+          <button class="tamanho-btn" onclick="toggleTamanho(this, 'XXXGG')">1 unidade</button>
+        </div>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Cores disponíveis</div>
+        <div class="cores-grid">
+          <button class="cor-btn" style="background:#1a1a1a; border-color:#444;" 
+                  onclick="toggleCor(this, 'Preto')" title="Preto"></button>
+          <button class="cor-btn" style="background:#f0f0f0;" 
+                  onclick="toggleCor(this, 'Branco')" title="Branco"></button>
+          <button class="cor-btn" style="background:#888;" 
+                  onclick="toggleCor(this, 'Cinza')" title="Cinza"></button>
+          <button class="cor-btn" style="background:#2d7a4e;" 
+                  onclick="toggleCor(this, 'Verde')" title="Verde"></button>
+          <button class="cor-btn" style="background:#de9151;" 
+                  onclick="toggleCor(this, 'Amarelo')" title="Amarelo"></button>                  
+        </div>
+        <p style="font-size:12px; color:#555; margin-top:8px;">Clique para selecionar as cores disponíveis</p>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Detalhes</div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="campo">
+            <label>URL da imagem (opcional)</label>
+            <input type="text" id="lj-imagem" placeholder="https://..." />
+          </div>
+          <div class="campo">
+            <label>Descrição (opcional)</label>
+            <textarea id="lj-descricao" placeholder="Detalhes do produto..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="acoes">
+        <button class="btn-salvar" onclick="salvarProduto('loja')">✓ Salvar Produto</button>
+        <button class="btn-limpar" onclick="limparForm('loja')">Limpar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de Produtos -->
+  <div class="lista-area">
+    <div class="lista-header">
+      <div class="lista-titulo" id="lista-titulo">Produtos da Vendinha</div>
+      <div class="lista-count" id="lista-count">0 produtos</div>
+    </div>
+    <div id="lista-produtos">
+      <div class="lista-vazia">
+        <div class="lista-vazia-icone">📦</div>
+        <p>Nenhum produto cadastrado</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+  // ── FIREBASE ──
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+      authDomain: "abcl-hub-dev.firebaseapp.com",
+      projectId: "abcl-hub-dev",
+      storageBucket: "abcl-hub-dev.firebasestorage.app",
+      messagingSenderId: "243573406078",
+      appId: "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+    });
+  }
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let moduloAtivo = 'vendinha';
+  let tamanhosSelecionados = [];
+  let coresSelecionadas = [];
+  let produtoEditandoId = null;
+
+  // Reinicializar arrays ao trocar módulo
+  function resetarSelecoes() {
+    tamanhosSelecionados = [];
+    coresSelecionadas = [];
+  }
+
+  // ── LOADING ──
+  function loading(v) {
+    document.getElementById('loadingOverlay').classList.toggle('ativo', v);
+  }
+
+  // ── MENSAGEM ──
+  function msg(texto, tipo = 'erro') {
+    const el = document.getElementById('mensagem');
+    el.textContent = texto;
+    el.className = `mensagem ${tipo}`;
+    setTimeout(() => el.className = 'mensagem', 4000);
+  }
+
+  // ── TROCAR MÓDULO ──
+  function trocarModulo(modulo) {
+    moduloAtivo = modulo;
+    resetarSelecoes(); // Reinicializar tamanhos e cores
+    produtoEditandoId = null;
+
+    // Tabs
+    document.querySelectorAll('.modulo-tab').forEach((t, i) => {
+      t.classList.toggle('ativo', ['vendinha','livraria','loja'][i] === modulo);
+    });
+
+    // Forms
+    ['vendinha','livraria','loja'].forEach(m => {
+      document.getElementById(`form-${m}`).style.display = m === modulo ? 'block' : 'none';
+    });
+
+    // Títulos
+    const nomes = { vendinha: 'Produtos da Vendinha', livraria: 'Livros da Livraria', loja: 'Produtos da Loja' };
+    document.getElementById('lista-titulo').textContent = nomes[modulo];
+
+    carregarProdutos(modulo);
+  }
+
+  // ── TAMANHOS ──
+  function toggleTamanho(btn, tamanho) {
+    btn.classList.toggle('selecionado');
+    if (btn.classList.contains('selecionado')) {
+      tamanhosSelecionados.push(tamanho);
+    } else {
+      tamanhosSelecionados = tamanhosSelecionados.filter(t => t !== tamanho);
+    }
+  }
+
+  // ── CORES ──
+  function toggleCor(btn, cor) {
+    btn.classList.toggle('selecionada');
+    if (btn.classList.contains('selecionada')) {
+      coresSelecionadas.push(cor);
+    } else {
+      coresSelecionadas = coresSelecionadas.filter(c => c !== cor);
+    }
+  }
+
+  // ── SALVAR PRODUTO ──
+  async function salvarProduto(modulo) {
+    loading(true);
+    try {
+      let dados = {};
+      const agora = firebase.firestore.Timestamp.now();
+
+      if (modulo === 'vendinha') {
+        const nome = document.getElementById('v-nome').value.trim();
+        const preco = parseFloat(document.getElementById('v-preco').value);
+        if (!nome || isNaN(preco)) { msg('Preencha nome e preço.'); loading(false); return; }
+
+        dados = {
+          nome,
+          preco,
+          estoque: parseInt(document.getElementById('v-estoque').value) || 0,
+          estoque_minimo: parseInt(document.getElementById('v-estoque-min').value) || 5,
+          observacao: document.getElementById('v-obs').value.trim(),
+          ativo: true
+        };
+      }
+
+      else if (modulo === 'livraria') {
+        const titulo = document.getElementById('l-titulo').value.trim();
+        const preco = parseFloat(document.getElementById('l-preco').value);
+        if (!titulo || isNaN(preco)) { msg('Preencha título e preço.'); loading(false); return; }
+
+        dados = {
+          titulo,
+          autor: document.getElementById('l-autor').value.trim(),
+          editora: document.getElementById('l-editora').value.trim(),
+          categoria: document.getElementById('l-categoria').value,
+          isbn: document.getElementById('l-isbn').value.trim(),
+          preco,
+          custo: parseFloat(document.getElementById('l-custo').value) || 0,
+          estoque: parseInt(document.getElementById('l-estoque').value) || 0,
+          estoque_minimo: parseInt(document.getElementById('l-estoque-min').value) || 2,
+          capa_url: document.getElementById('l-capa').value.trim(),
+          descricao: document.getElementById('l-descricao').value.trim(),
+          ativo: true
+        };
+      }
+
+      else if (modulo === 'loja') {
+        const nome = document.getElementById('lj-nome').value.trim();
+        const preco = parseFloat(document.getElementById('lj-preco').value);
+        if (!nome || isNaN(preco)) { msg('Preencha nome e preço.'); loading(false); return; }
+
+        // Garantir que são arrays
+        const tamanhos = Array.isArray(tamanhosSelecionados) ? tamanhosSelecionados : [];
+        const cores = Array.isArray(coresSelecionadas) ? coresSelecionadas : [];
+
+        dados = {
+          nome,
+          preco,
+          custo: parseFloat(document.getElementById('lj-custo').value) || 0,
+          estoque: parseInt(document.getElementById('lj-estoque').value) || 0,
+          estoque_minimo: parseInt(document.getElementById('lj-estoque-min').value) || 3,
+          tamanhos: tamanhos,
+          cores: cores,
+          imagem_url: document.getElementById('lj-imagem').value.trim(),
+          descricao: document.getElementById('lj-descricao').value.trim(),
+          ativo: true
+        };
+      }
+
+      const colecao = `produtos_${modulo}`;
+
+      if (produtoEditandoId) {
+        await db.collection(colecao).doc(produtoEditandoId).update({
+          ...dados,
+          atualizado_em: agora
+        });
+        msg('✅ Produto atualizado!', 'sucesso');
+        produtoEditandoId = null;
+      } else {
+        await db.collection(colecao).add({
+          ...dados,
+          criado_em: agora,
+          atualizado_em: agora
+        });
+        msg('✅ Produto salvo com sucesso!', 'sucesso');
+      }
+
+      limparForm(modulo);
+      carregarProdutos(modulo);
+
+    } catch (erro) {
+      console.error(erro);
+      msg('Erro ao salvar produto. Tente novamente.');
+    }
+    loading(false);
+  }
+
+  // ── CARREGAR PRODUTOS ──
+  async function carregarProdutos(modulo) {
+    const lista = document.getElementById('lista-produtos');
+    const count = document.getElementById('lista-count');
+    lista.innerHTML = '<p style="color:#555; font-size:13px;">Carregando...</p>';
+
+    try {
+      const snap = await db.collection(`produtos_${modulo}`)
+        .orderBy('criado_em', 'desc').get();
+
+      count.textContent = `${snap.size} produto${snap.size !== 1 ? 's' : ''}`;
+
+      if (snap.empty) {
+        lista.innerHTML = `
+          <div class="lista-vazia">
+            <div class="lista-vazia-icone">📦</div>
+            <p>Nenhum produto cadastrado</p>
+          </div>`;
+        return;
+      }
+
+      lista.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const nome = d.nome || d.titulo || '—';
+        const estoque = d.estoque ?? 0;
+        const min = d.estoque_minimo ?? 0;
+        const baixo = estoque <= min;
+
+        let extras = '';
+        if (modulo === 'livraria' && d.autor) extras += `<span class="produto-tag">✍️ <strong>${d.autor}</strong></span>`;
+        if (modulo === 'livraria' && d.categoria) extras += `<span class="produto-tag">📂 <strong>${d.categoria}</strong></span>`;
+        if (modulo === 'loja' && Array.isArray(d.tamanhos) && d.tamanhos.length) extras += `<span class="produto-tag">📐 <strong>${d.tamanhos.join(', ')}</strong></span>`;
+        if (modulo === 'loja' && Array.isArray(d.cores) && d.cores.length) extras += `<span class="produto-tag">🎨 <strong>${d.cores.join(', ')}</strong></span>`;
+
+        lista.innerHTML += `
+          <div class="produto-card">
+            <div class="produto-card-header">
+              <div class="produto-nome">${nome}</div>
+              <div class="produto-acoes">
+                <button class="btn-mini btn-mini-edit" onclick="editarProduto('${doc.id}', '${modulo}')" title="Editar">✏️</button>
+                <button class="btn-mini btn-mini-del" onclick="deletarProduto('${doc.id}', '${modulo}')" title="Excluir">🗑️</button>
+              </div>
+            </div>
+            <div class="produto-info">
+              <span class="produto-tag">💰 <strong>R$ ${(d.preco || 0).toFixed(2)}</strong></span>
+              <span class="produto-tag">📦 Estoque: 
+                <span class="badge-estoque ${baixo ? 'badge-baixo' : 'badge-ok'}">${estoque}</span>
+              </span>
+              ${extras}
+            </div>
+          </div>`;
+      });
+
+    } catch (erro) {
+      console.error(erro);
+      lista.innerHTML = '<p style="color:#e63946; font-size:13px;">Erro ao carregar produtos.</p>';
+    }
+  }
+
+  // ── EDITAR PRODUTO ──
+  async function editarProduto(id, modulo) {
+    loading(true);
+    try {
+      const doc = await db.collection(`produtos_${modulo}`).doc(id).get();
+      if (!doc.exists) { msg('Produto não encontrado.'); loading(false); return; }
+
+      const d = doc.data();
+      produtoEditandoId = id;
+
+      if (modulo === 'vendinha') {
+        document.getElementById('v-nome').value = d.nome || '';
+        document.getElementById('v-preco').value = d.preco || '';
+        document.getElementById('v-estoque').value = d.estoque || '';
+        document.getElementById('v-estoque-min').value = d.estoque_minimo || '';
+        document.getElementById('v-obs').value = d.observacao || '';
+      }
+
+      else if (modulo === 'livraria') {
+        document.getElementById('l-titulo').value = d.titulo || '';
+        document.getElementById('l-autor').value = d.autor || '';
+        document.getElementById('l-editora').value = d.editora || '';
+        document.getElementById('l-categoria').value = d.categoria || '';
+        document.getElementById('l-isbn').value = d.isbn || '';
+        document.getElementById('l-preco').value = d.preco || '';
+        document.getElementById('l-custo').value = d.custo || '';
+        document.getElementById('l-estoque').value = d.estoque || '';
+        document.getElementById('l-estoque-min').value = d.estoque_minimo || '';
+        document.getElementById('l-capa').value = d.capa_url || '';
+        document.getElementById('l-descricao').value = d.descricao || '';
+      }
+
+      else if (modulo === 'loja') {
+        document.getElementById('lj-nome').value = d.nome || '';
+        document.getElementById('lj-preco').value = d.preco || '';
+        document.getElementById('lj-custo').value = d.custo || '';
+        document.getElementById('lj-estoque').value = d.estoque || '';
+        document.getElementById('lj-estoque-min').value = d.estoque_minimo || '';
+        document.getElementById('lj-imagem').value = d.imagem_url || '';
+        document.getElementById('lj-descricao').value = d.descricao || '';
+
+        // Restaurar tamanhos
+        tamanhosSelecionados = d.tamanhos || [];
+        document.querySelectorAll('.tamanho-btn').forEach(btn => {
+          btn.classList.toggle('selecionado', tamanhosSelecionados.includes(btn.textContent));
+        });
+
+        // Restaurar cores
+        coresSelecionadas = d.cores || [];
+        document.querySelectorAll('.cor-btn').forEach(btn => {
+          btn.classList.toggle('selecionada', coresSelecionadas.includes(btn.title));
+        });
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      msg(`✏️ Editando: ${d.nome || d.titulo}`, 'sucesso');
+
+    } catch (erro) {
+      console.error(erro);
+      msg('Erro ao carregar produto para edição.');
+    }
+    loading(false);
+  }
+
+  // ── DELETAR PRODUTO ──
+  async function deletarProduto(id, modulo) {
+    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+    loading(true);
+    try {
+      await db.collection(`produtos_${modulo}`).doc(id).delete();
+      msg('Produto excluído.', 'sucesso');
+      carregarProdutos(modulo);
+    } catch (erro) {
+      console.error(erro);
+      msg('Erro ao excluir produto.');
+    }
+    loading(false);
+  }
+
+  // ── LIMPAR FORM ──
+  function limparForm(modulo) {
+    produtoEditandoId = null;
+
+    if (modulo === 'vendinha') {
+      ['v-nome','v-preco','v-estoque','v-estoque-min','v-obs'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+    }
+
+    else if (modulo === 'livraria') {
+      ['l-titulo','l-autor','l-editora','l-isbn','l-preco','l-custo',
+       'l-estoque','l-estoque-min','l-capa','l-descricao'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('l-categoria').value = '';
+    }
+
+    else if (modulo === 'loja') {
+      ['lj-nome','lj-preco','lj-custo','lj-estoque','lj-estoque-min',
+       'lj-imagem','lj-descricao'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      tamanhosSelecionados = [];
+      coresSelecionadas = [];
+      document.querySelectorAll('.tamanho-btn').forEach(b => b.classList.remove('selecionado'));
+      document.querySelectorAll('.cor-btn').forEach(b => b.classList.remove('selecionada'));
+    }
+  }
+
+  // ── INIT ──
+  auth.onAuthStateChanged(user => {
+    if (!user) {
+      window.location.href = 'login.html';
+      return;
+    }
+    carregarProdutos('vendinha');
+  });
+</script>
+</body>
+</html>

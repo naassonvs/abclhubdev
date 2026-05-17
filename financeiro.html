@@ -1,6 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<!-- Firebase Init -->
+<script>
+const firebaseConfig = {
+  apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+  authDomain:        "abcl-hub-dev.firebaseapp.com",
+  projectId:         "abcl-hub-dev",
+  storageBucket:     "abcl-hub-dev.firebasestorage.app",
+  messagingSenderId: "243573406078",
+  appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+</script>
+
+<!-- Módulos ABCL -->
+<script src="offline-sync.js"></script>
+<script src="vendas-firebase.js"></script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL — Financeiro</title>
@@ -186,6 +208,7 @@
   <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+    <button class="tab" onclick="switchTab('vendas-pdv',this);carregarVendasPDV()">🛒 Vendas PDV</button>
     <button class="tab" onclick="switchTab('despesas',this)">📤 Despesas</button>
     <button class="tab" onclick="switchTab('receitas',this)">📥 Receitas</button>
     <button class="tab" onclick="switchTab('inscricoes',this)">👥 Inscrições</button>
@@ -215,6 +238,92 @@
         <tbody id="dash-lancamentos"></tbody>
       </table>
     </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════ VENDAS PDV -->
+  <div class="panel" id="panel-vendas-pdv">
+
+    <!-- Resumo cards -->
+    <div class="resumo-grid" id="pdv-cards" style="margin-bottom:1.25rem;"></div>
+
+    <!-- Filtros -->
+    <div class="section-card" style="padding:.85rem 1rem;margin-bottom:1.25rem;">
+      <div class="field-row" style="align-items:flex-end;gap:.75rem;flex-wrap:wrap;">
+        <div class="field" style="min-width:140px;">
+          <label>Módulo</label>
+          <select id="pdv-filtro-modulo" onchange="carregarVendasPDV()">
+            <option value="">Todos</option>
+            <option value="vendinha">🛒 Vendinha</option>
+            <option value="livraria">📚 Livraria</option>
+            <option value="loja">👕 Loja</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:140px;">
+          <label>Data</label>
+          <input type="date" id="pdv-filtro-data" onchange="carregarVendasPDV()" />
+        </div>
+        <div class="field" style="min-width:140px;">
+          <label>Status</label>
+          <select id="pdv-filtro-status" onchange="carregarVendasPDV()">
+            <option value="">Todos</option>
+            <option value="confirmada">✅ Confirmada</option>
+            <option value="cancelada">❌ Cancelada</option>
+          </select>
+        </div>
+        <button class="btn btn-solid btn-sm" onclick="carregarVendasPDV()" style="margin-bottom:.1rem;">🔄 Atualizar</button>
+        <button class="btn btn-sm" onclick="limparFiltrosPDV()" style="margin-bottom:.1rem;">✕ Limpar</button>
+      </div>
+    </div>
+
+    <!-- Tabela de vendas -->
+    <div class="section-card">
+      <h3><span>🛒</span> Movimentação PDV
+        <span id="pdv-count" style="font-size:.72rem;font-weight:400;color:var(--suave);margin-left:.5rem;"></span>
+      </h3>
+      <div id="pdv-loading" style="text-align:center;padding:2rem;color:var(--suave);display:none;">⏳ Carregando vendas...</div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Módulo</th>
+              <th>Acampante</th>
+              <th>Produtos</th>
+              <th>Pagamento</th>
+              <th>Operador</th>
+              <th>Status</th>
+              <th style="text-align:right">Total</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="pdv-tabela-body"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="6" style="font-size:.75rem;color:var(--suave);padding:.65rem .75rem;">Total filtrado</td>
+              <td class="td-valor rc-verde" id="pdv-total-filtrado" style="text-align:right;padding:.65rem .75rem;font-weight:700;"></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div id="pdv-vazio" style="text-align:center;padding:2.5rem;color:var(--suave);display:none;">
+        📭 Nenhuma venda encontrada com os filtros aplicados.
+      </div>
+    </div>
+
+    <!-- Modal cancelar/detalhes -->
+    <div id="pdv-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;align-items:center;justify-content:center;">
+      <div style="background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:1.5rem;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;">
+        <h3 style="margin-bottom:1rem;" id="pdv-modal-titulo">Detalhes da Venda</h3>
+        <div id="pdv-modal-body"></div>
+        <div style="display:flex;gap:.75rem;margin-top:1.25rem;">
+          <button class="btn" onclick="fecharModalPDV()" style="flex:1;">Fechar</button>
+          <button class="btn" id="pdv-btn-cancelar" style="flex:1;background:rgba(239,68,68,.15);border-color:#EF4444;color:#fca5a5;" onclick="cancelarVendaPDV()">❌ Cancelar Venda</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ═══════════════════════════════════════════════ DESPESAS -->
@@ -872,6 +981,270 @@ function renderAll() {
 }
 
 renderAll();
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── VENDAS PDV ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+
+let vendas_pdv_lista = [];
+let venda_pdv_selecionada = null;
+
+/**
+ * Carrega vendas do Firebase com filtros aplicados
+ */
+async function carregarVendasPDV() {
+  const loadingEl = document.getElementById('pdv-loading');
+  const tabelaEl  = document.getElementById('pdv-tabela-body');
+  const vazioEl   = document.getElementById('pdv-vazio');
+  
+  loadingEl.style.display = 'block';
+  tabelaEl.innerHTML = '';
+  vazioEl.style.display = 'none';
+
+  try {
+    // Obter filtros
+    const modulo = document.getElementById('pdv-filtro-modulo').value || null;
+    const data   = document.getElementById('pdv-filtro-data').value;
+    const status = document.getElementById('pdv-filtro-status').value || 'confirmada';
+
+    const filtros = { status };
+    if (data) filtros.data = data;
+    if (modulo) filtros.tipo = modulo;
+
+    // Buscar do Firebase — agora sem índice composto necessário
+    if (!window.VendasFirebase) {
+      throw new Error('VendasFirebase não está carregado');
+    }
+
+    vendas_pdv_lista = await VendasFirebase.buscarVendasFirebase(modulo, filtros);
+
+    // Renderizar tabela
+    if (vendas_pdv_lista.length === 0) {
+      tabelaEl.innerHTML = '';
+      vazioEl.style.display = 'block';
+      atualizarCardsResumo([]);
+      document.getElementById('pdv-count').textContent = '(0 vendas)';
+      document.getElementById('pdv-total-filtrado').textContent = 'R$ 0,00';
+    } else {
+      renderTabelaVendasPDV(vendas_pdv_lista);
+      atualizarCardsResumo(vendas_pdv_lista);
+      document.getElementById('pdv-count').textContent = `(${vendas_pdv_lista.length} venda${vendas_pdv_lista.length !== 1 ? 's' : ''})`;
+    }
+
+  } catch (err) {
+    console.error('[FinanceiroVendas] Erro ao carregar:', err);
+    tabelaEl.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:1rem;color:#EF4444;">Erro ao carregar vendas: ${err.message}</td></tr>`;
+  } finally {
+    loadingEl.style.display = 'none';
+  }
+}
+
+/**
+ * Renderiza a tabela de vendas
+ */
+function renderTabelaVendasPDV(vendas) {
+  const tbody = document.getElementById('pdv-tabela-body');
+  tbody.innerHTML = '';
+
+  let totalFiltrado = 0;
+
+  vendas.forEach(venda => {
+    const dataHora = venda.data ? `${venda.data} ${venda.hora || '—'}` : '—';
+    const modulo   = venda.tipo || '—';
+    const acampante = venda.acampante || '—';
+    const periodo  = venda.periodo ? ` (${venda.periodo})` : '';
+    const produtos = venda.produtos?.length ? `${venda.produtos.length} item(ns)` : '—';
+    const pgto     = venda.forma_pagamento || '—';
+    const oper     = venda.operador_nome || '—';
+    const status   = venda.status === 'cancelada' ? '❌ Cancelada' : '✅ Confirmada';
+    const total    = (venda.total || 0).toFixed(2);
+
+    if (venda.status === 'confirmada') totalFiltrado += venda.total || 0;
+
+    const tr = document.createElement('tr');
+    tr.style.opacity = venda.status === 'cancelada' ? '0.6' : '1';
+    tr.style.textDecoration = venda.status === 'cancelada' ? 'line-through' : 'none';
+    tr.innerHTML = `
+      <td style="font-size:.75rem;">${dataHora}</td>
+      <td>${venda.tipo === 'vendinha' ? '🛒' : venda.tipo === 'livraria' ? '📚' : '👕'} ${modulo}</td>
+      <td style="font-size:.78rem;">${acampante}${periodo}</td>
+      <td style="font-size:.78rem;">${produtos}</td>
+      <td style="font-size:.75rem;">${pgto === 'dinheiro' ? '💵' : pgto === 'pix' ? '📲' : '💳'} ${pgto}</td>
+      <td style="font-size:.75rem;">${oper}</td>
+      <td>${status}</td>
+      <td style="text-align:right;font-weight:600;font-family:monospace;">R$ ${total}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-sm" onclick="abrirModalVendaPDV('${venda.id}')" title="Ver detalhes">👁️</button>
+        ${venda.status === 'confirmada' ? `<button class="btn btn-sm" onclick="prepararCancelarVenda('${venda.id}')" title="Cancelar">❌</button>` : ''}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('pdv-total-filtrado').textContent = `R$ ${totalFiltrado.toFixed(2)}`;
+}
+
+/**
+ * Atualiza cards de resumo (Vendinha, Livraria, Loja)
+ */
+function atualizarCardsResumo(vendas) {
+  const cardsEl = document.getElementById('pdv-cards');
+  cardsEl.innerHTML = '';
+
+  const resumo = { vendinha: 0, livraria: 0, loja: 0 };
+
+  vendas.filter(v => v.status === 'confirmada').forEach(v => {
+    if (resumo[v.tipo] !== undefined) resumo[v.tipo] += v.total || 0;
+  });
+
+  const cards = [
+    { titulo: '🛒 Vendinha', valor: resumo.vendinha, cor: 'var(--verde-mid)' },
+    { titulo: '📚 Livraria', valor: resumo.livraria, cor: 'var(--verde-mid)' },
+    { titulo: '👕 Loja', valor: resumo.loja, cor: 'var(--verde-mid)' },
+  ];
+
+  cards.forEach(card => {
+    const div = document.createElement('div');
+    div.style.cssText = `
+      background:var(--card); border:1px solid var(--borda); border-radius:10px;
+      padding:1rem; text-align:center;
+    `;
+    div.innerHTML = `
+      <div style="font-size:.8rem;color:var(--suave);margin-bottom:.35rem;">${card.titulo}</div>
+      <div style="font-size:1.5rem;font-weight:700;color:${card.cor};">R$ ${card.valor.toFixed(2)}</div>
+    `;
+    cardsEl.appendChild(div);
+  });
+}
+
+/**
+ * Abre modal com detalhes da venda
+ */
+async function abrirModalVendaPDV(vendaId) {
+  try {
+    venda_pdv_selecionada = vendas_pdv_lista.find(v => v.id === vendaId);
+    if (!venda_pdv_selecionada) throw new Error('Venda não encontrada');
+
+    const v = venda_pdv_selecionada;
+    const modalBody = document.getElementById('pdv-modal-body');
+    const btnCancelar = document.getElementById('pdv-btn-cancelar');
+
+    let htmlProdutos = '';
+    if (v.produtos && Array.isArray(v.produtos)) {
+      htmlProdutos = v.produtos.map(p => {
+        // Suporta múltiplos formatos: vendinha (nome), livraria (titulo), padrão (produto_nome)
+        const nomeProduto = p.nome || p.titulo || p.produto_nome || p.t || '—';
+        const quantidade = p.quantidade || p.qtd || 1;
+        const precoUnit = p.preco_unitario || p.preco || 0;
+        const total = precoUnit * quantidade;
+        
+        return `
+          <div style="display:flex;justify-content:space-between;font-size:.85rem;padding:.5rem 0;border-bottom:1px solid var(--borda);">
+            <span>${nomeProduto} (${quantidade}×)</span>
+            <span style="font-weight:600;">R$ ${total.toFixed(2)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    modalBody.innerHTML = `
+      <div style="font-size:.75rem;color:var(--suave);margin-bottom:1rem;">
+        <strong>ID:</strong> ${v.id}<br>
+        <strong>Data/Hora:</strong> ${v.data} ${v.hora || '—'}<br>
+        <strong>Módulo:</strong> ${v.tipo}<br>
+        ${v.acampante ? `<strong>Acampante:</strong> ${v.acampante}${v.periodo ? ` (${v.periodo})` : ''}<br>` : ''}
+        <strong>Operador:</strong> ${v.operador_nome}<br>
+        <strong>Status:</strong> ${v.status === 'cancelada' ? '❌ Cancelada' : '✅ Confirmada'}
+      </div>
+
+      <div style="margin-bottom:1rem;padding:.75rem;background:var(--bg);border-radius:8px;">
+        <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">Produtos</div>
+        ${htmlProdutos || '<p style="color:var(--suave);font-size:.8rem;">—</p>'}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding:.75rem;background:var(--bg);border-radius:8px;font-size:.8rem;">
+        <div>Subtotal: <strong>R$ ${(v.subtotal || 0).toFixed(2)}</strong></div>
+        <div>Desconto: <strong>R$ ${(v.desconto || 0).toFixed(2)}</strong></div>
+        <div style="grid-column:1/-1;border-top:1px solid var(--borda);padding-top:.5rem;margin-top:.5rem;">
+          Total: <strong style="font-size:1rem;color:var(--verde-mid);">R$ ${(v.total || 0).toFixed(2)}</strong>
+        </div>
+      </div>
+
+      ${v.eh_oferta ? `
+        <div style="margin-top:.75rem;padding:.65rem .75rem;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;font-size:.75rem;">
+          🎁 <strong>Oferta:</strong> Valor proposto R$ ${(v.valor_oferta || 0).toFixed(2)} — Status: ${v.status_oferta || 'pendente'}
+        </div>
+      ` : ''}
+    `;
+
+    btnCancelar.style.display = v.status === 'confirmada' ? 'block' : 'none';
+    document.getElementById('pdv-modal').style.display = 'flex';
+
+  } catch (err) {
+    alert('Erro: ' + err.message);
+  }
+}
+
+/**
+ * Prepara cancelamento de venda
+ */
+function prepararCancelarVenda(vendaId) {
+  venda_pdv_selecionada = vendas_pdv_lista.find(v => v.id === vendaId);
+  if (!venda_pdv_selecionada) {
+    alert('Venda não encontrada');
+    return;
+  }
+  abrirModalVendaPDV(vendaId);
+}
+
+/**
+ * Cancela uma venda e recoloca estoque
+ */
+async function cancelarVendaPDV() {
+  if (!venda_pdv_selecionada) return;
+
+  if (!confirm(`Tem certeza que deseja CANCELAR a venda de R$ ${venda_pdv_selecionada.total.toFixed(2)}?\nO estoque será recolado automaticamente.`)) {
+    return;
+  }
+
+  try {
+    await VendasFirebase.cancelarVendaFirebase(venda_pdv_selecionada.id, 'Cancelada pelo financeiro');
+    toast('✅ Venda cancelada e estoque recolado!');
+    fecharModalPDV();
+    carregarVendasPDV();
+  } catch (err) {
+    alert('❌ Erro ao cancelar: ' + err.message);
+  }
+}
+
+/**
+ * Fecha modal de vendas PDV
+ */
+function fecharModalPDV() {
+  document.getElementById('pdv-modal').style.display = 'none';
+  venda_pdv_selecionada = null;
+}
+
+/**
+ * Limpa filtros
+ */
+function limparFiltrosPDV() {
+  document.getElementById('pdv-filtro-modulo').value = '';
+  document.getElementById('pdv-filtro-data').value = '';
+  document.getElementById('pdv-filtro-status').value = '';
+  carregarVendasPDV();
+}
+
+// Carregar vendas ao abrir a aba
+window.addEventListener('DOMContentLoaded', () => {
+  // Inicializa quando a aba for clicada
+  const btnVendasPDV = Array.from(document.querySelectorAll('.tab')).find(b => b.textContent.includes('Vendas PDV'));
+  if (btnVendasPDV) {
+    btnVendasPDV.addEventListener('click', carregarVendasPDV);
+  }
+});
+
 </script>
 </body>
 </html>

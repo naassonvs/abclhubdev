@@ -7,6 +7,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script>
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+    authDomain:        "abcl-hub-dev.firebaseapp.com",
+    projectId:         "abcl-hub-dev",
+    storageBucket:     "abcl-hub-dev.firebasestorage.app",
+    messagingSenderId: "243573406078",
+    appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  </script>
+  <!-- Módulos ABCL -->
+  <script src="offline-sync.js"></script>
+  <script src="vendas-firebase.js"></script>
+
   <style>
     :root {
       --verde:       #2D6A4F;
@@ -506,8 +526,22 @@
             <button class="btn btn-ghost" onclick="switchTab('conteudo', document.querySelector('.nav-item[onclick*=\'conteudo\']'))" style="justify-content:center; padding:.85rem;">✏️ Conteúdo</button>
             <button class="btn btn-solid" onclick="window.open('vendinha.html','_blank')" style="justify-content:center; padding:.85rem;">🛒 Abrir Vendinha</button>
             <button class="btn btn-ghost" onclick="window.open('livraria.html','_blank')" style="justify-content:center; padding:.85rem;">📚 Livraria</button>
+            <button class="btn btn-ghost" onclick="window.open('loja.html','_blank')" style="justify-content:center; padding:.85rem;">🛍️ Loja</button>
             <button class="btn btn-ghost" onclick="window.open('financeiro.html','_blank')" style="justify-content:center; padding:.85rem;">💰 Financeiro</button>
             <button class="btn btn-ghost" onclick="switchTab('visitas', document.querySelector('.nav-item[onclick*=\'visitas\']'))" style="justify-content:center; padding:.85rem;">📊 Visitas</button>
+          </div>
+        </div>
+
+        <!-- Status Sincronização Firebase -->
+        <div class="section-card" style="cursor:pointer;" onclick="mostrarStatusSync()">
+          <h2 style="display:flex;align-items:center;justify-content:space-between;">
+            🔄 Sincronização Firebase
+            <span id="admin-sync-badge" style="font-size:.75rem;font-weight:500;padding:.2rem .65rem;border-radius:9px;background:rgba(64,145,108,.15);color:var(--verde-claro);">verificando…</span>
+          </h2>
+          <div id="admin-sync-status" style="font-size:.82rem;color:var(--suave);margin-top:.25rem;">Clique para ver detalhes do status de sincronização offline.</div>
+          <div style="display:flex;gap:.5rem;margin-top:.85rem;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();mostrarStatusSync()">📋 Ver Status</button>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();window.open('financeiro.html','_blank')">🛒 Vendas por Módulo</button>
           </div>
         </div>
 
@@ -2839,6 +2873,67 @@ function salvarHinos(lista){ if (!trySet('abcl-hinos', lista)) return false; ren
 function adicionarHinoAdmin(){ salvarHinos([...getHinos(), {id:Date.now(),titulo:'',drive:'',ativo:true}]); }
 function editarHinoCampo(id,campo,valor){ const l=getHinos(); const i=l.findIndex(h=>h.id===id); if(i<0)return; l[i][campo]=valor; salvarHinos(l); }
 function removerHinoAdmin(id){ salvarHinos(getHinos().filter(h=>h.id!==id)); }
+
+// ══════════════════════════════════════════════════
+// BLOCO 4 — STATUS SINCRONIZAÇÃO FIREBASE (Admin)
+// ══════════════════════════════════════════════════
+function mostrarStatusSync() {
+  try {
+    if (typeof OfflineSync === 'undefined') {
+      alert('ℹ️ Módulo OfflineSync não carregado.\nVerifique se offline-sync.js está na pasta do projeto.');
+      return;
+    }
+    const s = OfflineSync.obterStatusSincronizacao();
+    const icone = s.online ? (s.pendentes === 0 ? '✅' : '🟡') : '🔴';
+    alert(
+      `${icone} Status de Sincronização ABCL\n\n` +
+      `Conexão: ${s.online ? '🟢 Online' : '🔴 Offline'}\n` +
+      `Status: ${s.status || (s.online ? 'conectado' : 'offline')}\n` +
+      `Vendas pendentes: ${s.pendentes || 0}\n\n` +
+      `Módulos: Vendinha · Livraria · Loja`
+    );
+  } catch(e) {
+    alert('Erro ao verificar status: ' + e.message);
+  }
+}
+
+function atualizarAdminSyncBadge() {
+  const badge  = document.getElementById('admin-sync-badge');
+  const status = document.getElementById('admin-sync-status');
+  if (!badge || !status) return;
+  try {
+    if (typeof OfflineSync === 'undefined') {
+      badge.textContent = '⚠ módulo ausente';
+      badge.style.background = 'rgba(239,68,68,.15)';
+      badge.style.color = '#fca5a5';
+      return;
+    }
+    const s = OfflineSync.obterStatusSincronizacao();
+    if (s.online && s.pendentes === 0) {
+      badge.textContent = '✅ Tudo sincronizado';
+      badge.style.background = 'rgba(64,145,108,.15)';
+      badge.style.color = 'var(--verde-claro)';
+      status.textContent = 'Todas as vendas dos PDVs estão sincronizadas com o Firebase.';
+    } else if (s.online && s.pendentes > 0) {
+      badge.textContent = `🟡 ${s.pendentes} pendente(s)`;
+      badge.style.background = 'rgba(245,158,11,.15)';
+      badge.style.color = '#fcd34d';
+      status.textContent = `Sincronizando ${s.pendentes} venda(s) pendente(s) com o Firebase…`;
+    } else {
+      badge.textContent = `🔴 Offline · ${s.pendentes || 0} pendente(s)`;
+      badge.style.background = 'rgba(239,68,68,.15)';
+      badge.style.color = '#fca5a5';
+      status.textContent = 'Admin sem conexão. Vendas nos PDVs serão sincronizadas ao reconectar.';
+    }
+  } catch(e) {
+    badge.textContent = '— sem dados';
+  }
+}
+
+setInterval(atualizarAdminSyncBadge, 5000);
+window.addEventListener('online',  atualizarAdminSyncBadge);
+window.addEventListener('offline', atualizarAdminSyncBadge);
+document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarAdminSyncBadge, 1500));
 </script>
 <button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
 </body>

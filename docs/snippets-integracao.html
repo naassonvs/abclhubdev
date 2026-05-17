@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABCL — Snippets de Integração</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cinzel:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --verde: #2D6A4F; --verde-mid: #40916C; --verde-cl: #74C69D;
+      --fundo: #0A1610; --card: #0F1E17; --card2: #162418;
+      --texto: #F0EDE6; --suave: rgba(240,237,230,.45);
+      --borda: rgba(64,145,108,.2);
+      --amarelo: #F59E0B; --vermelho: #EF4444; --azul: #3B82F6;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--fundo); color:var(--texto); min-height:100vh; padding:2rem 1.5rem; }
+    h1 { font-family:'Cinzel',serif; color:var(--verde-cl); font-size:1.4rem; margin-bottom:.4rem; }
+    .subtitle { color:var(--suave); font-size:.82rem; margin-bottom:2rem; }
+    .section { margin-bottom:2.5rem; }
+    .section h2 { font-family:'Cinzel',serif; font-size:1rem; color:var(--verde-cl); border-bottom:1px solid var(--borda); padding-bottom:.5rem; margin-bottom:1rem; }
+    .section h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; color:var(--suave); margin:1.25rem 0 .5rem; }
+    pre {
+      background:var(--card); border:1px solid var(--borda); border-radius:10px;
+      padding:1.25rem; font-size:.75rem; line-height:1.65; overflow-x:auto;
+      color:#c8e6c9; font-family:'Courier New',monospace; white-space:pre;
+    }
+    .tag { display:inline-block; background:rgba(64,145,108,.15); color:var(--verde-cl); border:1px solid var(--borda); border-radius:4px; font-size:.65rem; font-weight:700; padding:.15rem .45rem; margin-bottom:.5rem; letter-spacing:.08em; text-transform:uppercase; }
+    .note { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); border-radius:8px; padding:.75rem 1rem; font-size:.75rem; color:#fbbf24; margin:.75rem 0; }
+  </style>
+</head>
+<body>
+
+<h1>ABCL PDV — Snippets de Integração</h1>
+<p class="subtitle">Cole os trechos abaixo nas páginas correspondentes. Leia os comentários em cada bloco.</p>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>📦 1. Scripts Base (todas as páginas)</h2>
+  <p class="note">⚠️ Cole este bloco no &lt;head&gt; ou início do &lt;body&gt; de <strong>vendinha.html</strong>, <strong>livraria.html</strong>, <strong>loja.html</strong> e <strong>financeiro.html</strong> — antes de qualquer outro script seu.</p>
+  <pre>&lt;!-- Firebase SDK (compat) --&gt;
+&lt;script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"&gt;&lt;/script&gt;
+&lt;script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"&gt;&lt;/script&gt;
+&lt;script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"&gt;&lt;/script&gt;
+
+&lt;!-- Firebase Init --&gt;
+&lt;script&gt;
+const firebaseConfig = {
+  apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+  authDomain:        "abcl-hub-dev.firebaseapp.com",
+  projectId:         "abcl-hub-dev",
+  storageBucket:     "abcl-hub-dev.firebasestorage.app",
+  messagingSenderId: "243573406078",
+  appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+&lt;/script&gt;
+
+&lt;!-- Módulos ABCL --&gt;
+&lt;script src="offline-sync.js"&gt;&lt;/script&gt;
+&lt;script src="vendas-firebase.js"&gt;&lt;/script&gt;</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>🛒 2. vendinha.html / livraria.html — HTML a adicionar</h2>
+
+  <h3>2a. Campo de oferta + forma de pagamento (no carrinho)</h3>
+  <p class="note">Cole este bloco dentro da seção do carrinho, antes do botão "Confirmar Venda".</p>
+  <pre>&lt;!-- ── Forma de pagamento ── --&gt;
+&lt;div class="campo-grupo" style="margin:1rem 0 .5rem;"&gt;
+  &lt;label style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);display:block;margin-bottom:.35rem;"&gt;
+    Forma de pagamento
+  &lt;/label&gt;
+  &lt;div style="display:flex;gap:.5rem;flex-wrap:wrap;"&gt;
+    &lt;button class="btn-pgto active" data-pgto="dinheiro"   onclick="selecionarPgto(this)" type="button"&gt;💵 Dinheiro&lt;/button&gt;
+    &lt;button class="btn-pgto"        data-pgto="pix"        onclick="selecionarPgto(this)" type="button"&gt;📲 PIX&lt;/button&gt;
+    &lt;button class="btn-pgto"        data-pgto="credito"    onclick="selecionarPgto(this)" type="button"&gt;💳 Crédito&lt;/button&gt;
+    &lt;button class="btn-pgto"        data-pgto="debito"     onclick="selecionarPgto(this)" type="button"&gt;💳 Débito&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- ── Desconto (valor fixo R$) ── --&gt;
+&lt;div style="display:flex;align-items:center;gap:.75rem;margin:.75rem 0;"&gt;
+  &lt;label style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);white-space:nowrap;"&gt;
+    Desconto (R$)
+  &lt;/label&gt;
+  &lt;input type="number" id="campo-desconto" min="0" step="1" value="0"
+    style="width:90px;background:rgba(255,255,255,.04);border:1px solid var(--borda);
+           border-radius:6px;padding:.5rem .75rem;color:var(--texto);font-family:inherit;font-size:.9rem;"
+    oninput="recalcularTotal()" /&gt;
+&lt;/div&gt;
+
+&lt;!-- ── Oferta ── --&gt;
+&lt;div id="bloco-oferta" style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:.85rem 1rem;margin:.75rem 0;"&gt;
+  &lt;label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.82rem;font-weight:600;color:#fbbf24;"&gt;
+    &lt;input type="checkbox" id="chk-oferta" onchange="toggleOferta()" /&gt;
+    🎁 Esta venda é uma oferta
+  &lt;/label&gt;
+  &lt;div id="detalhe-oferta" style="display:none;margin-top:.65rem;"&gt;
+    &lt;label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);display:block;margin-bottom:.3rem;"&gt;
+      Valor da oferta (R$)
+    &lt;/label&gt;
+    &lt;input type="number" id="campo-valor-oferta" min="0" step="1" placeholder="0"
+      style="width:120px;background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.4);
+             border-radius:6px;padding:.5rem .75rem;color:var(--texto);font-family:inherit;font-size:.9rem;" /&gt;
+    &lt;div style="font-size:.68rem;color:var(--suave);margin-top:.35rem;"&gt;
+      Status da oferta:
+      &lt;span id="status-oferta-label" style="color:#fbbf24;font-weight:600;"&gt;pendente&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- Botão confirmar --&gt;
+&lt;button class="btn btn-solid" style="width:100%;margin-top:.5rem;" onclick="confirmarVendaComFirebase()"&gt;
+  ✅ Confirmar Venda
+&lt;/button&gt;</pre>
+
+  <h3>2b. CSS para os botões de pagamento</h3>
+  <p class="note">Cole dentro da tag &lt;style&gt; das páginas.</p>
+  <pre>.btn-pgto {
+  padding:.45rem .9rem; border-radius:7px; font-size:.78rem; font-family:inherit;
+  border:1px solid var(--borda); background:transparent; color:var(--suave);
+  cursor:pointer; transition:all .18s;
+}
+.btn-pgto.active {
+  background:var(--verde-mid); border-color:var(--verde-mid); color:#fff; font-weight:600;
+}
+.btn-pgto:hover:not(.active) { border-color:var(--verde-cl); color:var(--texto); }</pre>
+
+  <h3>2c. JavaScript da vendinha.html / livraria.html</h3>
+  <p class="note">Substitua <code>MODULO</code> por <code>'vendinha'</code> ou <code>'livraria'</code> conforme a página.</p>
+  <pre>// ── Configuração da página ──────────────────────────────────────────────────
+const MODULO = 'vendinha'; // ou 'livraria'
+
+// ── Estado da venda ─────────────────────────────────────────────────────────
+let formaPgtoSelecionada = 'dinheiro';
+
+function selecionarPgto(btn) {
+  document.querySelectorAll('.btn-pgto').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  formaPgtoSelecionada = btn.dataset.pgto;
+}
+
+function toggleOferta() {
+  const chk = document.getElementById('chk-oferta');
+  document.getElementById('detalhe-oferta').style.display = chk.checked ? 'block' : 'none';
+}
+
+function recalcularTotal() {
+  // Adapte para o seu sistema de carrinho existente
+  const subtotal  = calcularSubtotal(); // sua função existente
+  const desconto  = parseInt(document.getElementById('campo-desconto').value) || 0;
+  const total     = Math.max(0, subtotal - desconto);
+  // Exibir total — adapte ao seu elemento
+  document.getElementById('valor-total').textContent = 'R$ ' + total.toFixed(2).replace('.',',');
+  return { subtotal, desconto, total };
+}
+
+// ── Confirmar venda com Firebase ────────────────────────────────────────────
+async function confirmarVendaComFirebase() {
+  const btn = document.querySelector('[onclick="confirmarVendaComFirebase()"]');
+
+  if (!carrinho || carrinho.length === 0) {
+    alert('Carrinho vazio!');
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ Salvando...';
+
+  const { subtotal, desconto, total } = recalcularTotal();
+  const chkOferta  = document.getElementById('chk-oferta');
+  const ehOferta   = chkOferta ? chkOferta.checked : false;
+  const valorOferta = ehOferta
+    ? parseInt(document.getElementById('campo-valor-oferta').value) || 0
+    : null;
+
+  // Monte os produtos com o schema esperado
+  const produtos = carrinho.map(item => ({
+    id:             item.id   || null,
+    nome:           item.nome,
+    quantidade:     parseInt(item.qtd),
+    preco_unitario: item.preco,
+    preco_total:    item.preco * parseInt(item.qtd),
+  }));
+
+  const venda = {
+    tipo:             MODULO,
+    produtos,
+    subtotal,
+    desconto,
+    total,
+    eh_oferta:        ehOferta,
+    valor_oferta:     valorOferta,
+    status_oferta:    ehOferta ? 'pendente' : null,
+    forma_pagamento:  ['credito','debito'].includes(formaPgtoSelecionada) ? 'cartao' : formaPgtoSelecionada,
+    cartao_tipo:      ['credito','debito'].includes(formaPgtoSelecionada) ? formaPgtoSelecionada : null,
+    operador_uid:     null,     // substitua por firebase.auth().currentUser?.uid se usar auth
+    operador_nome:    'Operador', // substitua pelo nome real
+    ano_acampamento:  new Date().getFullYear(),
+  };
+
+  try {
+    if (navigator.onLine) {
+      // Online: salva direto
+      await VendasFirebase.salvarVendaFirebase(venda, MODULO);
+      mostrarToast('✅ Venda salva!');
+    } else {
+      // Offline: enfileira
+      await OfflineSync.adicionarFilaSincronizacao(venda);
+      mostrarToast('📴 Offline — venda salva localmente');
+    }
+
+    limparCarrinho(); // sua função existente
+    document.getElementById('campo-desconto').value = 0;
+    if (document.getElementById('chk-oferta')) {
+      document.getElementById('chk-oferta').checked = false;
+      toggleOferta();
+    }
+    formaPgtoSelecionada = 'dinheiro';
+    document.querySelectorAll('.btn-pgto').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-pgto="dinheiro"]').classList.add('active');
+
+  } catch (err) {
+    console.error('[PDV] Erro ao salvar venda:', err);
+    // Fallback para fila offline
+    try {
+      await OfflineSync.adicionarFilaSincronizacao(venda);
+      mostrarToast('⚠️ Erro na rede — venda salva offline');
+    } catch (e2) {
+      alert('Erro crítico ao salvar a venda. Anote manualmente.');
+    }
+  }
+
+  btn.disabled    = false;
+  btn.textContent = '✅ Confirmar Venda';
+}
+
+// ── Editar/Cancelar venda ────────────────────────────────────────────────────
+async function editarVenda(vendaId, novosDados) {
+  try {
+    await VendasFirebase.editarVendaFirebase(vendaId, novosDados);
+    mostrarToast('✏️ Venda atualizada!');
+  } catch (err) {
+    alert('Erro ao editar: ' + err.message);
+  }
+}
+
+async function cancelarVenda(vendaId) {
+  if (!confirm('Cancelar esta venda? O estoque será restaurado.')) return;
+  try {
+    await VendasFirebase.cancelarVendaFirebase(vendaId, 'Cancelado pelo operador');
+    mostrarToast('🚫 Venda cancelada');
+  } catch (err) {
+    alert('Erro ao cancelar: ' + err.message);
+  }
+}</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>🛍️ 3. loja.html — Carrinho offline + Produtos do Firebase</h2>
+
+  <h3>3a. Buscar produtos do Firestore (substitui hardcoded)</h3>
+  <pre>// Busca produtos da coleção 'loja_estoque' no Firestore
+async function carregarProdutos() {
+  const container = document.getElementById('produtos-grid'); // seu elemento
+  container.innerHTML = '&lt;p style="color:var(--suave)"&gt;Carregando...&lt;/p&gt;';
+
+  try {
+    const snap = await firebase.firestore()
+      .collection('loja_estoque')
+      .where('ativo', '==', true)
+      .orderBy('nome')
+      .get();
+
+    if (snap.empty) {
+      container.innerHTML = '&lt;p&gt;Nenhum produto disponível.&lt;/p&gt;';
+      return;
+    }
+
+    const produtos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderProdutos(produtos); // sua função de renderização
+
+    // Salva localmente para acesso offline
+    localStorage.setItem('abcl_loja_produtos', JSON.stringify(produtos));
+
+  } catch (err) {
+    console.warn('[Loja] Firestore indisponível, usando cache local:', err);
+    const cache = JSON.parse(localStorage.getItem('abcl_loja_produtos') || '[]');
+    if (cache.length > 0) {
+      renderProdutos(cache);
+    } else {
+      container.innerHTML = '&lt;p&gt;Sem conexão e sem cache disponível.&lt;/p&gt;';
+    }
+  }
+}
+
+// Chamar no DOMContentLoaded:
+document.addEventListener('DOMContentLoaded', carregarProdutos);</pre>
+
+  <h3>3b. Salvar pedido offline (loja)</h3>
+  <pre>async function finalizarPedido() {
+  if (!carrinho || carrinho.length === 0) { alert('Carrinho vazio!'); return; }
+
+  const pedido = {
+    tipo:            'loja',
+    produtos:        carrinho.map(i => ({
+      id:             i.id,
+      nome:           i.nome,
+      quantidade:     parseInt(i.qtd),
+      preco_unitario: i.preco,
+      preco_total:    i.preco * parseInt(i.qtd),
+    })),
+    subtotal:        calcularSubtotal(),
+    desconto:        0,
+    total:           calcularSubtotal(),
+    forma_pagamento: 'pix', // loja usa PIX por padrão
+    operador_uid:    null,
+    operador_nome:   'Cliente',
+    ano_acampamento: new Date().getFullYear(),
+  };
+
+  try {
+    if (navigator.onLine) {
+      await VendasFirebase.salvarVendaFirebase(pedido, 'loja');
+    } else {
+      await OfflineSync.adicionarFilaSincronizacao(pedido);
+    }
+    limparCarrinho();
+    mostrarToast('🎉 Pedido realizado!');
+  } catch (e) {
+    await OfflineSync.adicionarFilaSincronizacao(pedido);
+    mostrarToast('📴 Pedido salvo — será sincronizado em breve');
+  }
+}</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>📊 4. financeiro.html — Painel de Vendas dos Módulos</h2>
+  <p class="note">Cole este bloco no HTML, adicionando uma nova tab "🛒 PDV" ao painel de tabs existente.</p>
+
+  <h3>4a. Tab HTML (adicionar na &lt;div class="tabs"&gt;)</h3>
+  <pre>&lt;button class="tab" onclick="switchTab('pdv',this)"&gt;🛒 PDV&lt;/button&gt;</pre>
+
+  <h3>4b. Painel PDV (adicionar após o último &lt;div class="panel"&gt;)</h3>
+  <pre>&lt;div class="panel" id="panel-pdv"&gt;
+
+  &lt;!-- Cards de resumo do PDV --&gt;
+  &lt;div class="resumo-grid" id="pdv-resumo-cards"&gt;
+    &lt;div class="resumo-card"&gt;
+      &lt;div class="rc-label"&gt;Total Vendinha&lt;/div&gt;
+      &lt;div class="rc-val rc-verde" id="pdv-total-vendinha"&gt;R$ —&lt;/div&gt;
+      &lt;div class="rc-sub" id="pdv-qtd-vendinha"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="resumo-card"&gt;
+      &lt;div class="rc-label"&gt;Total Livraria&lt;/div&gt;
+      &lt;div class="rc-val rc-azul" id="pdv-total-livraria"&gt;R$ —&lt;/div&gt;
+      &lt;div class="rc-sub" id="pdv-qtd-livraria"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="resumo-card"&gt;
+      &lt;div class="rc-label"&gt;Total Loja&lt;/div&gt;
+      &lt;div class="rc-val rc-amarelo" id="pdv-total-loja"&gt;R$ —&lt;/div&gt;
+      &lt;div class="rc-sub" id="pdv-qtd-loja"&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="resumo-card"&gt;
+      &lt;div class="rc-label"&gt;Total Geral PDV&lt;/div&gt;
+      &lt;div class="rc-val rc-verde" id="pdv-total-geral"&gt;R$ —&lt;/div&gt;
+      &lt;div class="rc-sub"&gt;todas as vendas confirmadas&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Filtros --&gt;
+  &lt;div class="section-card" style="margin-bottom:1rem;"&gt;
+    &lt;h3&gt;&lt;span&gt;🔍&lt;/span&gt; Filtrar vendas&lt;/h3&gt;
+    &lt;div class="field-row"&gt;
+      &lt;div class="field"&gt;
+        &lt;label&gt;Módulo&lt;/label&gt;
+        &lt;select id="pdv-filtro-modulo" onchange="carregarVendasPDV()"&gt;
+          &lt;option value=""&gt;Todos&lt;/option&gt;
+          &lt;option value="vendinha"&gt;Vendinha&lt;/option&gt;
+          &lt;option value="livraria"&gt;Livraria&lt;/option&gt;
+          &lt;option value="loja"&gt;Loja&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/div&gt;
+      &lt;div class="field"&gt;
+        &lt;label&gt;Data&lt;/label&gt;
+        &lt;input type="date" id="pdv-filtro-data" onchange="carregarVendasPDV()" /&gt;
+      &lt;/div&gt;
+      &lt;div class="field"&gt;
+        &lt;label&gt;Status&lt;/label&gt;
+        &lt;select id="pdv-filtro-status" onchange="carregarVendasPDV()"&gt;
+          &lt;option value=""&gt;Todos&lt;/option&gt;
+          &lt;option value="confirmada"&gt;Confirmadas&lt;/option&gt;
+          &lt;option value="cancelada"&gt;Canceladas&lt;/option&gt;
+        &lt;/select&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Tabela de vendas --&gt;
+  &lt;div class="section-card"&gt;
+    &lt;h3&gt;&lt;span&gt;🧾&lt;/span&gt; Vendas registradas &lt;span id="pdv-loading" style="font-size:.7rem;color:var(--suave);"&gt;&lt;/span&gt;&lt;/h3&gt;
+    &lt;table&gt;
+      &lt;thead&gt;
+        &lt;tr&gt;
+          &lt;th&gt;Data / Hora&lt;/th&gt;
+          &lt;th&gt;Módulo&lt;/th&gt;
+          &lt;th&gt;Produtos&lt;/th&gt;
+          &lt;th&gt;Pagamento&lt;/th&gt;
+          &lt;th&gt;Oferta&lt;/th&gt;
+          &lt;th style="text-align:right"&gt;Total&lt;/th&gt;
+          &lt;th&gt;Status&lt;/th&gt;
+          &lt;th&gt;&lt;/th&gt;
+        &lt;/tr&gt;
+      &lt;/thead&gt;
+      &lt;tbody id="pdv-tabela-vendas"&gt;&lt;/tbody&gt;
+    &lt;/table&gt;
+  &lt;/div&gt;
+
+  &lt;!-- Modal detalhe da venda --&gt;
+  &lt;div id="pdv-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;"
+       onclick="fecharModalVenda()"&gt;
+    &lt;div id="pdv-modal" onclick="event.stopPropagation()"
+         style="background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:1.5rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;"&gt;
+      &lt;h3 style="font-family:Cinzel,serif;color:var(--verde-cl);margin-bottom:1rem;"&gt;🧾 Detalhe da Venda&lt;/h3&gt;
+      &lt;div id="pdv-modal-body"&gt;&lt;/div&gt;
+      &lt;div style="margin-top:1rem;display:flex;gap:.5rem;"&gt;
+        &lt;button class="btn btn-danger btn-sm" id="pdv-btn-cancelar-venda"&gt;🚫 Cancelar venda&lt;/button&gt;
+        &lt;button class="btn btn-ghost btn-sm" onclick="fecharModalVenda()"&gt;Fechar&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;/div&gt;</pre>
+
+  <h3>4c. JavaScript para financeiro.html (adicionar no &lt;script&gt; existente)</h3>
+  <pre>// ══════════════════════════════════════════════════════
+// PDV — Integração Firebase no financeiro.html
+// ══════════════════════════════════════════════════════
+
+let _vendaPDVSelecionada = null;
+let _unsubPDV = null; // unsubscribe do listener em tempo real
+
+const fmtR = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
+
+const MODULO_LABEL = { vendinha: 'Vendinha', livraria: 'Livraria', loja: 'Loja' };
+const MODULO_COR   = { vendinha: 'var(--verde-cl)', livraria: 'var(--azul)', loja: 'var(--amarelo)' };
+
+// Carrega resumo em tempo real ao abrir a tab PDV
+function initPDVTab() {
+  // Escuta resumo em tempo real
+  VendasFirebase.escutarResumoFinanceiro(new Date().getFullYear(), (resumo) => {
+    document.getElementById('pdv-total-vendinha').textContent = fmtR(resumo.vendinha);
+    document.getElementById('pdv-total-livraria').textContent = fmtR(resumo.livraria);
+    document.getElementById('pdv-total-loja').textContent     = fmtR(resumo.loja);
+    document.getElementById('pdv-total-geral').textContent    = fmtR(resumo.total);
+  });
+
+  carregarVendasPDV();
+}
+
+async function carregarVendasPDV() {
+  const modulo = document.getElementById('pdv-filtro-modulo').value;
+  const data   = document.getElementById('pdv-filtro-data').value;
+  const status = document.getElementById('pdv-filtro-status').value;
+  const loading = document.getElementById('pdv-loading');
+  const tbody   = document.getElementById('pdv-tabela-vendas');
+
+  loading.textContent = 'carregando...';
+  tbody.innerHTML = '';
+
+  // Cancela listener anterior
+  if (_unsubPDV) { _unsubPDV(); _unsubPDV = null; }
+
+  // Listener em tempo real
+  _unsubPDV = VendasFirebase.escutarVendasModulo(modulo || null, (vendas) => {
+    // Aplica filtros locais (data e status, pois WHERE composto exige índice)
+    let filtradas = vendas;
+    if (data)   filtradas = filtradas.filter(v => v.data === data);
+    if (status) filtradas = filtradas.filter(v => v.status === status);
+
+    loading.textContent = filtradas.length + ' venda(s)';
+    renderTabelaVendasPDV(filtradas);
+  });
+}
+
+function renderTabelaVendasPDV(vendas) {
+  const tbody = document.getElementById('pdv-tabela-vendas');
+
+  if (!vendas.length) {
+    tbody.innerHTML = '&lt;tr&gt;&lt;td colspan="8" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;"&gt;Nenhuma venda encontrada.&lt;/td&gt;&lt;/tr&gt;';
+    return;
+  }
+
+  tbody.innerHTML = vendas.map(v => {
+    const cor   = MODULO_COR[v.tipo]   || 'var(--suave)';
+    const label = MODULO_LABEL[v.tipo] || v.tipo;
+    const prods = (v.produtos || []).map(p => p.nome + ' x' + p.quantidade).join(', ') || '—';
+    const pgto  = v.forma_pagamento === 'cartao'
+      ? (v.cartao_tipo === 'credito' ? '💳 Crédito' : '💳 Débito')
+      : v.forma_pagamento === 'pix' ? '📲 PIX' : '💵 Dinheiro';
+    const statusTag = v.status === 'cancelada'
+      ? '&lt;span class="td-tag tag-despesa"&gt;Cancelada&lt;/span&gt;'
+      : '&lt;span class="td-tag tag-receita"&gt;Confirmada&lt;/span&gt;';
+    const ofertaTag = v.eh_oferta
+      ? '&lt;span class="td-tag tag-pendente"&gt;🎁 ' + (v.status_oferta || 'oferta') + '&lt;/span&gt;'
+      : '—';
+
+    return `&lt;tr style="cursor:pointer;" onclick="abrirModalVenda('${v.id}')"&gt;
+      &lt;td style="font-size:.75rem;"&gt;${v.data || '—'} ${v.hora || ''}&lt;/td&gt;
+      &lt;td&gt;&lt;span style="color:${cor};font-weight:600;font-size:.8rem;"&gt;${label}&lt;/span&gt;&lt;/td&gt;
+      &lt;td style="font-size:.72rem;color:var(--suave);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${prods}"&gt;${prods}&lt;/td&gt;
+      &lt;td style="font-size:.75rem;"&gt;${pgto}&lt;/td&gt;
+      &lt;td&gt;${ofertaTag}&lt;/td&gt;
+      &lt;td class="td-valor" style="color:${v.status === 'cancelada' ? 'var(--suave)' : 'var(--verde-cl)'};text-decoration:${v.status === 'cancelada' ? 'line-through' : 'none'};"&gt;${fmtR(v.total)}&lt;/td&gt;
+      &lt;td&gt;${statusTag}&lt;/td&gt;
+      &lt;td&gt;&lt;button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();abrirModalVenda('${v.id}')"&gt;Ver&lt;/button&gt;&lt;/td&gt;
+    &lt;/tr&gt;`;
+  }).join('');
+
+  // Guarda vendas para o modal
+  window._pdvVendas = vendas;
+}
+
+function abrirModalVenda(id) {
+  const venda = (window._pdvVendas || []).find(v => v.id === id);
+  if (!venda) return;
+  _vendaPDVSelecionada = venda;
+
+  const prods = (venda.produtos || []).map(p =>
+    `&lt;tr&gt;&lt;td style="padding:.35rem .5rem;font-size:.8rem;"&gt;${p.nome}&lt;/td&gt;
+     &lt;td style="padding:.35rem .5rem;font-size:.8rem;text-align:center;"&gt;${p.quantidade}&lt;/td&gt;
+     &lt;td style="padding:.35rem .5rem;font-size:.8rem;text-align:right;"&gt;${fmtR(p.preco_unitario)}&lt;/td&gt;
+     &lt;td style="padding:.35rem .5rem;font-size:.8rem;text-align:right;font-weight:600;"&gt;${fmtR(p.preco_total)}&lt;/td&gt;&lt;/tr&gt;`
+  ).join('');
+
+  document.getElementById('pdv-modal-body').innerHTML = `
+    &lt;div style="font-size:.75rem;color:var(--suave);margin-bottom:.75rem;"&gt;ID: ${venda.id}&lt;/div&gt;
+    &lt;table style="width:100%;"&gt;
+      &lt;thead&gt;&lt;tr style="font-size:.65rem;color:var(--suave);text-transform:uppercase;"&gt;
+        &lt;th style="padding:.3rem .5rem;text-align:left;"&gt;Produto&lt;/th&gt;
+        &lt;th style="padding:.3rem .5rem;text-align:center;"&gt;Qtd&lt;/th&gt;
+        &lt;th style="padding:.3rem .5rem;text-align:right;"&gt;Unit.&lt;/th&gt;
+        &lt;th style="padding:.3rem .5rem;text-align:right;"&gt;Total&lt;/th&gt;
+      &lt;/tr&gt;&lt;/thead&gt;
+      &lt;tbody&gt;${prods}&lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--borda);font-size:.82rem;"&gt;
+      &lt;div style="display:flex;justify-content:space-between;margin-bottom:.3rem;"&gt;
+        &lt;span&gt;Subtotal&lt;/span&gt;&lt;span&gt;${fmtR(venda.subtotal)}&lt;/span&gt;&lt;/div&gt;
+      &lt;div style="display:flex;justify-content:space-between;margin-bottom:.3rem;color:var(--vermelho);"&gt;
+        &lt;span&gt;Desconto&lt;/span&gt;&lt;span&gt;- ${fmtR(venda.desconto)}&lt;/span&gt;&lt;/div&gt;
+      &lt;div style="display:flex;justify-content:space-between;font-weight:700;font-size:.95rem;"&gt;
+        &lt;span&gt;Total&lt;/span&gt;&lt;span style="color:var(--verde-cl);"&gt;${fmtR(venda.total)}&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div style="margin-top:.65rem;font-size:.72rem;color:var(--suave);"&gt;
+      Pagamento: &lt;strong style="color:var(--texto);"&gt;${venda.forma_pagamento}&lt;/strong&gt;
+      ${venda.cartao_tipo ? ' (' + venda.cartao_tipo + ')' : ''}
+      &nbsp;|&nbsp; Operador: &lt;strong style="color:var(--texto);"&gt;${venda.operador_nome || '—'}&lt;/strong&gt;
+      ${venda.eh_oferta ? '&lt;br&gt;🎁 Oferta: &lt;strong style="color:#fbbf24;"&gt;' + fmtR(venda.valor_oferta) + '&lt;/strong&gt; — status: ' + (venda.status_oferta || '—') : ''}
+    &lt;/div&gt;`;
+
+  const btnCanc = document.getElementById('pdv-btn-cancelar-venda');
+  btnCanc.style.display = venda.status === 'cancelada' ? 'none' : 'inline-flex';
+  btnCanc.onclick = () => cancelarVendaPDV(venda.id);
+
+  const overlay = document.getElementById('pdv-modal-overlay');
+  overlay.style.display = 'flex';
+}
+
+function fecharModalVenda() {
+  document.getElementById('pdv-modal-overlay').style.display = 'none';
+  _vendaPDVSelecionada = null;
+}
+
+async function cancelarVendaPDV(id) {
+  if (!confirm('Cancelar esta venda? O estoque será restaurado.')) return;
+  try {
+    await VendasFirebase.cancelarVendaFirebase(id, 'Cancelado pelo financeiro');
+    fecharModalVenda();
+    toast('🚫 Venda cancelada com sucesso');
+  } catch (err) {
+    alert('Erro ao cancelar: ' + err.message);
+  }
+}
+
+// Hook na função switchTab existente — adicione este bloco no seu switchTab:
+// if (id === 'pdv') initPDVTab();
+// Ou modifique sua switchTab existente:
+const _switchTabOriginal = typeof switchTab === 'function' ? switchTab : null;
+function switchTab(id, el) {
+  if (_switchTabOriginal) _switchTabOriginal(id, el);
+  if (id === 'pdv') {
+    setTimeout(initPDVTab, 100);
+  } else if (_unsubPDV) {
+    _unsubPDV();
+    _unsubPDV = null;
+  }
+}</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>⚙️ 5. admin.html — Links adicionais</h2>
+  <pre>&lt;!-- Adicionar no menu/cards do admin.html --&gt;
+&lt;a href="financeiro.html#pdv" class="admin-card"&gt;
+  🛒 Ver Vendas por Módulo
+&lt;/a&gt;
+
+&lt;div class="admin-card" style="cursor:pointer;" onclick="mostrarStatusSync()"&gt;
+  &lt;div id="admin-sync-status"&gt;🔄 Status Sincronização&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+function mostrarStatusSync() {
+  const s = OfflineSync.obterStatusSincronizacao();
+  const icone = s.online ? (s.pendentes === 0 ? '✅' : '🟡') : '🔴';
+  alert(icone + ' Status: ' + s.status + '\nVendas pendentes: ' + s.pendentes + '\nOnline: ' + s.online);
+}
+
+// Atualiza o card de status a cada 5s
+setInterval(() => {
+  const s = document.getElementById('admin-sync-status');
+  if (!s) return;
+  const info = OfflineSync.obterStatusSincronizacao();
+  s.textContent = info.online
+    ? (info.pendentes === 0 ? '✅ Tudo sincronizado' : '🟡 ' + info.pendentes + ' pendentes')
+    : '🔴 Offline — ' + info.pendentes + ' pendentes';
+}, 5000);
+&lt;/script&gt;</pre>
+</div>
+
+</body>
+</html>

@@ -1,6 +1,29 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<!-- Firebase Init -->
+<script>
+const firebaseConfig = {
+  apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+  authDomain:        "abcl-hub-dev.firebaseapp.com",
+  projectId:         "abcl-hub-dev",
+  storageBucket:     "abcl-hub-dev.firebasestorage.app",
+  messagingSenderId: "243573406078",
+  appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+};
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+</script>
+
+<!-- Módulos ABCL -->
+<script src="offline-sync.js"></script>
+<script src="vendas-firebase.js"></script>
+<script src="firebase-auth-patch.js"></script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL Vendinha</title>
@@ -291,6 +314,14 @@
     .pag-btn.active.pix      { background: var(--verde); border-color: var(--verde); color: #fff; }
     .pag-btn.active.dinheiro { background: #16a34a; border-color: #16a34a; color: #fff; }
     .pag-btn.active.fiado    { background: var(--amarelo); border-color: var(--amarelo); color: #000; }
+    .pag-btn.active.credito  { background: var(--azul); border-color: var(--azul); color: #fff; }
+    .pag-btn.active.debito   { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+
+    /* Oferta badge */
+    .oferta-bloco {
+      background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.25);
+      border-radius: 8px; padding: .75rem 1rem; margin: .5rem 1.25rem;
+    }
 
     /* Total e finalizar */
     .pedido-footer {
@@ -442,6 +473,14 @@
       <button class="btn btn-ghost btn-sm" onclick="vLogout()">Sair</button>
     </div>
   </header>
+
+  <!-- ── Indicador Offline Sync ── -->
+  <div id="sync-bar" style="display:none;align-items:center;justify-content:center;gap:.5rem;padding:.4rem 1rem;font-size:.75rem;font-weight:600;background:rgba(239,68,68,.12);border-bottom:1px solid rgba(239,68,68,.25);color:#fca5a5;">
+    <span id="sync-icon">🔴</span>
+    <span id="sync-msg">Offline — vendas serão sincronizadas ao conectar</span>
+    <span id="sync-pending" style="background:rgba(239,68,68,.2);padding:.1rem .45rem;border-radius:9px;margin-left:.25rem;"></span>
+    <button id="btn-sync-now" onclick="forcarSincronizacao()" style="display:none;margin-left:.75rem;padding:.25rem .65rem;border-radius:6px;border:none;background:rgba(245,158,11,.25);color:#fbbf24;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;">⚡ Sincronizar agora</button>
+  </div>
 
   <!-- Stats -->
   <div class="stats-bar">
@@ -634,10 +673,26 @@
         <input type="number" id="oferta" placeholder="Oferta (R$)" min="0" step="0.5" />
       </div>
 
-      <div class="pagamento-row">
-        <button class="pag-btn pix active" id="pb-pix" onclick="setPagamento('PIX',this)">PIX</button>
-        <button class="pag-btn dinheiro" id="pb-din" onclick="setPagamento('Dinheiro',this)">Dinheiro</button>
-        <button class="pag-btn fiado" id="pb-fia" onclick="setPagamento('Fiado',this)">Fiado</button>
+      <div class="pagamento-row" style="flex-wrap:wrap;">
+        <button class="pag-btn pix active" id="pb-pix" onclick="setPagamento('PIX',this)">📲 PIX</button>
+        <button class="pag-btn dinheiro" id="pb-din" onclick="setPagamento('Dinheiro',this)">💵 Dinheiro</button>
+        <button class="pag-btn credito" id="pb-cred" onclick="setPagamento('Crédito',this)">💳 Crédito</button>
+        <button class="pag-btn debito" id="pb-deb" onclick="setPagamento('Débito',this)">💳 Débito</button>
+        <button class="pag-btn fiado" id="pb-fia" onclick="setPagamento('Fiado',this)">📒 Fiado</button>
+      </div>
+
+      <!-- Bloco de Oferta -->
+      <div class="oferta-bloco">
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.82rem;font-weight:600;color:#fbbf24;">
+          <input type="checkbox" id="chk-oferta" onchange="toggleOfertaBloco()" />
+          🎁 Esta venda é uma oferta
+        </label>
+        <div id="detalhe-oferta" style="display:none;margin-top:.6rem;">
+          <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);display:block;margin-bottom:.3rem;">Valor da oferta (R$)</label>
+          <input type="number" id="campo-valor-oferta" min="0" step="1" placeholder="0"
+            style="width:120px;background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.4);border-radius:6px;padding:.45rem .7rem;color:var(--texto);font-family:inherit;font-size:.88rem;" />
+          <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Status: <span id="status-oferta-label" style="color:#fbbf24;font-weight:600;">pendente</span></div>
+        </div>
       </div>
 
       <div class="pedido-footer">
@@ -717,6 +772,7 @@ function vLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('v-username').textContent = u;
+    FirebaseAuthPatch.loginFirebaseLocal();
     initApp();
   } else {
     document.getElementById('v-login-error').style.display = 'block';
@@ -734,6 +790,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('v-username').textContent = u;
+    FirebaseAuthPatch.loginFirebaseLocal();
     initApp();
   }
 });
@@ -1567,6 +1624,150 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id)?.addEventListener('input', renderCart);
   });
 });
+
+// ══════════════════════════════════════════════════
+// BLOCO 4 — FIREBASE + OFFLINE SYNC
+// ══════════════════════════════════════════════════
+const MODULO_VENDINHA = 'vendinha';
+let formaPgtoAtual = 'PIX'; // espelha `pagamento`
+
+// Patch setPagamento para manter formaPgtoAtual sincronizado
+const _setPagamentoOrig = setPagamento;
+window.setPagamento = function(p, btn) {
+  _setPagamentoOrig(p, btn);
+  formaPgtoAtual = p;
+};
+
+// Oferta toggle
+function toggleOfertaBloco() {
+  const chk = document.getElementById('chk-oferta');
+  document.getElementById('detalhe-oferta').style.display = chk.checked ? 'block' : 'none';
+}
+
+// Integração Firebase: chama após finalizarVenda local
+async function enviarVendaFirebase(sale) {
+  try {
+    if (typeof VendasFirebase === 'undefined' || typeof OfflineSync === 'undefined') return;
+    const venda = {
+      tipo:            MODULO_VENDINHA,
+      produtos:        sale.itens,
+      subtotal:        sale.subtotal,
+      desconto:        sale.desconto || 0,
+      total:           sale.total,
+      eh_oferta:       document.getElementById('chk-oferta')?.checked || false,
+      valor_oferta:    parseInt(document.getElementById('campo-valor-oferta')?.value) || 0,
+      status_oferta:   document.getElementById('chk-oferta')?.checked ? 'pendente' : null,
+      forma_pagamento: sale.pagamento,
+      cartao_tipo:     ['Crédito','Débito'].includes(sale.pagamento) ? sale.pagamento : null,
+      operador_uid:    sessionStorage.getItem('abcl-vendinha-auth') || 'operador',
+      operador_nome:   sessionStorage.getItem('abcl-vendinha-auth') || 'Caixa',
+      ano_acampamento: new Date().getFullYear(),
+      pessoa:          sale.pessoa,
+      periodo:         sale.periodo,
+      hora:            sale.hora,
+      data:            sale.data,
+      local_id:        sale.id,
+    };
+
+    if (navigator.onLine) {
+      await VendasFirebase.salvarVendaFirebase(venda, MODULO_VENDINHA);
+    } else {
+      await OfflineSync.adicionarFilaSincronizacao(venda);
+    }
+
+    // Limpar campos de oferta
+    if (document.getElementById('chk-oferta')) {
+      document.getElementById('chk-oferta').checked = false;
+      document.getElementById('detalhe-oferta').style.display = 'none';
+      document.getElementById('campo-valor-oferta').value = '';
+    }
+  } catch (err) {
+    console.warn('Firebase sync (non-critical):', err.message);
+  }
+}
+
+// Patch finalizarVenda para disparar o sync Firebase após salvar local
+const _finalizarVendaOrig = finalizarVenda;
+window.finalizarVenda = async function(total, subtotal, desconto, oferta) {
+  _finalizarVendaOrig(total, subtotal, desconto, oferta);
+  // A venda foi salva; pegar a mais recente para enviar
+  const ultimaVenda = getSales()[0];
+  if (ultimaVenda) await enviarVendaFirebase(ultimaVenda);
+};
+
+// ── Indicador de status offline ──
+function atualizarSyncBar() {
+  const bar = document.getElementById('sync-bar');
+  const btnSync = document.getElementById('btn-sync-now');
+  if (!bar) return;
+  if (typeof OfflineSync === 'undefined') { bar.style.display = 'none'; return; }
+  try {
+    const status = OfflineSync.obterStatusSincronizacao();
+    if (status.online && status.pendentes === 0) {
+      bar.style.display = 'none';
+      if (btnSync) btnSync.style.display = 'none';
+    } else {
+      bar.style.display = 'flex';
+      if (status.online && status.pendentes > 0) {
+        bar.style.background = 'rgba(245,158,11,.12)';
+        bar.style.borderBottomColor = 'rgba(245,158,11,.3)';
+        bar.style.color = '#fcd34d';
+        document.getElementById('sync-icon').textContent = '🟡';
+        document.getElementById('sync-msg').textContent = 'Sincronizando vendas pendentes…';
+        document.getElementById('sync-pending').textContent = status.pendentes + ' pendente(s)';
+        if (btnSync) btnSync.style.display = 'inline-block'; // Mostra botão
+      } else {
+        bar.style.background = 'rgba(239,68,68,.12)';
+        bar.style.borderBottomColor = 'rgba(239,68,68,.25)';
+        bar.style.color = '#fca5a5';
+        document.getElementById('sync-icon').textContent = '🔴';
+        document.getElementById('sync-msg').textContent = 'Offline — vendas serão sincronizadas ao conectar';
+        document.getElementById('sync-pending').textContent = status.pendentes > 0 ? status.pendentes + ' pendente(s)' : '';
+        if (btnSync) btnSync.style.display = 'none'; // Esconde botão (offline)
+      }
+    }
+  } catch(e) {}
+}
+
+// Força sincronização manual das vendas pendentes
+async function forcarSincronizacao() {
+  if (typeof OfflineSync === 'undefined') {
+    toast('Sistema de sincronização não disponível.');
+    return;
+  }
+  
+  const btnSync = document.getElementById('btn-sync-now');
+  if (btnSync) {
+    btnSync.disabled = true;
+    btnSync.textContent = '⏳ Sincronizando...';
+  }
+  
+  try {
+    await OfflineSync.sincronizarAgora();
+    toast('✅ Vendas sincronizadas com sucesso!');
+    atualizarSyncBar();
+  } catch (e) {
+    toast('❌ Erro ao sincronizar: ' + e.message);
+  } finally {
+    if (btnSync) {
+      btnSync.disabled = false;
+      btnSync.textContent = '⚡ Sincronizar agora';
+    }
+  }
+}
+
+setInterval(atualizarSyncBar, 4000);
+window.addEventListener('online',  atualizarSyncBar);
+window.addEventListener('offline', atualizarSyncBar);
+document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarSyncBar, 1000));
+
+// toggleTheme (caso não esteja definido no escopo global ainda)
+if (typeof toggleTheme === 'undefined') {
+  window.toggleTheme = function() {
+    const html = document.documentElement;
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+}
 </script>
 <button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
 </body>
