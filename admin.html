@@ -1,2940 +1,543 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ABCL Admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABCL Hub — Admin</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
   <!-- Firebase SDK (compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script>
-  const firebaseConfig = {
-    apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
-    authDomain:        "abcl-hub-dev.firebaseapp.com",
-    projectId:         "abcl-hub-dev",
-    storageBucket:     "abcl-hub-dev.firebasestorage.app",
-    messagingSenderId: "243573406078",
-    appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
-  };
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  </script>
-  <!-- Módulos ABCL -->
-  <script src="offline-sync.js"></script>
-  <script src="vendas-firebase.js"></script>
-
+  
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
       --verde:       #2D6A4F;
       --verde-mid:   #40916C;
       --verde-claro: #74C69D;
+      --verde-neon:  #95D5B2;
       --fundo:       #080F0B;
-      --card:        #0F1A14;
-      --card2:       #152218;
+      --fundo-card:  #0F1A14;
+      --cinza:       #1a1a1a;
+      --cinza-medio: #2a2a2a;
+      --cinza-claro: #888;
       --texto:       #F0EDE6;
       --suave:       rgba(240,237,230,0.5);
+      --erro:        #ef4444;
       --borda:       rgba(64,145,108,0.2);
-      --radius:      8px;
-      --danger:      #ef4444;
-    }
-    [data-theme="light"] {
-      --fundo:       #F2F7F3;
-      --card:        #FFFFFF;
-      --card2:       #E8F2EA;
-      --texto:       #1A2E22;
-      --suave:       rgba(26,46,34,.48);
-      --borda:       rgba(45,106,79,.16);
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', sans-serif; background: var(--fundo); color: var(--texto); min-height: 100vh; }
-
-    /* ── LOGIN ── */
-    #login-screen {
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
       min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      padding: 2rem;
+      display: flex;
+      overflow: hidden;
     }
 
-    .login-box {
-      width: 100%; max-width: 380px;
-      background: var(--card);
-      border: 1px solid var(--borda);
-      border-radius: 16px;
-      padding: 2.5rem;
-      animation: fadeUp .5s ease;
-    }
-
-    .login-logo {
-      width: 64px; height: 64px;
-      margin: 0 auto 1.5rem;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 8px rgba(0,0,0,.5));
-    }
-
-    .login-box h1 {
-      font-family: 'Cinzel', serif;
-      font-size: 1.3rem;
-      text-align: center;
-      color: var(--verde-claro);
-      margin-bottom: .3rem;
-    }
-
-    .login-box p { font-size: .8rem; text-align: center; color: var(--suave); margin-bottom: 2rem; }
-
-    .login-error {
-      background: rgba(239,68,68,.1);
-      border: 1px solid rgba(239,68,68,.3);
-      border-radius: 6px;
-      padding: .65rem 1rem;
-      font-size: .8rem;
-      color: #fca5a5;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    /* ── LAYOUT ADMIN ── */
-    #admin-screen { display: none; }
-
-    .admin-wrap { display: flex; min-height: 100vh; }
-
-    /* Sidebar */
-    .sidebar {
-      width: 220px;
-      flex-shrink: 0;
-      background: var(--card);
-      border-right: 1px solid var(--borda);
+    /* ── LADO ESQUERDO ── */
+    .lado-esquerdo {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 1.5rem 1rem;
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      justify-content: space-between;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .sidebar-logo {
-      display: flex; align-items: center; gap: .6rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid var(--borda);
-      margin-bottom: 1.5rem;
+    .lado-esquerdo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(64,145,108,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(45,106,79,0.08) 0%, transparent 50%);
+      pointer-events: none;
     }
 
-    .sidebar-logo img { width: 32px; height: 32px; object-fit: contain; }
+    .grade {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
 
-    .sidebar-logo span {
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-icone {
+      width: 42px;
+      height: 42px;
+      background: var(--verde-mid);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-texto { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      max-width: 520px;
+    }
+
+    .hero h1 {
       font-family: 'Cinzel', serif;
-      font-size: .85rem;
-      font-weight: 700;
-      color: var(--verde-claro);
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--texto) 0%, var(--verde-neon) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    .nav-label {
-      font-size: .6rem;
-      letter-spacing: .2em;
-      text-transform: uppercase;
-      color: var(--suave);
-      margin-bottom: .5rem;
-      margin-top: 1rem;
+    .hero p { font-size: 16px; color: var(--suave); line-height: 1.6; margin-bottom: 32px; }
+
+    .recursos {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .nav-item {
-      display: flex; align-items: center; gap: .65rem;
-      padding: .6rem .75rem;
+    .recurso-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(64,145,108,0.08);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .recurso-item:hover { background: rgba(64,145,108,0.12); border-color: var(--verde-mid); }
+
+    .recurso-icone {
+      width: 40px;
+      height: 40px;
+      background: var(--verde-mid);
       border-radius: 8px;
-      font-size: .84rem;
-      color: var(--suave);
-      cursor: pointer;
-      transition: background .15s, color .15s;
-      border: none; background: none; width: 100%; text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
     }
 
-    .nav-item:hover { background: rgba(64,145,108,.1); color: var(--texto); }
-    .nav-item.active { background: rgba(64,145,108,.18); color: var(--verde-claro); }
+    .recurso-texto { flex: 1; }
+    .recurso-titulo { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .recurso-desc { font-size: 13px; color: var(--suave); }
 
-    .sidebar-footer { margin-top: auto; }
-
-    /* Main */
-    .main { flex: 1; padding: 2rem; overflow-y: auto; }
-
-    .page-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 2rem;
-      padding-bottom: 1.25rem;
-      border-bottom: 1px solid var(--borda);
+    .rodape {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      color: var(--cinza-claro);
     }
 
-    .page-header h1 { font-family: 'Cinzel', serif; font-size: 1.4rem; color: var(--texto); }
-    .page-header p  { font-size: .78rem; color: var(--suave); margin-top: .2rem; }
-
-    /* Tabs / sections */
-    .tab { display: none; }
-    .tab.active { display: block; }
-
-    /* Cards */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--borda);
-      border-radius: var(--radius);
-      padding: 1.25rem;
-    }
-
-    .stat-card .sc-label { font-size: .65rem; letter-spacing: .15em; text-transform: uppercase; color: var(--suave); margin-bottom: .3rem; }
-    .stat-card .sc-value { font-family: 'Cinzel', serif; font-size: 1.8rem; font-weight: 700; color: var(--verde-claro); }
-
-    /* Section card */
-    .section-card {
-      background: var(--card);
-      border: 1px solid var(--borda);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .section-card h2 {
-      font-size: .9rem;
-      font-weight: 600;
-      color: var(--texto);
-      margin-bottom: 1.25rem;
-      display: flex; align-items: center; gap: .5rem;
-    }
-
-    /* Form elements */
-    .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .85rem; }
-
-    .field label {
-      font-size: .65rem;
-      font-weight: 500;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--suave);
-    }
-
-    .field input,
-    .field select,
-    .field textarea {
-      background: var(--card2);
-      border: 1px solid var(--borda);
-      border-radius: 6px;
-      padding: .65rem .85rem;
-      font-family: 'Inter', sans-serif;
-      font-size: .88rem;
-      color: var(--texto);
-      outline: none;
-      transition: border-color .2s;
-      width: 100%;
-    }
-
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus { border-color: var(--verde-mid); }
-    .field input::placeholder, .field textarea::placeholder { color: rgba(240,237,230,.18); }
-    .field select option { background: #0a1610; }
-
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-
-    /* Buttons */
-    .btn {
-      display: inline-flex; align-items: center; gap: .4rem;
-      font-family: 'Inter', sans-serif;
-      font-size: .78rem; font-weight: 500;
-      letter-spacing: .06em; text-transform: uppercase;
-      padding: .6rem 1.2rem;
-      border-radius: 6px; border: none; cursor: pointer;
-      transition: opacity .2s, transform .15s;
-    }
-
-    .btn:hover { opacity: .85; transform: translateY(-1px); }
-    .btn-solid   { background: var(--verde-mid); color: #fff; }
-    .btn-ghost   { background: var(--card2); border: 1px solid var(--borda); color: var(--suave); }
-    .btn-danger  { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
-    .btn-sm      { padding: .4rem .8rem; font-size: .72rem; }
-
-    /* Link list */
-    .link-row {
-      display: flex; align-items: center; gap: .75rem;
-      background: var(--card2);
-      border: 1px solid var(--borda);
-      border-radius: 8px;
-      padding: .75rem 1rem;
-      margin-bottom: .6rem;
-    }
-
-    .link-row-icon { font-size: 1.2rem; flex-shrink: 0; }
-
-    .link-row-info { flex: 1; min-width: 0; }
-    .link-row-info .lr-title { font-size: .88rem; font-weight: 500; }
-    .link-row-info .lr-url   { font-size: .72rem; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .link-row-actions { display: flex; gap: .4rem; flex-shrink: 0; }
-
-    /* Image upload area */
-    .upload-area {
-      border: 2px dashed var(--borda);
-      border-radius: 8px;
-      padding: 2rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
+    /* ── LADO DIREITO ── */
+    .lado-direito {
+      width: 480px;
+      background: var(--fundo-card);
+      border-left: 1px solid var(--borda);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
       position: relative;
     }
 
-    .upload-area:hover { border-color: var(--verde-mid); background: rgba(64,145,108,.05); }
+    .form-container { width: 100%; max-width: 360px; }
 
-    .upload-area input[type=file] {
-      position: absolute; inset: 0;
-      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    .form-header {
+      text-align: center;
+      margin-bottom: 32px;
     }
 
-    .upload-preview {
-      width: 80px; height: 80px;
-      object-fit: cover;
-      border-radius: 50%;
-      margin: 0 auto .75rem;
-      border: 2px solid var(--borda);
-      display: none;
-    }
-
-    .upload-text { font-size: .82rem; color: var(--suave); }
-
-    /* Toast */
-    .toast {
-      position: fixed; bottom: 1.5rem; right: 1.5rem;
-      background: var(--verde-mid);
-      color: #fff;
-      padding: .75rem 1.25rem;
-      border-radius: 8px;
-      font-size: .84rem;
-      font-weight: 500;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: transform .3s, opacity .3s;
-      z-index: 999;
-    }
-
-    .toast.show { transform: translateY(0); opacity: 1; }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,.7);
-      z-index: 200;
-      display: flex; align-items: center; justify-content: center;
-      padding: 1rem;
-      display: none;
-    }
-
-    .modal-overlay.open { display: flex; }
-
-    .modal {
-      background: var(--card);
-      border: 1px solid var(--borda);
-      border-radius: 14px;
-      padding: 2rem;
-      width: 100%; max-width: 480px;
-      animation: fadeUp .25s ease;
-    }
-
-    .modal h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1.25rem; color: var(--verde-claro); }
-
-    .modal-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: 1.25rem; }
-
-    /* Preletor card */
-    .prel-card {
-      display: flex; gap: 1rem; align-items: flex-start;
-      background: var(--card2);
-      border: 1px solid var(--borda);
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: .75rem;
-    }
-
-    .prel-photo {
-      width: 56px; height: 56px; flex-shrink: 0;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--borda);
-      background: rgba(64,145,108,.15);
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Cinzel', serif; font-size: 1rem;
+    .form-header h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
       color: var(--verde-claro);
     }
 
-    .prel-info { flex: 1; }
-    .prel-nome  { font-weight: 600; font-size: .9rem; }
-    .prel-local { font-size: .75rem; color: var(--verde-claro); margin-top: .1rem; }
-    .prel-tema  { font-size: .78rem; color: var(--suave); margin-top: .3rem; font-style: italic; }
+    .form-header p { font-size: 14px; color: var(--suave); }
 
-    /* Color picker */
-    .color-row { display: flex; align-items: center; gap: .75rem; }
-    .color-preview { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--borda); flex-shrink: 0; }
-    input[type=color] { width: 36px; height: 36px; border: none; background: none; cursor: pointer; padding: 0; }
+    .status-conexao {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      background: rgba(64,145,108,0.1);
+      border: 1px solid var(--borda);
+    }
 
-    /* Mobile sidebar toggle */
-    .mob-menu-btn {
+    .status-conexao.offline {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: #fca5a5;
+    }
+
+    .status-conexao.online { color: var(--verde-neon); }
+
+    .campo-grupo {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--suave);
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--fundo);
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--texto);
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--verde-mid);
+      box-shadow: 0 0 0 3px rgba(64,145,108,0.1);
+    }
+
+    .msg-erro {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #fca5a5;
+      margin-bottom: 16px;
       display: none;
-      position: fixed; top: 1rem; left: 1rem; z-index: 50;
-      background: var(--card); border: 1px solid var(--borda);
-      border-radius: 8px; padding: .5rem; cursor: pointer;
     }
 
-    @media (max-width: 768px) {
-      .sidebar { position: fixed; left: -240px; top: 0; z-index: 40; transition: left .25s; height: 100vh; }
-      .sidebar.open { left: 0; }
-      .mob-menu-btn { display: flex; }
-      .main { padding: 1rem; padding-top: 3.5rem; }
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-      .field-row { grid-template-columns: 1fr; }
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--verde-mid);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
     }
 
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(14px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .btn-login:hover:not(:disabled) {
+      background: var(--verde-claro);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(64,145,108,0.3);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .links-adicionais {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--suave);
+    }
+
+    .links-adicionais a {
+      color: var(--verde-claro);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .links-adicionais a:hover { color: var(--verde-neon); }
+
+    /* Responsivo */
+    @media (max-width: 968px) {
+      body { flex-direction: column; }
+      .lado-esquerdo { padding: 32px; min-height: auto; }
+      .lado-direito { width: 100%; padding: 32px; border-left: none; border-top: 1px solid var(--borda); }
+      .hero h1 { font-size: 32px; }
+      .recursos { display: none; }
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
 
-<!-- ══ LOGIN ══════════════════════════════════════════════════ -->
-<div id="login-screen">
-  <div class="login-box">
-    <img src="assets/logo-abcl.svg" alt="ABCL" class="login-logo"/>
-    <h1>ABCL Admin</h1>
-    <p>Acesso restrito à equipe de organização</p>
-
-    <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
-
-    <div class="field">
-      <label>Usuário</label>
-      <input type="text" id="login-user" placeholder="seu usuário" autocomplete="username" />
+  <!-- Lado Esquerdo -->
+  <div class="lado-esquerdo">
+    <div class="grade"></div>
+    
+    <div class="logo-area">
+      <div class="logo-icone">⛺</div>
+      <div class="logo-texto">ABCL HUB</div>
     </div>
-    <div class="field">
-      <label>Senha</label>
-      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
-             onkeydown="if(event.key==='Enter') doLogin()" />
+
+    <div class="hero">
+      <h1>Gestão Completa do Acampamento</h1>
+      <p>Sistema integrado para administração financeira, controle de vendas e gerenciamento de inscrições do acampamento ABCL.</p>
+
+      <div class="recursos">
+        <div class="recurso-item">
+          <div class="recurso-icone">💰</div>
+          <div class="recurso-texto">
+            <div class="recurso-titulo">Dashboard Financeiro</div>
+            <div class="recurso-desc">Acompanhe receitas, despesas e projeções em tempo real</div>
+          </div>
+        </div>
+
+        <div class="recurso-item">
+          <div class="recurso-icone">🛒</div>
+          <div class="recurso-texto">
+            <div class="recurso-titulo">Controle de PDV</div>
+            <div class="recurso-desc">Vendinha, Livraria e Loja com sincronização Firebase</div>
+          </div>
+        </div>
+
+        <div class="recurso-item">
+          <div class="recurso-icone">📊</div>
+          <div class="recurso-texto">
+            <div class="recurso-titulo">Relatórios Detalhados</div>
+            <div class="recurso-desc">Análises comparativas e exportação de dados</div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button class="btn btn-solid" onclick="doLogin()" style="width:100%; padding:.85rem; margin-top:.5rem; justify-content:center; font-size:.85rem;">
-      Entrar
-    </button>
-    <p style="font-size:.7rem; color:rgba(240,237,230,.2); text-align:center; margin-top:1rem;">
-      Apenas membros autorizados da organização.
-    </p>
+
+    <div class="rodape">
+      © 2026 ABCL Hub — Sistema de Gestão do Acampamento
+    </div>
   </div>
-</div>
 
-<!-- ══ ADMIN ══════════════════════════════════════════════════ -->
-<div id="admin-screen">
-  <!-- Mobile menu button -->
-  <button class="mob-menu-btn" onclick="toggleSidebar()">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
-
-  <div class="admin-wrap">
-    <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <img src="assets/logo-abcl.svg" alt="ABCL" />
-        <span>ABCL Admin</span>
+  <!-- Lado Direito (Formulário) -->
+  <div class="lado-direito">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>Área Administrativa</h2>
+        <p>Entre com suas credenciais</p>
       </div>
 
-      <div class="nav-label">Geral</div>
-      <button class="nav-item active" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
-      <button class="nav-item" onclick="switchTab('links', this)">🔗 Hub de Links</button>
-      <button class="nav-item" onclick="switchTab('preletores', this)">🎤 Preletores</button>
-      <button class="nav-item" onclick="switchTab('conteudo', this)">✏️ Conteúdo</button>
-      <button class="nav-item" onclick="switchTab('visual', this)">🎨 Visual</button>
-      <button class="nav-item" onclick="switchTab('visitas', this)">📊 Visitas</button>
-      <button class="nav-item" onclick="switchTab('insights', this)">💡 Insights</button>
+      <div id="status-conexao" class="status-conexao online">
+        <span id="status-icone">🟢</span>
+        <span id="status-texto">Online</span>
+      </div>
 
-      <div class="nav-label">Ferramentas</div>
-      <button class="nav-item" onclick="window.open('vendinha.html','_blank')">🛒 Vendinha</button>
-      <button class="nav-item" onclick="window.open('livraria.html','_blank')">📚 Livraria</button>
-      <button class="nav-item" onclick="window.open('canticos.html','_blank')">🎵 Cânticos</button>
-      <button class="nav-item" onclick="switchTab('gestao-canticos', this)">⚙️ Gerir Cânticos</button>
-      <button class="nav-item" onclick="window.open('loja.html','_blank')">🛍️ Loja</button>
-      <button class="nav-item" onclick="switchTab('gestao-loja', this)">⚙️ Gerir Loja</button>
-      <button class="nav-item" onclick="window.open('financeiro.html','_blank')">💰 Financeiro</button>
-      <button class="nav-item" onclick="switchTab('formularios', this)">📝 Formulários</button>
-      <button class="nav-item" onclick="window.open('links.html','_blank')">👁 Ver Hub</button>
-      <button class="nav-item" onclick="window.open('index.html','_blank')">🌐 Ver Site</button>
+      <div id="msg-erro" class="msg-erro"></div>
 
-      <div class="sidebar-footer">
-        <button class="nav-item" onclick="doLogout()" style="color:rgba(239,68,68,.7)">
-          🚪 Sair
+      <form id="form-login" onsubmit="realizarLogin(event)">
+        <div class="campo-grupo">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+
+        <div class="campo-grupo">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" id="btn-login" class="btn-login">
+          Entrar
         </button>
-      </div>
-    </nav>
+      </form>
 
-    <!-- Main -->
-    <main class="main">
-
-      <!-- ══ DASHBOARD ══ -->
-      <div class="tab active" id="tab-dashboard">
-        <div class="page-header">
-          <div>
-            <h1>Dashboard</h1>
-            <p>Bem-vindo, <span id="user-name-display"></span></p>
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="window.open('index.html','_blank')">
-            🌐 Ver site
-          </button>
-        </div>
-
-        <div class="grid-3">
-          <div class="stat-card">
-            <div class="sc-label">Links ativos</div>
-            <div class="sc-value" id="d-links-count">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="sc-label">Preletores</div>
-            <div class="sc-value" id="d-prel-count">—</div>
-          </div>
-          <div class="stat-card">
-            <div class="sc-label">Vendas hoje</div>
-            <div class="sc-value" id="d-vendas">—</div>
-          </div>
-          <div class="stat-card" style="cursor:pointer;" onclick="switchTab('visitas', document.querySelector('.nav-item[onclick*=\'visitas\']'))">
-            <div class="sc-label">Visitas ao site</div>
-            <div class="sc-value" id="d-visitas-total" style="color:var(--verde-claro);">—</div>
-            <div style="font-size:.68rem;color:var(--suave);margin-top:.2rem;" id="d-visitas-sub">—</div>
-          </div>
-          <div class="stat-card" style="cursor:pointer;" onclick="switchTab('visitas', document.querySelector('.nav-item[onclick*=\'visitas\']'))">
-            <div class="sc-label">Top cidade</div>
-            <div class="sc-value" id="d-top-cidade" style="font-size:1rem;">—</div>
-          </div>
-          <div class="stat-card" style="cursor:pointer;" onclick="switchTab('visitas', document.querySelector('.nav-item[onclick*=\'visitas\']'))">
-            <div class="sc-label">Última visita</div>
-            <div class="sc-value" id="d-ultima-visita" style="font-size:1rem;">—</div>
-          </div>
-        </div>
-
-        <!-- Acesso rápido -->
-        <div class="section-card">
-          <h2>⚡ Acesso rápido</h2>
-          <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.75rem;">
-            <button class="btn btn-ghost" onclick="switchTab('links', document.querySelector('.nav-item[onclick*=\'links\']'))" style="justify-content:center; padding:.85rem;">🔗 Editar Links</button>
-            <button class="btn btn-ghost" onclick="switchTab('preletores', document.querySelector('.nav-item[onclick*=\'preletores\']'))" style="justify-content:center; padding:.85rem;">🎤 Preletores</button>
-            <button class="btn btn-ghost" onclick="switchTab('conteudo', document.querySelector('.nav-item[onclick*=\'conteudo\']'))" style="justify-content:center; padding:.85rem;">✏️ Conteúdo</button>
-            <button class="btn btn-solid" onclick="window.open('vendinha.html','_blank')" style="justify-content:center; padding:.85rem;">🛒 Abrir Vendinha</button>
-            <button class="btn btn-ghost" onclick="window.open('livraria.html','_blank')" style="justify-content:center; padding:.85rem;">📚 Livraria</button>
-            <button class="btn btn-ghost" onclick="window.open('loja.html','_blank')" style="justify-content:center; padding:.85rem;">🛍️ Loja</button>
-            <button class="btn btn-ghost" onclick="window.open('financeiro.html','_blank')" style="justify-content:center; padding:.85rem;">💰 Financeiro</button>
-            <button class="btn btn-ghost" onclick="switchTab('visitas', document.querySelector('.nav-item[onclick*=\'visitas\']'))" style="justify-content:center; padding:.85rem;">📊 Visitas</button>
-          </div>
-        </div>
-
-        <!-- Status Sincronização Firebase -->
-        <div class="section-card" style="cursor:pointer;" onclick="mostrarStatusSync()">
-          <h2 style="display:flex;align-items:center;justify-content:space-between;">
-            🔄 Sincronização Firebase
-            <span id="admin-sync-badge" style="font-size:.75rem;font-weight:500;padding:.2rem .65rem;border-radius:9px;background:rgba(64,145,108,.15);color:var(--verde-claro);">verificando…</span>
-          </h2>
-          <div id="admin-sync-status" style="font-size:.82rem;color:var(--suave);margin-top:.25rem;">Clique para ver detalhes do status de sincronização offline.</div>
-          <div style="display:flex;gap:.5rem;margin-top:.85rem;flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();mostrarStatusSync()">📋 Ver Status</button>
-            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();window.open('financeiro.html','_blank')">🛒 Vendas por Módulo</button>
-          </div>
-        </div>
-
-        <div class="section-card">
-          <h2>📅 Próximo evento</h2>
-          <div class="field-row">
-            <div>
-              <div style="font-size:.7rem; color:var(--suave); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.3rem;">Edição</div>
-              <div id="d-edicao" style="font-family:'Cinzel',serif; font-size:1.4rem; color:var(--verde-claro);">—</div>
-            </div>
-            <div>
-              <div style="font-size:.7rem; color:var(--suave); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.3rem;">Data</div>
-              <div id="d-data" style="font-size:.9rem; color:var(--texto);">—</div>
-            </div>
-            <div>
-              <div style="font-size:.7rem; color:var(--suave); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.3rem;">Local</div>
-              <div id="d-local" style="font-size:.9rem; color:var(--texto);">—</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══ HUB DE LINKS ══ -->
-      <div class="tab" id="tab-links">
-        <div class="page-header">
-          <div><h1>Hub de Links</h1><p>Gerencie os links exibidos na página /links</p></div>
-          <button class="btn btn-solid btn-sm" onclick="openLinkModal()">+ Novo link</button>
-        </div>
-
-        <div class="section-card">
-          <h2>🔗 Links ativos</h2>
-          <div id="links-list"></div>
-        </div>
-
-        <div class="section-card">
-          <h2>📝 Cabeçalho da página</h2>
-          <div class="field"><label>Nome / título</label><input type="text" id="h-nome" placeholder="ABCL" /></div>
-          <div class="field"><label>Subtítulo</label><input type="text" id="h-sub" placeholder="Acampamento Bíblico · Conselheiro Lafaiete" /></div>
-          <button class="btn btn-solid" onclick="saveHeader()">Salvar cabeçalho</button>
-        </div>
-      </div>
-
-      <!-- ══ PRELETORES ══ -->
-      <div class="tab" id="tab-preletores">
-        <div class="page-header">
-          <div><h1>Preletores</h1><p>Adicione e edite os preletores do acampamento</p></div>
-          <button class="btn btn-solid btn-sm" onclick="openPrelModal()">+ Novo preletor</button>
-        </div>
-
-        <div class="section-card">
-          <h2>🎤 Preletores cadastrados</h2>
-          <div id="prel-list"></div>
-        </div>
-      </div>
-
-      <!-- ══ CONTEÚDO ══ -->
-      <div class="tab" id="tab-conteudo">
-        <div class="page-header">
-          <div><h1>Conteúdo do Site</h1><p>Edite textos, datas e informações do evento</p></div>
-          <button class="btn btn-solid btn-sm" onclick="saveConteudo()">💾 Salvar tudo</button>
-        </div>
-
-        <div class="section-card">
-          <h2>📅 Dados do evento</h2>
-          <div class="field-row">
-            <div class="field"><label>Edição</label><input type="text" id="c-edicao" placeholder="13º" /></div>
-            <div class="field"><label>Ano</label><input type="text" id="c-ano" placeholder="2026" /></div>
-          </div>
-          <div class="field"><label>Datas</label><input type="text" id="c-data" placeholder="4 a 7 de Junho de 2026" /></div>
-          <div class="field"><label>Local</label><input type="text" id="c-local" placeholder="Sítio Recanto Del Rey — Queluzito/MG" /></div>
-          <div class="field"><label>Idade mínima</label><input type="text" id="c-idade" placeholder="A partir de 14 anos" /></div>
-        </div>
-
-        <div class="section-card">
-          <h2>💰 Valores e inscrição</h2>
-          <div class="field-row">
-            <div class="field"><label>Estadia (R$)</label><input type="number" id="c-estadia" placeholder="185" /></div>
-            <div class="field"><label>Diária (R$)</label><input type="number" id="c-diaria" placeholder="60" /></div>
-          </div>
-          <div class="field"><label>Abertura das inscrições</label><input type="text" id="c-inscricao" placeholder="A partir de 1º de Junho" /></div>
-          <div class="field"><label>Link Google Forms</label><input type="url" id="c-forms" placeholder="https://forms.gle/..." /></div>
-        </div>
-
-        <div class="section-card">
-          <h2>📞 Contato</h2>
-          <div class="field"><label>WhatsApp (com DDI, sem espaços)</label><input type="text" id="c-whats" placeholder="5531988262599" /></div>
-          <div class="field"><label>Versículo / tema bíblico</label><textarea id="c-versiculo" rows="2" placeholder="Efésios 2:19"></textarea></div>
-        </div>
-
-        <div class="section-card">
-          <h2>📝 Temas</h2>
-          <div style="margin-bottom:1.25rem; padding-bottom:1.25rem; border-bottom:1px solid var(--borda);">
-            <strong style="font-size:.82rem; color:var(--verde-claro);">Tema 1</strong>
-            <div class="field" style="margin-top:.75rem;"><label>Título</label><input type="text" id="t1-titulo" placeholder="Amar a Família de Deus" /></div>
-            <div class="field"><label>Subtítulo / livro</label><input type="text" id="t1-sub" placeholder="Um estudo sobre a Igreja Local..." /></div>
-          </div>
-          <div>
-            <strong style="font-size:.82rem; color:var(--verde-claro);">Tema 2</strong>
-            <div class="field" style="margin-top:.75rem;"><label>Título</label><input type="text" id="t2-titulo" placeholder="A Relativização da Verdade" /></div>
-            <div class="field"><label>Subtítulo / livro</label><input type="text" id="t2-sub" placeholder="Estudos sobre os tempos em que vivemos" /></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══ VISUAL ══ -->
-      <div class="tab" id="tab-visual">
-        <div class="page-header">
-          <div><h1>Visual</h1><p>Personalize as cores e a logo do site</p></div>
-          <button class="btn btn-solid btn-sm" onclick="saveVisual()">💾 Salvar visual</button>
-        </div>
-
-        <div class="section-card">
-          <h2>🎨 Cores do site</h2>
-          <div class="field">
-            <label>Verde principal</label>
-            <div class="color-row">
-              <input type="color" id="v-verde" value="#40916C" oninput="previewColor(this,'v-verde-prev')" />
-              <div class="color-preview" id="v-verde-prev" style="background:#40916C"></div>
-              <span style="font-size:.8rem; color:var(--suave);" id="v-verde-hex">#40916C</span>
-            </div>
-          </div>
-          <div class="field">
-            <label>Verde claro (destaque)</label>
-            <div class="color-row">
-              <input type="color" id="v-claro" value="#74C69D" oninput="previewColor(this,'v-claro-prev')" />
-              <div class="color-preview" id="v-claro-prev" style="background:#74C69D"></div>
-              <span style="font-size:.8rem; color:var(--suave);" id="v-claro-hex">#74C69D</span>
-            </div>
-          </div>
-          <div class="field">
-            <label>Fundo</label>
-            <div class="color-row">
-              <input type="color" id="v-fundo" value="#0A1610" oninput="previewColor(this,'v-fundo-prev')" />
-              <div class="color-preview" id="v-fundo-prev" style="background:#0A1610"></div>
-              <span style="font-size:.8rem; color:var(--suave);" id="v-fundo-hex">#0A1610</span>
-            </div>
-          </div>
-          <p style="font-size:.73rem; color:var(--suave); margin-top:.5rem;">
-            As cores são salvas e aplicadas automaticamente no Hub de Links. Para o site principal (index.html), atualize as variáveis CSS em style.css.
-          </p>
-        </div>
-
-        <div class="section-card">
-          <h2>🖼 Logo</h2>
-          <div class="upload-area" onclick="document.getElementById('logo-upload').click()">
-            <input type="file" id="logo-upload" accept="image/*" onchange="previewLogo(this)" style="display:none" />
-            <img id="logo-preview" class="upload-preview" src="assets/logo-abcl.svg" style="display:block" />
-            <div class="upload-text">Clique para trocar a logo<br><span style="font-size:.7rem; opacity:.5">PNG ou SVG recomendado com fundo transparente</span></div>
-          </div>
-          <p style="font-size:.72rem; color:var(--suave); margin-top:.75rem;">
-            A logo é salva como base64 no navegador. Para produção, substitua o arquivo <code>assets/logo-abcl.svg</code> no servidor.
-          </p>
-        </div>
-      </div>
-
-      <!-- ══ VISITAS ══ -->
-      <div class="tab" id="tab-visitas">
-        <div class="page-header">
-          <div><h1>📊 Visitas ao Site</h1><p>Dados registrados no dispositivo do visitante via index.html</p></div>
-          <button class="btn btn-danger btn-sm" onclick="limparVisitas()">🗑 Limpar dados</button>
-        </div>
-
-        <div class="grid-3" id="visitas-stats" style="margin-bottom:1.25rem;"></div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
-          <div class="section-card">
-            <h2>🌍 Top Cidades</h2>
-            <div id="visitas-cidades"></div>
-          </div>
-          <div class="section-card">
-            <h2>🗺️ Top Estados</h2>
-            <div id="visitas-estados"></div>
-          </div>
-        </div>
-
-        <div class="section-card">
-          <h2>📋 Histórico de visitas</h2>
-          <table style="width:100%;border-collapse:collapse;font-size:.8rem;">
-            <thead><tr>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Data</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Hora</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Cidade</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Estado</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">País</th>
-            </tr></thead>
-            <tbody id="visitas-list"></tbody>
-          </table>
-        </div>
-
-        <div class="section-card" style="margin-top:1.25rem;">
-          <h2 style="margin-bottom:.75rem;">ℹ️ Como funciona</h2>
-          <p style="font-size:.78rem;color:var(--suave);line-height:1.7;">
-            Cada visita ao <strong style="color:var(--texto)">index.html</strong> é registrada automaticamente com data, hora e localização aproximada via IP (ip-api.com). Os dados ficam no <strong style="color:var(--texto)">localStorage do visitante</strong> — ou seja, contam visitas feitas neste navegador/dispositivo. Para analytics de todos os visitantes, recomenda-se integrar o <strong style="color:var(--verde-claro)">Google Analytics</strong> ou <strong style="color:var(--verde-claro)">Netlify Analytics</strong> no futuro.
-          </p>
-        </div>
-      </div>
-
-      <!-- ══ INSIGHTS ══ -->
-      <div class="tab" id="tab-insights">
-        <div class="page-header">
-          <div><h1>💡 Insights — Perfil dos Acampantes</h1><p>Dados coletados via formulário de inscrição</p></div>
-          <button class="btn btn-danger btn-sm" onclick="limparInsights()">🗑 Limpar</button>
-        </div>
-
-        <div class="grid-3" id="ins-stats" style="margin-bottom:1.25rem;"></div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
-          <div class="section-card">
-            <h2>🏕️ Primeira vez no ABCL?</h2>
-            <div id="ins-primeira"></div>
-          </div>
-          <div class="section-card">
-            <h2>📣 Como ficou sabendo?</h2>
-            <div id="ins-origem"></div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
-          <div class="section-card">
-            <h2>📅 Faixa etária</h2>
-            <div id="ins-faixa"></div>
-          </div>
-          <div class="section-card">
-            <h2>🎸 Música</h2>
-            <div id="ins-musica"></div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
-          <div class="section-card">
-            <h2>🤝 Interesse em servir</h2>
-            <div id="ins-servir"></div>
-          </div>
-          <div class="section-card">
-            <h2>🏕️ Modalidade</h2>
-            <div id="ins-modalidade"></div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
-          <div class="section-card">
-            <h2>💳 Forma de pagamento</h2>
-            <div id="ins-pagamento"></div>
-          </div>
-          <div class="section-card">
-            <h2>📊 Situação dos acampantes</h2>
-            <div id="ins-situacao"></div>
-          </div>
-        </div>
-
-        <div class="section-card">
-          <h2>⛪ Igrejas representadas</h2>
-          <div id="ins-igrejas"></div>
-        </div>
-
-        <div class="section-card" style="margin-top:1.25rem;">
-          <h2>🎵 Músicos que querem servir</h2>
-          <table style="width:100%;border-collapse:collapse;font-size:.8rem;">
-            <thead><tr>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Nome</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Música</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Instrumento</th>
-              <th style="text-align:left;padding:.5rem .75rem;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);border-bottom:1px solid var(--borda);">Servir</th>
-            </tr></thead>
-            <tbody id="ins-musicos-list"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ══ FORMULÁRIOS ══ -->
-      <div class="tab" id="tab-formularios">
-        <!-- NÍVEL 1: Lista de formulários -->
-        <div id="fview-lista">
-          <div class="page-header">
-            <div><h1>📝 Formulários</h1><p>Gerencie todos os formulários do projeto</p></div>
-            <button class="btn btn-solid btn-sm" onclick="criarNovoFormulario()">+ Novo formulário</button>
-          </div>
-          <div id="forms-lista" style="display:flex;flex-direction:column;gap:.85rem;"></div>
-        </div>
-
-        <!-- NÍVEL 2: Editor de formulário específico -->
-        <div id="fview-editor" style="display:none;">
-          <div class="page-header">
-            <div style="display:flex;align-items:center;gap:.75rem;">
-              <button class="btn btn-ghost btn-sm" onclick="voltarListaForms()">← Voltar</button>
-              <div>
-                <h1 id="feditor-titulo-header">Editando formulário</h1>
-                <p id="feditor-subtitulo-header" style="font-size:.72rem;color:var(--suave);"></p>
-              </div>
-            </div>
-            <div style="display:flex;gap:.5rem;align-items:center;">
-              <!-- Toggle ativo/inativo -->
-              <div style="display:flex;align-items:center;gap:.5rem;">
-                <span style="font-size:.72rem;color:var(--suave);">Ativo</span>
-                <div id="form-toggle-wrap" onclick="toggleFormAtivo()"
-                  style="width:44px;height:24px;border-radius:99px;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0;">
-                  <div id="form-toggle-dot"
-                    style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;transition:left .2s;"></div>
-                </div>
-              </div>
-              <button class="btn btn-ghost btn-sm" id="feditor-ver-btn" onclick="verFormulario()">👁 Ver</button>
-              <button class="btn btn-solid btn-sm" onclick="abrirModalPergunta()">+ Pergunta</button>
-            </div>
-          </div>
-
-          <!-- Configurações -->
-          <div class="section-card" style="margin-bottom:1.25rem;">
-            <h2 style="margin-bottom:1rem;">⚙️ Configurações</h2>
-            <div class="field-row">
-              <div class="field"><label>Título</label><input type="text" id="form-titulo" placeholder="Ex: Inscrição ABCL 2026" /></div>
-              <div class="field"><label>Subtítulo</label><input type="text" id="form-subtitulo" placeholder="Ex: Preencha com atenção" /></div>
-            </div>
-            <div class="field-row">
-              <div class="field"><label>WhatsApp destino</label><input type="text" id="form-whats" placeholder="5531988262599" /></div>
-              <div class="field"><label>Texto do botão</label><input type="text" id="form-btn-label" placeholder="Enviar pelo WhatsApp" /></div>
-            </div>
-            <div class="field"><label>Imagem de capa (URL ou base64)</label><input type="text" id="form-capa" placeholder="https://..." /></div>
-
-            <!-- Vagas e fila de espera -->
-            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
-              <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">🎟️ Vagas e controle</div>
-              <div class="field-row">
-                <div class="field">
-                  <label>Vagas masculinas</label>
-                  <input type="number" id="form-vagas-masc" placeholder="45" min="0" />
-                  <div style="font-size:.63rem;color:var(--suave);margin-top:.2rem;" id="form-vagas-masc-info"></div>
-                </div>
-                <div class="field">
-                  <label>Vagas femininas</label>
-                  <input type="number" id="form-vagas-fem" placeholder="45" min="0" />
-                  <div style="font-size:.63rem;color:var(--suave);margin-top:.2rem;" id="form-vagas-fem-info"></div>
-                </div>
-              </div>
-              <div class="field">
-                <label>Vagas gerais (sem distinção)</label>
-                <input type="number" id="form-vagas-geral" placeholder="0 = sem limite" min="0" />
-                <div style="font-size:.63rem;color:var(--suave);margin-top:.2rem;" id="form-vagas-geral-info"></div>
-              </div>
-              <!-- Toggle fila de espera -->
-              <div style="display:flex;align-items:center;gap:.75rem;margin-top:.5rem;">
-                <div onclick="toggleFilaEspera()" id="fila-toggle-wrap"
-                  style="width:44px;height:24px;border-radius:99px;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0;">
-                  <div id="fila-toggle-dot" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;transition:left .2s;"></div>
-                </div>
-                <div>
-                  <div style="font-size:.78rem;font-weight:600;">Fila de espera</div>
-                  <div style="font-size:.65rem;color:var(--suave);">Quando lotado, aceita inscrições com aviso de espera</div>
-                </div>
-              </div>
-              <div id="fila-msg-wrap" style="margin-top:.65rem;display:none;">
-                <div class="field" style="margin-bottom:0;">
-                  <label>Mensagem para quem entra na fila</label>
-                  <textarea id="form-fila-msg" rows="2" placeholder="Você está na fila de espera. Entraremos em contato caso uma vaga se abra."></textarea>
-                </div>
-              </div>
-              <div style="margin-top:.75rem;padding:.65rem .85rem;background:rgba(64,145,108,.08);border-radius:8px;font-size:.72rem;color:var(--suave);" id="form-vagas-resumo">
-                Configure as vagas acima e salve para ativar o controle.
-              </div>
-            </div>
-            <!-- Agendamento inline -->
-            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
-              <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">⏰ Agendamento</div>
-              <div class="field-row">
-                <div class="field"><label>Ativar em</label><input type="datetime-local" id="form-agenda-inicio" onchange="salvarAgendamentoEditor()" /></div>
-                <div class="field"><label>Desativar em</label><input type="datetime-local" id="form-agenda-fim" onchange="salvarAgendamentoEditor()" /></div>
-              </div>
-              <div id="form-agenda-preview" style="margin-top:.5rem;"></div>
-              <button class="btn btn-ghost btn-sm" onclick="limparAgendamentoEditor()" style="margin-top:.5rem;">✕ Limpar agendamento</button>
-            </div>
-            <button class="btn btn-solid btn-sm" onclick="salvarConfigFormulario()" style="margin-top:.75rem;">💾 Salvar configurações</button>
-          </div>
-
-          <!-- Perguntas -->
-          <div class="section-card">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-              <h2>📋 Perguntas</h2>
-              <span id="form-count" style="font-size:.72rem;color:var(--suave);"></span>
-            </div>
-            <div id="form-perguntas-list" style="display:flex;flex-direction:column;gap:.75rem;"></div>
-            <div id="form-empty" style="text-align:center;padding:2rem;color:var(--suave);font-size:.82rem;display:none;">
-              Nenhuma pergunta. Clique em "+ Pergunta" para começar.
-            </div>
-          </div>
-
-          <!-- Pré-visualização -->
-          <div class="section-card" style="margin-top:1.25rem;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-              <h2>👁 Pré-visualização</h2>
-              <button class="btn btn-ghost btn-sm" onclick="renderPreview()">↺ Atualizar</button>
-            </div>
-            <div id="form-preview" style="background:var(--card2);border-radius:10px;padding:1.25rem;border:1px solid var(--borda);"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══ GESTÃO DA LOJA ══ -->
-      <div class="tab" id="tab-gestao-loja">
-        <div class="page-header">
-          <div><h1>🛍️ Gestão da Loja</h1><p>Produtos, estoque e pedidos da loja online</p></div>
-          <div style="display:flex;gap:.5rem;">
-            <button class="btn btn-ghost btn-sm" onclick="window.open('loja.html','_blank')">👁 Ver Loja</button>
-            <button class="btn btn-solid btn-sm" onclick="abrirModalProdLoja()">+ Novo produto</button>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="grid-3" style="margin-bottom:1.25rem;" id="loja-stats"></div>
-
-        <!-- Lista de produtos -->
-        <div class="section-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-            <h2>📦 Produtos</h2>
-            <input type="text" id="loja-busca" placeholder="🔍 Buscar produto..."
-              oninput="renderProdutosAdmin()"
-              style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.82rem;color:var(--texto);outline:none;width:200px;" />
-          </div>
-          <div id="loja-produtos-list"></div>
-        </div>
-
-        <!-- Categorias -->
-        <div class="section-card" style="margin-top:1.25rem;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-            <h2>🏷️ Categorias</h2>
-            <button class="btn btn-solid btn-sm" onclick="abrirModalCategoria()">+ Nova categoria</button>
-          </div>
-          <div id="loja-categorias-list"></div>
-        </div>
-
-        <!-- Config -->
-        <div class="section-card" style="margin-top:1.25rem;">
-          <h2 style="margin-bottom:1rem;">⚙️ Configurações da Loja</h2>
-          <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
-            <div class="field" style="max-width:200px;margin:0;">
-              <label>⏱ Carrossel (segundos)</label>
-              <input type="number" id="cfg-carrossel-tempo" min="1" max="30" value="2"
-                oninput="salvarCfgLoja()" style="width:100%;" />
-            </div>
-            <div style="font-size:.75rem;color:var(--suave);padding-top:.3rem;">Tempo de troca automática das imagens do produto na loja.</div>
-          </div>
-        </div>
-
-        <!-- Pedidos recentes -->
-        <div class="section-card" style="margin-top:1.25rem;">
-          <h2 style="margin-bottom:1rem;">📋 Pedidos via Financeiro</h2>
-          <p style="font-size:.78rem;color:var(--suave);line-height:1.6;">
-            Cada pedido finalizado na loja é registrado automaticamente em
-            <strong style="color:var(--texto);">Financeiro → Receitas</strong>
-            com a categoria <strong style="color:var(--verde-claro);">"Lucro Loja"</strong>.
-            <button class="btn btn-ghost btn-sm" onclick="window.open('financeiro.html','_blank')" style="margin-left:.5rem;">Abrir Financeiro →</button>
-          </p>
-        </div>
-      </div>
-
-      <!-- ══ GESTÃO CÂNTICOS ══ -->
-      <div class="tab" id="tab-gestao-canticos">
-        <div class="page-header">
-          <div><h1>🎶 Gestão de Cânticos</h1><p>Letras, hinários e links de apresentação PPT</p></div>
-          <div style="display:flex;gap:.5rem;">
-            <button class="btn btn-ghost btn-sm" onclick="window.open('canticos.html','_blank')">👁 Ver Página</button>
-            <button class="btn btn-solid btn-sm" onclick="abrirModalCantico()">+ Novo cântico</button>
-          </div>
-        </div>
-
-        <!-- Busca rápida -->
-        <div class="section-card" style="margin-bottom:1rem;">
-          <div style="display:flex;gap:.5rem;align-items:center;">
-            <input type="text" id="cantico-busca" placeholder="🔍 Buscar cântico..."
-              oninput="renderCanticosAdmin()"
-              style="flex:1;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.5rem .85rem;font-size:.88rem;color:var(--texto);outline:none;" />
-            <span id="cantico-count" style="font-size:.72rem;color:var(--suave);white-space:nowrap;"></span>
-          </div>
-        </div>
-
-        <div class="section-card">
-          <div id="canticos-admin-list"></div>
-        </div>
-      </div>
-
-    </main>
-  </div>
-</div>
-
-<!-- ══ MODAL: CÂNTICO ══ -->
-<div class="modal-overlay" id="cantico-modal">
-  <div class="modal" style="max-width:620px;width:100%;max-height:92vh;overflow-y:auto;">
-    <h3 id="cm-titulo" style="font-family:'Cinzel',serif;color:var(--verde-claro);margin-bottom:1.25rem;">Novo cântico</h3>
-    <input type="hidden" id="cm-id" />
-    <div class="field-row">
-      <div class="field"><label>Título *</label><input type="text" id="cm-nome" placeholder="Ex: Grande És Tu" /></div>
-      <div class="field"><label>Autor</label><input type="text" id="cm-autor" placeholder="Ex: Carl Boberg" /></div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Categoria</label>
-        <select id="cm-categoria">
-          <option value="Hino">Hino</option>
-          <option value="Cântico">Cântico</option>
-          <option value="Louvor">Louvor</option>
-          <option value="Adoração">Adoração</option>
-          <option value="Outro">Outro</option>
-        </select>
-      </div>
-      <div class="field"><label>Tom</label><input type="text" id="cm-tom" placeholder="Ex: Ré, Fá, Sol..." /></div>
-    </div>
-    <div class="field">
-      <label>Tags <span style="font-size:.62rem;font-weight:400;color:var(--suave);">separadas por vírgula</span></label>
-      <input type="text" id="cm-tags" placeholder="clássico, adoração, acampamento" />
-    </div>
-    <div class="field">
-      <label>Link PPT (Google Drive)</label>
-      <input type="text" id="cm-drive" placeholder="https://drive.google.com/file/..." />
-      <span style="font-size:.68rem;color:var(--suave);">Cole o link de compartilhamento do Google Drive. Aparece como botão 📥 na página.</span>
-    </div>
-    <div class="field">
-      <label>Letra completa</label>
-      <span style="font-size:.68rem;color:var(--suave);display:block;margin-bottom:.4rem;">Use <code style="background:var(--card2);padding:.1rem .35rem;border-radius:4px;">[verso]</code>, <code style="background:var(--card2);padding:.1rem .35rem;border-radius:4px;">[refrão]</code> e <code style="background:var(--card2);padding:.1rem .35rem;border-radius:4px;">[ponte]</code> para marcar as seções.</span>
-      <textarea id="cm-letra" rows="10" placeholder="[verso]&#10;Senhor meu Deus...&#10;&#10;[refrão]&#10;Então minh'alma canta..."></textarea>
-    </div>
-    <div style="display:flex;align-items:center;gap:.5rem;margin:.5rem 0;">
-      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem;">
-        <input type="checkbox" id="cm-ativo" checked style="width:15px;height:15px;" /> Ativo (visível na página)
-      </label>
-    </div>
-    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-ghost" onclick="document.getElementById('cantico-modal').classList.remove('open')">Cancelar</button>
-      <button class="btn btn-solid" onclick="salvarCantico()">💾 Salvar cântico</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL: CATEGORIA ══ -->
-<div class="modal-overlay" id="cat-modal">
-  <div class="modal" style="max-width:380px;width:100%;">
-    <h3 id="cat-modal-titulo" style="font-family:'Cinzel',serif;color:var(--verde-claro);margin-bottom:1.25rem;">Nova categoria</h3>
-    <input type="hidden" id="cat-modal-idx" value="-1" />
-    <div class="field-row">
-      <div class="field"><label>Nome *</label><input type="text" id="cat-nome" placeholder="Ex: Pulseira" /></div>
-      <div class="field" style="max-width:90px;"><label>Ícone (emoji)</label><input type="text" id="cat-icone" placeholder="💎" maxlength="4" /></div>
-    </div>
-    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-ghost" onclick="document.getElementById('cat-modal').classList.remove('open')">Cancelar</button>
-      <button class="btn btn-solid" onclick="salvarCategoria()">💾 Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL: PRODUTO LOJA ══ -->
-<div class="modal-overlay" id="prod-loja-modal">
-  <div class="modal" style="max-width:580px;width:100%;max-height:90vh;overflow-y:auto;">
-    <h3 id="plm-titulo" style="font-family:'Cinzel',serif;color:var(--verde-claro);margin-bottom:1.25rem;">Novo produto</h3>
-    <input type="hidden" id="plm-id" />
-    <div class="field-row">
-      <div class="field"><label>Nome *</label><input type="text" id="plm-nome" placeholder="Ex: Moletom Temático ABCL 2026" /></div>
-      <div class="field"><label>Categoria</label>
-        <select id="plm-cat" style="min-width:140px;"></select>
-      </div>
-    </div>
-    <div class="field"><label>Descrição</label><textarea id="plm-desc" rows="3" placeholder="Descreva o produto..."></textarea></div>
-    <div class="field-row">
-      <div class="field"><label>Preço (R$) *</label><input type="number" id="plm-preco" placeholder="120.00" step="0.01" /></div>
-      <div class="field"><label>Estoque total</label><input type="number" id="plm-estoque" placeholder="50" /></div>
-    </div>
-    <div class="field"><label>Tamanhos <span style="font-size:.62rem;font-weight:400;color:var(--suave);">separados por vírgula</span></label><input type="text" id="plm-tamanhos" placeholder="PP, P, M, G, GG, XGG" /></div>
-    <div class="field-row">
-      <div class="field"><label>Cores</label><input type="text" id="plm-cores" placeholder="Preto, Chumbo, Verde" /></div>
-      <div class="field"><label>Gênero / Corte</label><input type="text" id="plm-genero" placeholder="Masculino, Feminino, Infantil" /></div>
-    </div>
-    <div class="field">
-      <label>Imagens do produto <span style="font-size:.62rem;font-weight:400;color:var(--suave);">URLs separadas por vírgula, ou faça upload</span></label>
-      <input type="text" id="plm-img-url" placeholder="https://img1.com, https://img2.com..." oninput="previewProdLoja()" style="margin-bottom:.35rem;" />
-      <input type="file" id="plm-img-file" accept="image/*" multiple onchange="lerImgProdLoja(this)" style="font-size:.78rem;color:var(--suave);margin-bottom:.5rem;" />
-      <div id="plm-img-previews" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.35rem;"></div>
-    </div>
-    <div style="display:flex;gap:1.25rem;margin:.75rem 0;font-size:.82rem;">
-      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;"><input type="checkbox" id="plm-novo" style="width:15px;height:15px;" /> Badge "NOVO"</label>
-      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;"><input type="checkbox" id="plm-ativo" checked style="width:15px;height:15px;" /> Ativo (visível na loja)</label>
-    </div>
-    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-ghost" onclick="document.getElementById('prod-loja-modal').classList.remove('open')">Cancelar</button>
-      <button class="btn btn-solid" onclick="salvarProdLoja()">💾 Salvar produto</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL: AGENDAMENTO ══ -->
-<div class="modal-overlay" id="agenda-modal">
-  <div class="modal" style="max-width:480px;width:100%;">
-    <h3>⏰ Agendamento — <span id="ag-titulo" style="color:var(--verde-cl);"></span></h3>
-    <input type="hidden" id="ag-form-id" />
-    <p style="font-size:.78rem;color:var(--suave);margin-bottom:1.25rem;">
-      Defina quando o formulário deve ficar ativo automaticamente. Deixe em branco para controlar manualmente.
-    </p>
-
-    <div class="field-row">
-      <div class="field">
-        <label>▶ Ativar em</label>
-        <input type="datetime-local" id="ag-inicio" onchange="atualizarPreviewAgendaModal()" />
-        <div style="font-size:.65rem;color:var(--suave);margin-top:.25rem;">Data e hora de início</div>
-      </div>
-      <div class="field">
-        <label>⏹ Desativar em</label>
-        <input type="datetime-local" id="ag-fim" onchange="atualizarPreviewAgendaModal()" />
-        <div style="font-size:.65rem;color:var(--suave);margin-top:.25rem;">Data e hora de fim</div>
-      </div>
-    </div>
-
-    <!-- Preview do agendamento -->
-    <div id="ag-preview" style="margin:.85rem 0;min-height:40px;"></div>
-
-    <div style="display:flex;gap:.5rem;justify-content:space-between;align-items:center;">
-      <button class="btn btn-ghost btn-sm" onclick="limparAgendamento()">✕ Limpar</button>
-      <div style="display:flex;gap:.5rem;">
-        <button class="btn btn-ghost" onclick="document.getElementById('agenda-modal').classList.remove('open')">Cancelar</button>
-        <button class="btn btn-solid" onclick="salvarAgendamento()">💾 Salvar agendamento</button>
+      <div class="links-adicionais">
+        <a href="#" onclick="esqueceuSenha(); return false;">Esqueceu sua senha?</a>
       </div>
     </div>
   </div>
-</div>
 
-<!-- ══ MODAL: PERGUNTA ══ -->
-<div class="modal-overlay" id="pergunta-modal">
-  <div class="modal" style="max-width:560px;width:100%;">
-    <h3 id="pq-modal-title">Nova pergunta</h3>
-    <input type="hidden" id="pq-id" />
+  <script src="auth.js"></script>
+  <script>
+    // ── MONITORAR STATUS DE CONEXÃO ──
+    function atualizarStatusConexao() {
+      const statusEl = document.getElementById('status-conexao');
+      const iconeEl = document.getElementById('status-icone');
+      const textoEl = document.getElementById('status-texto');
 
-    <div class="field-row">
-      <div class="field">
-        <label>Tipo de pergunta</label>
-        <select id="pq-tipo" onchange="atualizarCamposTipo()">
-          <option value="texto">Texto curto</option>
-          <option value="textarea">Texto longo</option>
-          <option value="radio">Escolha única (radio)</option>
-          <option value="checkbox">Múltipla escolha</option>
-          <option value="select">Lista suspensa</option>
-          <option value="numero">Número</option>
-          <option value="secao">Seção / Cabeçalho</option>
-          <option value="imagem">Imagem</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Obrigatória?</label>
-        <select id="pq-obrig">
-          <option value="1">Sim</option>
-          <option value="0">Não</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field" id="pq-field-label">
-      <label>Pergunta / Título</label>
-      <input type="text" id="pq-label" placeholder="Ex: Qual seu instrumento?" />
-    </div>
-
-    <div class="field" id="pq-field-desc">
-      <label>Descrição / Subtítulo <span style="font-size:.65rem;font-weight:400;color:var(--suave);">(opcional)</span></label>
-      <input type="text" id="pq-desc" placeholder="Ex: Informe o(s) instrumento(s) que você toca" />
-    </div>
-
-    <div class="field" id="pq-field-placeholder">
-      <label>Placeholder do campo</label>
-      <input type="text" id="pq-placeholder" placeholder="Ex: Violão, teclado..." />
-    </div>
-
-    <!-- Opções para radio/checkbox/select -->
-    <div class="field" id="pq-field-opcoes" style="display:none;">
-      <label>Opções <span style="font-size:.65rem;font-weight:400;color:var(--suave);">— uma por linha</span></label>
-      <textarea id="pq-opcoes" rows="6" placeholder="Sim&#10;Não&#10;Talvez"></textarea>
-    </div>
-
-    <!-- Imagem -->
-    <div class="field" id="pq-field-imagem" style="display:none;">
-      <label>Imagem (URL ou upload)</label>
-      <input type="text" id="pq-imagem-url" placeholder="https://..." style="margin-bottom:.4rem;" />
-      <input type="file" id="pq-imagem-file" accept="image/*" onchange="lerImagemPergunta(this)"
-        style="font-size:.78rem;color:var(--suave);" />
-      <img id="pq-imagem-preview" src="" style="display:none;max-width:100%;border-radius:8px;margin-top:.5rem;" />
-    </div>
-
-    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-ghost" onclick="fecharModalPergunta()">Cancelar</button>
-      <button class="btn btn-solid" onclick="salvarPergunta()">💾 Salvar pergunta</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL: LINK (já existente — não remover) ══ -->
-<div class="modal-overlay" id="link-modal">
-  <div class="modal">
-    <h3 id="link-modal-title">Novo link</h3>
-    <input type="hidden" id="lm-id" />
-    <div class="field-row">
-      <div class="field"><label>Emoji / ícone</label><input type="text" id="lm-icon" placeholder="📋" maxlength="4" /></div>
-      <div class="field"><label>Título</label><input type="text" id="lm-label" placeholder="Inscrição" /></div>
-    </div>
-    <div class="field"><label>URL</label><input type="url" id="lm-url" placeholder="https://..." /></div>
-    <div class="field"><label>Descrição curta</label><input type="text" id="lm-desc" placeholder="Formulário oficial 2026" /></div>
-    <div class="field">
-      <label>Cor de fundo do ícone</label>
-      <div class="color-row">
-        <input type="color" id="lm-bg" value="#2d6a4f" />
-        <span style="font-size:.78rem; color:var(--suave);">ex: rgba(64,145,108,.25)</span>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeLinkModal()">Cancelar</button>
-      <button class="btn btn-solid" onclick="saveLink()">Salvar link</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL: PRELETOR ══ -->
-<div class="modal-overlay" id="prel-modal">
-  <div class="modal">
-    <h3 id="prel-modal-title">Novo preletor</h3>
-    <input type="hidden" id="pm-id" />
-    <div class="field-row">
-      <div class="field"><label>Nome</label><input type="text" id="pm-nome" placeholder="Paulo Silas" /></div>
-      <div class="field"><label>Cidade</label><input type="text" id="pm-cidade" placeholder="Poços de Caldas — MG" /></div>
-    </div>
-    <div class="field"><label>Tema</label><input type="text" id="pm-tema" placeholder="Amar a Família de Deus" /></div>
-    <div class="field"><label>Subtítulo do tema</label><input type="text" id="pm-sub" placeholder="Um estudo sobre a Igreja Local..." /></div>
-    <div class="field"><label>Biografia curta</label><textarea id="pm-bio" rows="3" placeholder="Breve apresentação do preletor — aparece no card do site."></textarea></div>
-    <div class="field">
-      <label>Foto (opcional)</label>
-      <div class="upload-area" style="padding:1rem;" onclick="document.getElementById('prel-photo-upload').click()">
-        <input type="file" id="prel-photo-upload" accept="image/*" style="display:none" onchange="previewPrelPhoto(this)" />
-        <img id="pm-photo-preview" src="" style="width:60px;height:60px;border-radius:50%;object-fit:cover;margin:0 auto .5rem;display:none;border:2px solid var(--borda);" />
-        <div class="upload-text" style="font-size:.78rem;">Clique para adicionar foto</div>
-      </div>
-      <input type="hidden" id="pm-photo" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closePrelModal()">Cancelar</button>
-      <button class="btn btn-solid" onclick="savePrel()">Salvar preletor</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
-
-<script>
-// ══════════════════════════════════════════════════
-// AUTH — credenciais simples
-// ══════════════════════════════════════════════════
-const USERS = {
-  'naasson':  'abcl2026',
-  'haniel':   'abcl2026',
-  'mauri':    'abcl2026',
-  'admin':    'abcl@admin',
-};
-
-function doLogin() {
-  const u = document.getElementById('login-user').value.trim().toLowerCase();
-  const p = document.getElementById('login-pass').value;
-  if (USERS[u] && USERS[u] === p) {
-    sessionStorage.setItem('abcl-auth', u);
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'block';
-    document.getElementById('user-name-display').textContent = u;
-    initAdmin();
-  } else {
-    document.getElementById('login-error').style.display = 'block';
-  }
-}
-
-function doLogout() {
-  sessionStorage.removeItem('abcl-auth');
-  location.reload();
-}
-
-// Check session on load
-window.addEventListener('DOMContentLoaded', () => {
-  const u = sessionStorage.getItem('abcl-auth');
-  if (u) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'block';
-    document.getElementById('user-name-display').textContent = u;
-    initAdmin();
-  }
-});
-
-// ══════════════════════════════════════════════════
-// STORAGE HELPERS
-// ══════════════════════════════════════════════════
-const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
-const set = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-function trySet(k, v) {
-  try {
-    set(k, v);
-    return true;
-  } catch (err) {
-    if (err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''))) {
-      toast('⚠️ Espaço do navegador cheio. Reduza a imagem do produto ou remova itens antigos.');
-      return false;
+      if (navigator.onLine) {
+        statusEl.classList.remove('offline');
+        statusEl.classList.add('online');
+        iconeEl.textContent = '🟢';
+        textoEl.textContent = 'Online';
+      } else {
+        statusEl.classList.remove('online');
+        statusEl.classList.add('offline');
+        iconeEl.textContent = '🔴';
+        textoEl.textContent = 'Offline — Auth local ativo';
+      }
     }
-    throw err;
-  }
-}
 
-const DEFAULT_LINKS = [
-  { id:1, icon:'📋', label:'Inscrição', desc:'Formulário oficial 2026', url:'https://forms.gle/VAdsxWVp7fedCzD76', bg:'rgba(64,145,108,.25)' },
-  { id:2, icon:'📸', label:'Instagram', desc:'@abcl.oficial', url:'https://instagram.com/', bg:'rgba(225,48,108,.22)' },
-  { id:3, icon:'▶️', label:'YouTube',   desc:'Mensagens e louvor', url:'https://youtube.com/', bg:'rgba(255,0,0,.18)' },
-  { id:4, icon:'💬', label:'WhatsApp',  desc:'(31) 98826-2599', url:'https://wa.me/5531988262599', bg:'rgba(37,211,102,.2)' },
-  { id:5, icon:'📍', label:'Localização', desc:'Sítio Recanto Del Rey — Queluzito/MG', url:'https://maps.google.com/?q=Queluzito+MG', bg:'rgba(66,133,244,.2)' },
-  { id:6, icon:'🏕', label:'Site do Acampamento', desc:'Informações e inscrições', url:'index.html', bg:'rgba(64,145,108,.18)' },
-];
-
-const DEFAULT_PREL = [
-  { id:1, nome:'Paulo Silas', cidade:'Poços de Caldas — MG', tema:'Amar a Família de Deus', sub:'Um estudo sobre a Igreja Local', bio:'', photo:'' },
-  { id:2, nome:'Evaldo Soares', cidade:'Córrego Fundo — MG', tema:'A Relativização da Verdade', sub:'Estudos sobre os tempos em que vivemos', bio:'', photo:'' },
-];
-
-const DEFAULT_CONT = {
-  edicao:'13º', ano:'2026', data:'4 a 7 de Junho de 2026', local:'Sítio Recanto Del Rey — Queluzito/MG',
-  idade:'A partir de 14 anos', estadia:'185', diaria:'60', inscricao:'A partir de 1º de Junho',
-  forms:'https://forms.gle/VAdsxWVp7fedCzD76', whats:'5531988262599',
-  versiculo:'Efésios 2:19',
-  t1titulo:'Amar a Família de Deus', t1sub:'Um estudo sobre a Igreja Local — Composição, Propósito e Futuro',
-  t2titulo:'A Relativização da Verdade', t2sub:'Estudos sobre os tempos em que vivemos',
-};
-
-function getLinks() { return get('abcl-links') || DEFAULT_LINKS; }
-function getPrels() { return get('abcl-preletores') || DEFAULT_PREL; }
-function getCont()  { return { ...DEFAULT_CONT, ...(get('abcl-conteudo') || {}) }; }
-
-// ══════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════
-function initAdmin() {
-  renderDashboard();
-  renderLinks();
-  renderPrels();
-  loadConteudo();
-  loadVisual();
-  renderLojaStats();
-  renderProdutosAdmin();
-  renderCategoriasAdmin();
-  carregarCfgLoja();
-  renderHinosAdmin();
-  renderCanticosAdmin();
-}
-
-// ── DASHBOARD ──
-function renderDashboard() {
-  const links = getLinks();
-  const prels = getPrels();
-  const sales = JSON.parse(localStorage.getItem('abcl-sales-v2') || localStorage.getItem('abcl-sales') || '[]');
-  const cont  = getCont();
-
-  document.getElementById('d-links-count').textContent = links.length;
-  document.getElementById('d-prel-count').textContent  = prels.length;
-  document.getElementById('d-vendas').textContent      = sales.filter(s => s.data === new Date().toLocaleDateString('pt-BR')).length;
-  document.getElementById('d-edicao').textContent = cont.edicao;
-  document.getElementById('d-data').textContent   = cont.data;
-  document.getElementById('d-local').textContent  = cont.local;
-
-  // Visitas
-  try {
-    const v = JSON.parse(localStorage.getItem('abcl-visitas')) || { total: 0, visitas: [] };
-    document.getElementById('d-visitas-total').textContent = v.total || 0;
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const hojeCount = (v.visitas || []).filter(x => x.data === hoje).length;
-    document.getElementById('d-visitas-sub').textContent = `${hojeCount} hoje`;
-    // Top cidade
-    const cidadeMap = {};
-    (v.visitas || []).forEach(x => { if (x.cidade && x.cidade !== '—') cidadeMap[x.cidade] = (cidadeMap[x.cidade]||0)+1; });
-    const topCidade = Object.entries(cidadeMap).sort((a,b)=>b[1]-a[1])[0];
-    document.getElementById('d-top-cidade').textContent = topCidade ? `${topCidade[0]} (${topCidade[1]})` : '—';
-    // Última visita
-    const ultima = v.visitas?.[0];
-    document.getElementById('d-ultima-visita').textContent = ultima ? `${ultima.data} ${ultima.hora}` : '—';
-  } catch(e) {}
-}
-
-// ── VISITAS ──
-function renderVisitas() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('abcl-visitas')) || { total: 0, visitas: [] };
-    const visitas = stored.visitas || [];
-
-    // Stats cards
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const hojeCount = visitas.filter(x => x.data === hoje).length;
-    const semana = visitas.filter(x => {
-      const d = new Date(); d.setDate(d.getDate()-7);
-      return new Date(x.ts) >= d;
-    }).length;
-    document.getElementById('visitas-stats').innerHTML = `
-      <div class="stat-card"><div class="sc-label">Total visitas</div><div class="sc-value" style="color:var(--verde-claro);">${stored.total}</div></div>
-      <div class="stat-card"><div class="sc-label">Hoje</div><div class="sc-value">${hojeCount}</div></div>
-      <div class="stat-card"><div class="sc-label">Últimos 7 dias</div><div class="sc-value">${semana}</div></div>
-    `;
-
-    // Top cidades
-    const cidadeMap = {}, estadoMap = {};
-    visitas.forEach(x => {
-      if (x.cidade && x.cidade !== '—') cidadeMap[x.cidade] = (cidadeMap[x.cidade]||0)+1;
-      if (x.estado && x.estado !== '—') estadoMap[x.estado] = (estadoMap[x.estado]||0)+1;
-    });
-    const maxC = Math.max(...Object.values(cidadeMap), 1);
-    const maxE = Math.max(...Object.values(estadoMap), 1);
-
-    document.getElementById('visitas-cidades').innerHTML = Object.entries(cidadeMap)
-      .sort((a,b)=>b[1]-a[1]).slice(0,8).map(([nome,n]) => `
-        <div style="margin-bottom:.6rem;">
-          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.25rem;">
-            <span>${nome}</span><span style="color:var(--suave);">${n}</span>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;">
-            <div style="width:${(n/maxC*100).toFixed(1)}%;height:100%;border-radius:99px;background:var(--verde-mid);transition:width .6s;"></div>
-          </div>
-        </div>`).join('') || '<p style="font-size:.78rem;color:var(--suave);">Sem dados ainda.</p>';
-
-    document.getElementById('visitas-estados').innerHTML = Object.entries(estadoMap)
-      .sort((a,b)=>b[1]-a[1]).slice(0,8).map(([nome,n]) => `
-        <div style="margin-bottom:.6rem;">
-          <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.25rem;">
-            <span>${nome}</span><span style="color:var(--suave);">${n}</span>
-          </div>
-          <div style="background:rgba(255,255,255,.06);border-radius:99px;height:6px;">
-            <div style="width:${(n/maxE*100).toFixed(1)}%;height:100%;border-radius:99px;background:var(--verde-cl);transition:width .6s;"></div>
-          </div>
-        </div>`).join('') || '<p style="font-size:.78rem;color:var(--suave);">Sem dados ainda.</p>';
-
-    // Histórico
-    document.getElementById('visitas-list').innerHTML = visitas.slice(0,100).map(v => `
-      <tr>
-        <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);color:var(--suave);">${v.data||'—'}</td>
-        <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);color:var(--suave);">${v.hora||'—'}</td>
-        <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);">${v.cidade||'—'}</td>
-        <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);color:var(--suave);">${v.estado||'—'}</td>
-        <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);">${v.paisCode||'—'} ${v.pais||'—'}</td>
-      </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--suave);font-size:.78rem;">Nenhuma visita registrada ainda. Acesse o site pelo index.html.</td></tr>';
-
-  } catch(e) {
-    document.getElementById('visitas-stats').innerHTML = '<p style="color:var(--suave);font-size:.78rem;">Erro ao carregar dados.</p>';
-  }
-}
-
-function limparVisitas() {
-  if (!confirm('Apagar todos os dados de visitas?')) return;
-  localStorage.removeItem('abcl-visitas');
-  renderVisitas(); renderDashboard();
-  toast('🗑 Dados de visitas apagados.');
-}
-
-// ══════════════════════════════════════════════════
-// INSIGHTS — PERFIL DOS ACAMPANTES
-// ══════════════════════════════════════════════════
-function renderInsights() {
-  const lista = JSON.parse(localStorage.getItem('abcl-inscricoes-perfil') || '[]');
-  const total = lista.length;
-
-  // Stats
-  const musicos = lista.filter(i => i.musica && i.musica !== 'Não');
-  const servidores = lista.filter(i => i.servir === 'Sim' || i.servir === 'Talvez');
-  const primeiros  = lista.filter(i => i.primeira === 'Sim, primeira vez');
-  document.getElementById('ins-stats').innerHTML = `
-    <div class="stat-card"><div class="sc-label">Inscrições com perfil</div><div class="sc-value" style="color:var(--verde-claro);">${total}</div></div>
-    <div class="stat-card"><div class="sc-label">Primeira vez</div><div class="sc-value">${primeiros.length} <span style="font-size:.75rem;color:var(--suave);">(${total?Math.round(primeiros.length/total*100):0}%)</span></div></div>
-    <div class="stat-card"><div class="sc-label">Músicos</div><div class="sc-value">${musicos.length}</div></div>
-    <div class="stat-card"><div class="sc-label">Querem servir</div><div class="sc-value">${servidores.length}</div></div>
-    <div class="stat-card"><div class="sc-label">Igrejas diferentes</div><div class="sc-value">${new Set(lista.map(i=>i.igreja).filter(Boolean)).size}</div></div>
-  `;
-
-  function barChart(containerId, data) {
-    const max = Math.max(...Object.values(data), 1);
-    const total2 = Object.values(data).reduce((a,b)=>a+b,0) || 1;
-    const COLORS = ['#40916C','#74C69D','#2D6A4F','#52B788','#95D5B2','#3B82F6','#F59E0B','#EF4444'];
-    document.getElementById(containerId).innerHTML = Object.entries(data).length
-      ? Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([label,n],i) => `
-          <div style="margin-bottom:.65rem;">
-            <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.25rem;">
-              <span>${label}</span>
-              <span style="color:var(--suave);">${n} <span style="font-size:.68rem;">(${Math.round(n/total2*100)}%)</span></span>
-            </div>
-            <div style="background:rgba(255,255,255,.06);border-radius:99px;height:7px;">
-              <div style="width:${(n/max*100).toFixed(1)}%;height:100%;border-radius:99px;background:${COLORS[i%COLORS.length]};transition:width .6s;"></div>
-            </div>
-          </div>`).join('')
-      : `<p style="font-size:.78rem;color:var(--suave);">Sem dados ainda.</p>`;
-  }
-
-  function countBy(arr, key) {
-    return arr.reduce((m,i) => { const v=i[key]; if(v) m[v]=(m[v]||0)+1; return m; }, {});
-  }
-
-  barChart('ins-primeira',   countBy(lista, 'primeira'));
-  barChart('ins-origem',     countBy(lista, 'origem'));
-  barChart('ins-faixa',      countBy(lista, 'faixa'));
-  barChart('ins-musica',     countBy(lista, 'musica'));
-  barChart('ins-servir',     countBy(lista, 'servir'));
-  barChart('ins-modalidade', countBy(lista, 'modalidade'));
-  barChart('ins-pagamento',  countBy(lista, 'pagamento'));
-  barChart('ins-situacao',   countBy(lista, 'situacao'));
-
-  // Igrejas
-  const igrejas = countBy(lista, 'igreja');
-  barChart('ins-igrejas', igrejas);
-
-  // Músicos que querem servir
-  const musicosServir = lista.filter(i => i.musica && i.musica !== 'Não');
-  document.getElementById('ins-musicos-list').innerHTML = musicosServir.length
-    ? musicosServir.map(i => `
-        <tr>
-          <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);">${i.nome||'—'}</td>
-          <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);color:var(--suave);">${i.musica||'—'}</td>
-          <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);">${i.instrumento||'—'}</td>
-          <td style="padding:.5rem .75rem;border-bottom:1px solid rgba(64,145,108,.07);"><span style="font-size:.72rem;padding:.2rem .55rem;border-radius:4px;background:${i.servir==='Sim'?'rgba(64,145,108,.2)':'rgba(245,158,11,.15)'};color:${i.servir==='Sim'?'var(--verde-claro)':'#fbbf24'};">${i.servir||'—'}</span></td>
-        </tr>`).join('')
-    : `<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--suave);font-size:.78rem;">Nenhum músico identificado ainda.</td></tr>`;
-}
-
-function limparInsights() {
-  if (!confirm('Apagar todos os dados de perfil?')) return;
-  localStorage.removeItem('abcl-inscricoes-perfil');
-  renderInsights();
-  toast('🗑 Dados de insights apagados.');
-}
-
-// ── LINKS ──
-function renderLinks() {
-  const links = getLinks();
-  document.getElementById('d-links-count').textContent = links.length;
-
-  const header = get('abcl-header') || { nome:'ABCL', sub:'Acampamento Bíblico · Conselheiro Lafaiete' };
-  document.getElementById('h-nome').value = header.nome;
-  document.getElementById('h-sub').value  = header.sub;
-
-  document.getElementById('links-list').innerHTML = links.map(l => `
-    <div class="link-row">
-      <span class="link-row-icon">${l.icon || '🔗'}</span>
-      <div class="link-row-info">
-        <div class="lr-title">${l.label}</div>
-        <div class="lr-url">${l.url || '—'}</div>
-      </div>
-      <div class="link-row-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openLinkModal(${l.id})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteLink(${l.id})">🗑</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-let editingLinkId = null;
-
-function openLinkModal(id) {
-  editingLinkId = id || null;
-  const links = getLinks();
-  const l = id ? links.find(x => x.id === id) : null;
-
-  document.getElementById('link-modal-title').textContent = id ? 'Editar link' : 'Novo link';
-  document.getElementById('lm-icon').value  = l?.icon  || '';
-  document.getElementById('lm-label').value = l?.label || '';
-  document.getElementById('lm-url').value   = l?.url   || '';
-  document.getElementById('lm-desc').value  = l?.desc  || '';
-  document.getElementById('link-modal').classList.add('open');
-}
-
-function closeLinkModal() {
-  document.getElementById('link-modal').classList.remove('open');
-}
-
-function saveLink() {
-  const links = getLinks();
-  const obj = {
-    id:    editingLinkId || Date.now(),
-    icon:  document.getElementById('lm-icon').value.trim()  || '🔗',
-    label: document.getElementById('lm-label').value.trim() || 'Link',
-    url:   document.getElementById('lm-url').value.trim(),
-    desc:  document.getElementById('lm-desc').value.trim(),
-    bg:    'rgba(64,145,108,.2)',
-  };
-  if (editingLinkId) {
-    const idx = links.findIndex(x => x.id === editingLinkId);
-    if (idx !== -1) links[idx] = obj;
-  } else {
-    links.push(obj);
-  }
-  set('abcl-links', links);
-  closeLinkModal();
-  renderLinks();
-  toast('Link salvo!');
-}
-
-function deleteLink(id) {
-  if (!confirm('Remover este link?')) return;
-  const links = getLinks().filter(l => l.id !== id);
-  set('abcl-links', links);
-  renderLinks();
-  toast('Link removido.');
-}
-
-function saveHeader() {
-  set('abcl-header', {
-    nome: document.getElementById('h-nome').value.trim(),
-    sub:  document.getElementById('h-sub').value.trim(),
-  });
-  toast('Cabeçalho salvo!');
-}
-
-// ── PRELETORES ──
-function renderPrels() {
-  const prels = getPrels();
-  document.getElementById('d-prel-count').textContent = prels.length;
-
-  document.getElementById('prel-list').innerHTML = prels.map(p => `
-    <div class="prel-card">
-      ${p.photo
-        ? `<img src="${p.photo}" class="prel-photo" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--borda);" />`
-        : `<div class="prel-photo" style="font-size:1.1rem;">${p.nome.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>`}
-      <div class="prel-info">
-        <div class="prel-nome">${p.nome}</div>
-        <div class="prel-local">📍 ${p.cidade}</div>
-        <div class="prel-tema">${p.tema}${p.sub ? ` — ${p.sub}` : ''}</div>
-      </div>
-      <div style="display:flex;gap:.4rem;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="openPrelModal(${p.id})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="deletePrel(${p.id})">🗑</button>
-      </div>
-    </div>
-  `).join('') || '<p style="color:var(--suave);font-size:.85rem;">Nenhum preletor cadastrado.</p>';
-}
-
-let editingPrelId = null;
-
-function openPrelModal(id) {
-  editingPrelId = id || null;
-  const prels = getPrels();
-  const p = id ? prels.find(x => x.id === id) : null;
-
-  document.getElementById('prel-modal-title').textContent = id ? 'Editar preletor' : 'Novo preletor';
-  document.getElementById('pm-nome').value   = p?.nome   || '';
-  document.getElementById('pm-cidade').value = p?.cidade || '';
-  document.getElementById('pm-tema').value   = p?.tema   || '';
-  document.getElementById('pm-sub').value    = p?.sub    || '';
-  document.getElementById('pm-bio').value    = p?.bio    || '';
-  document.getElementById('pm-photo').value  = p?.photo  || '';
-
-  const prev = document.getElementById('pm-photo-preview');
-  if (p?.photo) { prev.src = p.photo; prev.style.display = 'block'; }
-  else { prev.style.display = 'none'; }
-
-  document.getElementById('prel-modal').classList.add('open');
-}
-
-function closePrelModal() {
-  document.getElementById('prel-modal').classList.remove('open');
-}
-
-function previewPrelPhoto(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('pm-photo').value = e.target.result;
-    const prev = document.getElementById('pm-photo-preview');
-    prev.src = e.target.result;
-    prev.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-}
-
-function savePrel() {
-  const prels = getPrels();
-  const obj = {
-    id:     editingPrelId || Date.now(),
-    nome:   document.getElementById('pm-nome').value.trim(),
-    cidade: document.getElementById('pm-cidade').value.trim(),
-    tema:   document.getElementById('pm-tema').value.trim(),
-    sub:    document.getElementById('pm-sub').value.trim(),
-    bio:    document.getElementById('pm-bio').value.trim(),
-    photo:  document.getElementById('pm-photo').value,
-  };
-  if (editingPrelId) {
-    const idx = prels.findIndex(x => x.id === editingPrelId);
-    if (idx !== -1) prels[idx] = obj;
-  } else {
-    prels.push(obj);
-  }
-  set('abcl-preletores', prels);
-  closePrelModal();
-  renderPrels();
-  toast('Preletor salvo!');
-}
-
-function deletePrel(id) {
-  if (!confirm('Remover este preletor?')) return;
-  set('abcl-preletores', getPrels().filter(p => p.id !== id));
-  renderPrels();
-  toast('Preletor removido.');
-}
-
-// ── CONTEÚDO ──
-function loadConteudo() {
-  const c = getCont();
-  document.getElementById('c-edicao').value    = c.edicao;
-  document.getElementById('c-ano').value       = c.ano;
-  document.getElementById('c-data').value      = c.data;
-  document.getElementById('c-local').value     = c.local;
-  document.getElementById('c-idade').value     = c.idade;
-  document.getElementById('c-estadia').value   = c.estadia;
-  document.getElementById('c-diaria').value    = c.diaria;
-  document.getElementById('c-inscricao').value = c.inscricao;
-  document.getElementById('c-forms').value     = c.forms;
-  document.getElementById('c-whats').value     = c.whats;
-  document.getElementById('c-versiculo').value = c.versiculo;
-  document.getElementById('t1-titulo').value   = c.t1titulo;
-  document.getElementById('t1-sub').value      = c.t1sub;
-  document.getElementById('t2-titulo').value   = c.t2titulo;
-  document.getElementById('t2-sub').value      = c.t2sub;
-}
-
-function saveConteudo() {
-  const c = {
-    edicao:   document.getElementById('c-edicao').value.trim(),
-    ano:      document.getElementById('c-ano').value.trim(),
-    data:     document.getElementById('c-data').value.trim(),
-    local:    document.getElementById('c-local').value.trim(),
-    idade:    document.getElementById('c-idade').value.trim(),
-    estadia:  document.getElementById('c-estadia').value.trim(),
-    diaria:   document.getElementById('c-diaria').value.trim(),
-    inscricao:document.getElementById('c-inscricao').value.trim(),
-    forms:    document.getElementById('c-forms').value.trim(),
-    whats:    document.getElementById('c-whats').value.trim(),
-    versiculo:document.getElementById('c-versiculo').value.trim(),
-    t1titulo: document.getElementById('t1-titulo').value.trim(),
-    t1sub:    document.getElementById('t1-sub').value.trim(),
-    t2titulo: document.getElementById('t2-titulo').value.trim(),
-    t2sub:    document.getElementById('t2-sub').value.trim(),
-  };
-  set('abcl-conteudo', c);
-  renderDashboard();
-  toast('Conteúdo salvo com sucesso!');
-}
-
-// ── VISUAL ──
-function loadVisual() {
-  const v = get('abcl-visual') || {};
-  if (v.verde) { document.getElementById('v-verde').value = v.verde; document.getElementById('v-verde-prev').style.background = v.verde; }
-  if (v.claro) { document.getElementById('v-claro').value = v.claro; document.getElementById('v-claro-prev').style.background = v.claro; }
-  if (v.fundo) { document.getElementById('v-fundo').value = v.fundo; document.getElementById('v-fundo-prev').style.background = v.fundo; }
-}
-
-function previewColor(input, previewId) {
-  document.getElementById(previewId).style.background = input.value;
-}
-
-function saveVisual() {
-  set('abcl-visual', {
-    verde: document.getElementById('v-verde').value,
-    claro: document.getElementById('v-claro').value,
-    fundo: document.getElementById('v-fundo').value,
-  });
-  toast('Visual salvo!');
-}
-
-function previewLogo(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('logo-preview').src = e.target.result;
-    set('abcl-logo', e.target.result);
-  };
-  reader.readAsDataURL(file);
-}
-
-// ── UI UTILS ──
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name)?.classList.add('active');
-  if (btn) btn.classList.add('active');
-  if (name === 'visitas')     renderVisitas();
-  if (name === 'insights')    renderInsights();
-  if (name === 'dashboard')   renderDashboard();
-  if (name === 'formularios') initFormularios();
-  if (name === 'gestao-loja') initGestaoloja();
-  if (name === 'gestao-canticos') initGestaoCanticos();
-  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
-}
-
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-}
-
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2800);
-}
-
-// ══════════════════════════════════════════════════
-// MULTI-FORMULÁRIOS
-// ══════════════════════════════════════════════════
-let _formAtualId = null;
-
-function getTodosForms() { return get('abcl-forms-lista') || []; }
-function setTodosForms(lista) { set('abcl-forms-lista', lista); }
-function getFormById(id) { return getTodosForms().find(f => f.id === id) || null; }
-function salvarForm(form) {
-  const lista = getTodosForms();
-  const idx = lista.findIndex(f => f.id === form.id);
-  if (idx >= 0) lista[idx] = form; else lista.push(form);
-  setTodosForms(lista);
-}
-
-function getPerguntasPerfil() {
-  return [
-    { id:1, tipo:'radio',    label:'É sua primeira vez no ABCL?',            obrig:true,  opcoes:['Sim, primeira vez! 🎉','Já fui em edições anteriores'] },
-    { id:2, tipo:'select',   label:'Faixa etária',                            obrig:true,  opcoes:['Abaixo de 14 anos','14–17 anos','18–24 anos','25–35 anos','Acima de 35 anos'] },
-    { id:3, tipo:'texto',    label:'De qual cidade você vem?',                obrig:true,  placeholder:'Ex: Conselheiro Lafaiete...' },
-    { id:4, tipo:'radio',    label:'Como ficou sabendo do acampamento?',      obrig:true,  opcoes:['Instagram','WhatsApp / indicação','Igreja','Já conhecia','Outro'] },
-    { id:5, tipo:'radio',    label:'Toca instrumento ou canta?',              obrig:true,  opcoes:['Sim — instrumento','Sim — canto','Ambos','Não'] },
-    { id:6, tipo:'texto',    label:'Se sim, qual(is) instrumento(s)?',        obrig:false, placeholder:'Ex: violão, bateria, piano...' },
-    { id:7, tipo:'radio',    label:'Interesse em servir na organização?',     obrig:true,  opcoes:['Sim, adoraria! 🙋','Talvez','Não desta vez'] },
-    { id:8, tipo:'textarea', label:'Alguma expectativa ou palavra?',          obrig:false, placeholder:'Compartilhe o que quiser...' },
-  ];
-}
-
-function getPerguntasInscricao() {
-  return [
-    { id:1,  tipo:'secao',    label:'Dados Pessoais' },
-    { id:2,  tipo:'texto',    label:'Nome completo',  obrig:true,  placeholder:'Seu nome completo' },
-    { id:3,  tipo:'numero',   label:'Sua idade',      obrig:true,  placeholder:'Ex: 22' },
-    { id:4,  tipo:'radio',    label:'Sexo',           obrig:true,  opcoes:['Masculino','Feminino'] },
-    { id:5,  tipo:'texto',    label:'Número de telefone com DDD (WhatsApp)', obrig:true, placeholder:'(31) 99999-9999' },
-    { id:6,  tipo:'texto',    label:'Seu e-mail',     obrig:false, placeholder:'seu@email.com' },
-    { id:7,  tipo:'texto',    label:'Seu endereço',   obrig:true,  placeholder:'Rua, número, bairro, cidade' },
-    { id:8,  tipo:'texto',    label:'Responsável e contato (se menor de idade)', obrig:false, placeholder:'Nome e telefone' },
-    { id:9,  tipo:'secao',    label:'Igreja' },
-    { id:10, tipo:'texto',    label:'Igreja (Localidade)',           obrig:true,  placeholder:'Nome da sua igreja' },
-    { id:11, tipo:'radio',    label:'É membro?',                    obrig:true,  opcoes:['Sim','Não'] },
-    { id:12, tipo:'texto',    label:'Presbítero de sua igreja local (contato se possível)', obrig:true, placeholder:'Nome e telefone' },
-    { id:13, tipo:'secao',    label:'Estadia e Pagamento' },
-    { id:14, tipo:'radio',    label:'Diária ou Estadia Completa?',  obrig:true,
-      opcoes:['Estadia completa — R$ 200,00','Diária Quinta 04/06 — R$ 65,00','Diária Sexta 05/06 — R$ 65,00','Diária Sábado 06/06 — R$ 65,00','Diária Domingo 07/06 — R$ 65,00','Diária todos os dias — R$ 200,00'] },
-    { id:15, tipo:'radio',    label:'Forma de pagamento',           obrig:true,  opcoes:['Dinheiro','PIX'] },
-    { id:16, tipo:'secao',    label:'Observações' },
-    { id:17, tipo:'texto',    label:'Restrição alimentar? Sim / Não — Se sim, qual(ais)?', obrig:true, placeholder:'Não / Sim — informe qual' },
-    { id:18, tipo:'textarea', label:'Gostaria de deixar alguma observação?', obrig:false, placeholder:'Dúvidas, necessidades especiais...' },
-    { id:19, tipo:'secao',    label:'Regulamento' },
-    { id:20, tipo:'checkbox', label:'Li e aceito o regulamento.',   obrig:true,
-      opcoes:['Confirmo que li e concordo com todos os pontos do regulamento'] },
-  ];
-}
-
-function garantirFormsDefault() {
-  if (getTodosForms().length > 0) return;
-  setTodosForms([
-    { id:'inscricao', titulo:'Inscrição ABCL 2026', subtitulo:'13º Acampamento Bíblico · Conselheiro Lafaiete',
-      whats:'5531988262599', btnLabel:'Enviar inscrição pelo WhatsApp', capa:'', ativo:true, tipo:'inscricao',
-      perguntas:getPerguntasInscricao(), criadoEm:new Date().toLocaleDateString('pt-BR') },
-    { id:'perfil', titulo:'Perfil do Acampante', subtitulo:'Conte um pouco mais sobre você 🏕️',
-      whats:'5531988262599', btnLabel:'Enviar pelo WhatsApp', capa:'', ativo:true, tipo:'perfil',
-      perguntas:getPerguntasPerfil(), criadoEm:new Date().toLocaleDateString('pt-BR') },
-  ]);
-}
-
-function _statusAgendamento(f) {
-  // Retorna: 'ativo' | 'inativo' | 'agendado' | 'expirado'
-  const agora = new Date();
-  const ini = f.agendaInicio ? new Date(f.agendaInicio) : null;
-  const fim = f.agendaFim    ? new Date(f.agendaFim)    : null;
-  if (ini && agora < ini) return 'agendado';
-  if (fim && agora > fim)  return 'expirado';
-  if (ini && agora >= ini && (!fim || agora <= fim)) return 'ativo';
-  return f.ativo ? 'ativo' : 'inativo';
-}
-
-function _badgeAgendamento(f) {
-  const s = _statusAgendamento(f);
-  const fmt = iso => iso ? new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-  const configs = {
-    ativo:     { bg:'rgba(64,145,108,.18)',  cor:'var(--verde-cl)',         borda:'rgba(64,145,108,.3)',   label:'● Ativo' },
-    inativo:   { bg:'rgba(255,255,255,.04)', cor:'var(--suave)',            borda:'var(--borda)',           label:'○ Inativo' },
-    agendado:  { bg:'rgba(245,158,11,.12)',  cor:'#fbbf24',                 borda:'rgba(245,158,11,.3)',    label:'⏰ Agendado' },
-    expirado:  { bg:'rgba(239,68,68,.1)',    cor:'#fca5a5',                 borda:'rgba(239,68,68,.25)',    label:'✕ Expirado' },
-  };
-  const c = configs[s];
-  let sub = '';
-  if (s === 'agendado' && f.agendaInicio) sub = `<div style="font-size:.6rem;color:var(--suave);margin-top:.15rem;">Ativa em ${fmt(f.agendaInicio)}</div>`;
-  if (s === 'ativo'    && f.agendaFim)    sub = `<div style="font-size:.6rem;color:var(--suave);margin-top:.15rem;">Expira ${fmt(f.agendaFim)}</div>`;
-  if (s === 'expirado' && f.agendaFim)    sub = `<div style="font-size:.6rem;color:var(--suave);margin-top:.15rem;">Expirou ${fmt(f.agendaFim)}</div>`;
-  return `<div style="text-align:center;">
-    <span style="font-size:.68rem;padding:.25rem .65rem;border-radius:99px;font-weight:600;border:1px solid;
-      background:${c.bg};color:${c.cor};border-color:${c.borda};">${c.label}</span>
-    ${sub}
-  </div>`;
-}
-
-function renderListaForms() {
-  garantirFormsDefault();
-  // Verificar agendamentos automáticos
-  const lista = getTodosForms();
-  let mudou = false;
-  lista.forEach(f => {
-    const s = _statusAgendamento(f);
-    const deveAtivo = s === 'ativo';
-    if (f.agendaInicio || f.agendaFim) {
-      if (f.ativo !== deveAtivo) { f.ativo = deveAtivo; mudou = true; }
-    }
-  });
-  if (mudou) setTodosForms(lista);
-
-  const ICON = { inscricao:'📋', perfil:'👤' };
-  document.getElementById('forms-lista').innerHTML = lista.map(f => `
-    <div style="background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:1.1rem 1.25rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 12px rgba(0,0,0,.18);">
-      <div style="font-size:1.5rem;">${ICON[f.tipo]||'📝'}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:.92rem;margin-bottom:.15rem;">${f.titulo}</div>
-        <div style="font-size:.72rem;color:var(--suave);">
-          ${f.subtitulo||''} &middot; ${(f.perguntas||[]).length} perguntas &middot; ${f.criadoEm||''}
-          ${f.agendaInicio||f.agendaFim ? '<span style="color:rgba(245,158,11,.7);margin-left:.3rem;">⏰</span>' : ''}
-        </div>
-      </div>
-      <div onclick="toggleFormAtivoById('${f.id}')" style="cursor:pointer;flex-shrink:0;" title="Clique para alternar">
-        ${_badgeAgendamento(f)}
-      </div>
-      <div style="display:flex;gap:.4rem;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="abrirAgendamento('${f.id}')" title="Agendar">⏰</button>
-        <button class="btn btn-ghost btn-sm" onclick="verFormularioById('${f.id}')">👁</button>
-        <button class="btn btn-ghost btn-sm" onclick="editarFormulario('${f.id}')">✏️ Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="excluirFormulario('${f.id}')"
-          ${['inscricao','perfil'].includes(f.id)?'disabled title="Formulário padrão"':''}>✕</button>
-      </div>
-    </div>`).join('') || '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum formulário.</p>';
-}
-
-function criarNovoFormulario() {
-  const nome = prompt('Nome do novo formulário:');
-  if (!nome) return;
-  const id = 'form_' + Date.now();
-  salvarForm({ id, titulo:nome, subtitulo:'', whats:'5531988262599', btnLabel:'Enviar pelo WhatsApp',
-    capa:'', ativo:false, tipo:'custom', perguntas:[], criadoEm:new Date().toLocaleDateString('pt-BR') });
-  editarFormulario(id);
-}
-
-// ── VAGAS E FILA DE ESPERA ──
-function toggleFilaEspera() {
-  if (!_formAtualId) return;
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === _formAtualId);
-  if (!f) return;
-  f.filaEspera = !f.filaEspera;
-  setTodosForms(lista);
-  _atualizarToggleFila(f.filaEspera);
-}
-
-function _atualizarToggleFila(ativo) {
-  const wrap = document.getElementById('fila-toggle-wrap');
-  const dot  = document.getElementById('fila-toggle-dot');
-  const msg  = document.getElementById('fila-msg-wrap');
-  if (!wrap) return;
-  wrap.style.background = ativo ? 'var(--verde-mid)' : 'rgba(255,255,255,.15)';
-  dot.style.left = ativo ? '23px' : '3px';
-  if (msg) msg.style.display = ativo ? 'block' : 'none';
-}
-
-function _atualizarResumoVagas(f) {
-  const el = document.getElementById('form-vagas-resumo');
-  if (!el) return;
-  const respostas = get('abcl-insights') || [];
-  const deste = respostas.filter(r => r.formId === f.id);
-  const masc = deste.filter(r => r[_idPerguntaSexo(f)] === 'Masculino').length;
-  const fem  = deste.filter(r => r[_idPerguntaSexo(f)] === 'Feminino').length;
-  const total= deste.length;
-  const parts = [];
-  if (f.vagasMasc > 0) {
-    const livres = Math.max(0, f.vagasMasc - masc);
-    parts.push(`♂ ${masc}/${f.vagasMasc} (${livres} livres)`);
-    document.getElementById('form-vagas-masc-info').textContent = `${masc} inscritos · ${livres} livres`;
-  }
-  if (f.vagasFem > 0) {
-    const livres = Math.max(0, f.vagasFem - fem);
-    parts.push(`♀ ${fem}/${f.vagasFem} (${livres} livres)`);
-    document.getElementById('form-vagas-fem-info').textContent = `${fem} inscritas · ${livres} livres`;
-  }
-  if (f.vagasGeral > 0) {
-    const livres = Math.max(0, f.vagasGeral - total);
-    parts.push(`Total: ${total}/${f.vagasGeral} (${livres} livres)`);
-    document.getElementById('form-vagas-geral-info').textContent = `${total} inscritos · ${livres} livres`;
-  }
-  el.textContent = parts.length ? parts.join(' · ') : 'Sem limite de vagas configurado.';
-}
-
-function _idPerguntaSexo(f) {
-  // Tenta encontrar o ID da pergunta de sexo nas respostas
-  const p = (f.perguntas || []).find(p => p.label && p.label.toLowerCase().includes('sexo'));
-  return p ? p.id : 'sexo';
-}
-
-function editarFormulario(id) {
-  _formAtualId = id;
-  const f = getFormById(id);
-  if (!f) return;
-  document.getElementById('fview-lista').style.display  = 'none';
-  document.getElementById('fview-editor').style.display = '';
-  document.getElementById('feditor-titulo-header').textContent    = f.titulo;
-  document.getElementById('feditor-subtitulo-header').textContent = f.subtitulo || '';
-  document.getElementById('form-titulo').value    = f.titulo    || '';
-  document.getElementById('form-subtitulo').value = f.subtitulo || '';
-  document.getElementById('form-whats').value     = f.whats     || '';
-  document.getElementById('form-btn-label').value = f.btnLabel  || '';
-  document.getElementById('form-capa').value      = f.capa      || '';
-  // Vagas
-  document.getElementById('form-vagas-masc').value  = f.vagasMasc  || '';
-  document.getElementById('form-vagas-fem').value   = f.vagasFem   || '';
-  document.getElementById('form-vagas-geral').value = f.vagasGeral || '';
-  document.getElementById('form-fila-msg')?.value && (document.getElementById('form-fila-msg').value = f.filaMsg || '');
-  if (document.getElementById('form-fila-msg')) document.getElementById('form-fila-msg').value = f.filaMsg || '';
-  _atualizarToggleFila(f.filaEspera || false);
-  _atualizarResumoVagas(f);
-  // Agendamento
-  const fIni = document.getElementById('form-agenda-inicio');
-  const fFim = document.getElementById('form-agenda-fim');
-  if (fIni) fIni.value = f.agendaInicio ? f.agendaInicio.slice(0,16) : '';
-  if (fFim) fFim.value = f.agendaFim    ? f.agendaFim.slice(0,16)    : '';
-  _atualizarPreviewAgendamento(f);
-  atualizarToggleAtivo(f.ativo);
-  renderFormPerguntas();
-  renderPreview();
-}
-
-function voltarListaForms() {
-  _formAtualId = null;
-  document.getElementById('fview-lista').style.display  = '';
-  document.getElementById('fview-editor').style.display = 'none';
-  renderListaForms();
-}
-
-function atualizarToggleAtivo(ativo) {
-  const wrap = document.getElementById('form-toggle-wrap');
-  const dot  = document.getElementById('form-toggle-dot');
-  if (!wrap) return;
-  wrap.style.background = ativo ? 'var(--verde-mid)' : 'rgba(255,255,255,.15)';
-  dot.style.left = ativo ? '23px' : '3px';
-}
-
-function toggleFormAtivo() {
-  if (!_formAtualId) return;
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === _formAtualId);
-  if (!f) return;
-  f.ativo = !f.ativo;
-  setTodosForms(lista);
-  atualizarToggleAtivo(f.ativo);
-  toast(f.ativo ? '✅ Formulário ativado!' : '⚫ Formulário desativado.');
-}
-
-function toggleFormAtivoById(id) {
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === id);
-  if (!f) return;
-  f.ativo = !f.ativo;
-  setTodosForms(lista);
-  renderListaForms();
-  toast(f.ativo ? '✅ Ativado!' : '⚫ Desativado.');
-}
-
-function excluirFormulario(id) {
-  if (!confirm('Excluir este formulário?')) return;
-  setTodosForms(getTodosForms().filter(f => f.id !== id));
-  renderListaForms();
-  toast('🗑 Formulário excluído.');
-}
-
-// ── AGENDAMENTO ──
-function abrirAgendamento(id) {
-  const f = getFormById(id);
-  if (!f) return;
-  // Preencher campos do modal
-  document.getElementById('ag-titulo').textContent = f.titulo;
-  document.getElementById('ag-form-id').value      = id;
-  document.getElementById('ag-inicio').value = f.agendaInicio ? f.agendaInicio.slice(0,16) : '';
-  document.getElementById('ag-fim').value    = f.agendaFim    ? f.agendaFim.slice(0,16)    : '';
-  _atualizarPreviewAgendamentoModal(f);
-  document.getElementById('agenda-modal').classList.add('open');
-}
-
-function salvarAgendamento() {
-  const id  = document.getElementById('ag-form-id').value;
-  const ini = document.getElementById('ag-inicio').value;
-  const fim = document.getElementById('ag-fim').value;
-  if (fim && ini && new Date(fim) <= new Date(ini)) {
-    toast('⚠️ Data de fim deve ser após a data de início.'); return;
-  }
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === id);
-  if (!f) return;
-  f.agendaInicio = ini ? new Date(ini).toISOString() : '';
-  f.agendaFim    = fim ? new Date(fim).toISOString() : '';
-  // Auto-definir ativo baseado no agendamento agora
-  if (f.agendaInicio || f.agendaFim) {
-    const s = _statusAgendamento(f);
-    f.ativo = (s === 'ativo');
-  }
-  setTodosForms(lista);
-  document.getElementById('agenda-modal').classList.remove('open');
-  renderListaForms();
-  toast('✅ Agendamento salvo!');
-}
-
-function limparAgendamento() {
-  document.getElementById('ag-inicio').value = '';
-  document.getElementById('ag-fim').value    = '';
-  document.getElementById('ag-preview').innerHTML = '<span style="color:var(--suave);font-size:.78rem;">Nenhum agendamento definido.</span>';
-}
-
-function _atualizarPreviewAgendamentoModal(f) {
-  const el = document.getElementById('ag-preview');
-  if (!el) return;
-  _renderPreviewAgenda(el, f.agendaInicio, f.agendaFim);
-}
-function _atualizarPreviewAgendamento(f) {
-  const el = document.getElementById('form-agenda-preview');
-  if (!el) return;
-  _renderPreviewAgenda(el, f.agendaInicio, f.agendaFim);
-}
-function _renderPreviewAgenda(el, ini, fim) {
-  const fmt = iso => iso ? new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
-  const fIni = fmt(ini); const fFim = fmt(fim);
-  if (!fIni && !fFim) { el.innerHTML = '<span style="color:var(--suave);font-size:.78rem;">Sem agendamento — ativo/inativo manualmente.</span>'; return; }
-  el.innerHTML = `
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-      ${fIni ? `<div style="background:rgba(64,145,108,.1);border:1px solid rgba(64,145,108,.2);border-radius:8px;padding:.5rem .85rem;font-size:.78rem;">
-        <div style="font-size:.62rem;color:var(--suave);margin-bottom:.15rem;">▶ Ativar em</div>
-        <div style="color:var(--verde-cl);font-weight:600;">${fIni}</div>
-      </div>` : ''}
-      ${fFim ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:.5rem .85rem;font-size:.78rem;">
-        <div style="font-size:.62rem;color:var(--suave);margin-bottom:.15rem;">⏹ Desativar em</div>
-        <div style="color:#fca5a5;font-weight:600;">${fFim}</div>
-      </div>` : ''}
-    </div>`;
-}
-
-function atualizarPreviewAgendaModal() {
-  const ini = document.getElementById('ag-inicio').value;
-  const fim = document.getElementById('ag-fim').value;
-  _renderPreviewAgenda(document.getElementById('ag-preview'), ini ? new Date(ini).toISOString() : '', fim ? new Date(fim).toISOString() : '');
-}
-
-function verFormulario() { if (_formAtualId) verFormularioById(_formAtualId); }
-function verFormularioById(id) { window.open('formulario.html?id=' + id, '_blank'); }
-
-function salvarAgendamentoEditor() {
-  if (!_formAtualId) return;
-  const ini = document.getElementById('form-agenda-inicio')?.value;
-  const fim = document.getElementById('form-agenda-fim')?.value;
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === _formAtualId);
-  if (!f) return;
-  f.agendaInicio = ini ? new Date(ini).toISOString() : '';
-  f.agendaFim    = fim ? new Date(fim).toISOString() : '';
-  if (f.agendaInicio || f.agendaFim) f.ativo = (_statusAgendamento(f) === 'ativo');
-  setTodosForms(lista);
-  _atualizarPreviewAgendamento(f);
-  atualizarToggleAtivo(f.ativo);
-}
-
-function limparAgendamentoEditor() {
-  const el1 = document.getElementById('form-agenda-inicio');
-  const el2 = document.getElementById('form-agenda-fim');
-  if (el1) el1.value = '';
-  if (el2) el2.value = '';
-  salvarAgendamentoEditor();
-  toast('✅ Agendamento removido.');
-}
-
-function salvarConfigFormulario() {
-  if (!_formAtualId) return;
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === _formAtualId);
-  if (!f) return;
-  f.titulo    = document.getElementById('form-titulo').value.trim()    || f.titulo;
-  f.subtitulo = document.getElementById('form-subtitulo').value.trim();
-  f.whats     = document.getElementById('form-whats').value.trim()     || f.whats;
-  f.btnLabel  = document.getElementById('form-btn-label').value.trim() || f.btnLabel;
-  f.capa      = document.getElementById('form-capa').value.trim();
-  // Vagas
-  f.vagasMasc  = parseInt(document.getElementById('form-vagas-masc').value)  || 0;
-  f.vagasFem   = parseInt(document.getElementById('form-vagas-fem').value)   || 0;
-  f.vagasGeral = parseInt(document.getElementById('form-vagas-geral').value) || 0;
-  f.filaMsg    = document.getElementById('form-fila-msg')?.value.trim() || '';
-  // Agendamento
-  const ini = document.getElementById('form-agenda-inicio')?.value;
-  const fim = document.getElementById('form-agenda-fim')?.value;
-  f.agendaInicio = ini ? new Date(ini).toISOString() : '';
-  f.agendaFim    = fim ? new Date(fim).toISOString() : '';
-  if (f.agendaInicio || f.agendaFim) f.ativo = (_statusAgendamento(f) === 'ativo');
-  setTodosForms(lista);
-  document.getElementById('feditor-titulo-header').textContent    = f.titulo;
-  document.getElementById('feditor-subtitulo-header').textContent = f.subtitulo;
-  _atualizarPreviewAgendamento(f);
-  _atualizarResumoVagas(f);
-  atualizarToggleAtivo(f.ativo);
-  renderPreview();
-  toast('✅ Configurações salvas!');
-}
-
-function getPerguntas() { return _formAtualId ? (getFormById(_formAtualId)?.perguntas || []) : []; }
-function setPerguntas(p) {
-  if (!_formAtualId) return;
-  const lista = getTodosForms();
-  const f = lista.find(x => x.id === _formAtualId);
-  if (f) { f.perguntas = p; setTodosForms(lista); }
-}
-
-function renderFormPerguntas() {
-  const perguntas = getPerguntas();
-  const container = document.getElementById('form-perguntas-list');
-  const empty     = document.getElementById('form-empty');
-  const count     = document.getElementById('form-count');
-  if (!container) return;
-  count.textContent = perguntas.length + ' pergunta' + (perguntas.length !== 1 ? 's' : '');
-  if (perguntas.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-  container.innerHTML = perguntas.map((p, i) => `
-    <div style="background:var(--card2);border:1px solid var(--borda);border-radius:10px;padding:.9rem 1rem;display:flex;align-items:flex-start;gap:.75rem;">
-      <div style="color:var(--suave);cursor:grab;padding:.1rem .2rem;flex-shrink:0;"
-           draggable="true" ondragstart="dragStart(event,${i})" ondragover="dragOver(event)" ondrop="dragDrop(event,${i})">⠿</div>
-      <div style="font-size:1.1rem;flex-shrink:0;margin-top:.1rem;">${tipoIcon(p.tipo)}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:.88rem;margin-bottom:.15rem;">
-          ${p.label||'(sem título)'}${p.obrig?'<span style="color:var(--verde-cl);margin-left:.3rem;font-size:.7rem;">*</span>':''}
-        </div>
-        <div style="font-size:.72rem;color:var(--suave);">${tipoLabel(p.tipo)}${p.opcoes?.length?' &middot; '+p.opcoes.length+' opções':''}</div>
-        ${p.tipo==='imagem'&&p.imagemUrl?'<img src="'+p.imagemUrl+'" style="max-width:120px;border-radius:6px;margin-top:.4rem;" />'  :''}
-      </div>
-      <div style="display:flex;gap:.35rem;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="moverPergunta(${i},-1)" ${i===0?'disabled':''}>↑</button>
-        <button class="btn btn-ghost btn-sm" onclick="moverPergunta(${i},1)"  ${i===perguntas.length-1?'disabled':''}>↓</button>
-        <button class="btn btn-ghost btn-sm" onclick="editarPergunta(${i})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="removerPergunta(${i})">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-function tipoIcon(t){return{texto:'✏️',textarea:'📝',radio:'🔘',checkbox:'☑️',select:'📋',numero:'🔢',secao:'📌',imagem:'🖼️'}[t]||'❓';}
-function tipoLabel(t){return{texto:'Texto curto',textarea:'Texto longo',radio:'Escolha única',checkbox:'Múltipla escolha',select:'Lista suspensa',numero:'Número',secao:'Seção',imagem:'Imagem'}[t]||t;}
-
-let _dragIdx=null;
-function dragStart(e,i){_dragIdx=i;e.dataTransfer.effectAllowed='move';}
-function dragOver(e){e.preventDefault();}
-function dragDrop(e,i){
-  e.preventDefault();if(_dragIdx===null||_dragIdx===i)return;
-  const p=[...getPerguntas()];const[m]=p.splice(_dragIdx,1);p.splice(i,0,m);
-  setPerguntas(p);_dragIdx=null;renderFormPerguntas();renderPreview();
-}
-function moverPergunta(i,d){
-  const p=[...getPerguntas()];const j=i+d;if(j<0||j>=p.length)return;
-  [p[i],p[j]]=[p[j],p[i]];setPerguntas(p);renderFormPerguntas();renderPreview();
-}
-function removerPergunta(i){
-  if(!confirm('Remover esta pergunta?'))return;
-  const p=[...getPerguntas()];p.splice(i,1);setPerguntas(p);
-  renderFormPerguntas();renderPreview();toast('🗑 Pergunta removida.');
-}
-
-let _editandoPqIdx=null;
-function abrirModalPergunta(){
-  _editandoPqIdx=null;
-  document.getElementById('pq-modal-title').textContent='Nova pergunta';
-  ['pq-label','pq-desc','pq-placeholder','pq-opcoes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('pq-tipo').value='texto';
-  document.getElementById('pq-obrig').value='1';
-  document.getElementById('pq-imagem-url').value='';
-  document.getElementById('pq-imagem-preview').style.display='none';
-  atualizarCamposTipo();
-  document.getElementById('pergunta-modal').classList.add('open');
-}
-function editarPergunta(i){
-  _editandoPqIdx=i;const p=getPerguntas()[i];
-  document.getElementById('pq-modal-title').textContent='Editar pergunta';
-  document.getElementById('pq-tipo').value=p.tipo||'texto';
-  document.getElementById('pq-label').value=p.label||'';
-  document.getElementById('pq-desc').value=p.desc||'';
-  document.getElementById('pq-placeholder').value=p.placeholder||'';
-  document.getElementById('pq-opcoes').value=(p.opcoes||[]).join('\n');
-  document.getElementById('pq-obrig').value=p.obrig?'1':'0';
-  const imgUrl=p.imagemUrl||'';
-  document.getElementById('pq-imagem-url').value=imgUrl;
-  const prev=document.getElementById('pq-imagem-preview');
-  if(imgUrl){prev.src=imgUrl;prev.style.display='block';}else prev.style.display='none';
-  atualizarCamposTipo();
-  document.getElementById('pergunta-modal').classList.add('open');
-}
-function fecharModalPergunta(){document.getElementById('pergunta-modal').classList.remove('open');_editandoPqIdx=null;}
-function atualizarCamposTipo(){
-  const t=document.getElementById('pq-tipo').value;
-  document.getElementById('pq-field-opcoes').style.display=['radio','checkbox','select'].includes(t)?'':'none';
-  document.getElementById('pq-field-imagem').style.display=t==='imagem'?'':'none';
-  document.getElementById('pq-field-placeholder').style.display=(t==='imagem'||t==='secao')?'none':'';
-}
-function lerImagemPergunta(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{const url=e.target.result;document.getElementById('pq-imagem-url').value=url;const prev=document.getElementById('pq-imagem-preview');prev.src=url;prev.style.display='block';};
-  reader.readAsDataURL(file);
-}
-function salvarPergunta(){
-  const tipo=document.getElementById('pq-tipo').value;
-  const label=document.getElementById('pq-label').value.trim();
-  if(tipo!=='imagem'&&tipo!=='secao'&&!label){alert('Informe o texto da pergunta.');return;}
-  const pq={
-    id:Date.now(),tipo,label,
-    desc:document.getElementById('pq-desc').value.trim(),
-    placeholder:document.getElementById('pq-placeholder').value.trim(),
-    obrig:document.getElementById('pq-obrig').value==='1',
-    opcoes:['radio','checkbox','select'].includes(tipo)?document.getElementById('pq-opcoes').value.split('\n').map(l=>l.trim()).filter(Boolean):[],
-    imagemUrl:tipo==='imagem'?document.getElementById('pq-imagem-url').value.trim():'',
-  };
-  const perguntas=[...getPerguntas()];
-  if(_editandoPqIdx!==null){pq.id=perguntas[_editandoPqIdx].id;perguntas[_editandoPqIdx]=pq;}else{perguntas.push(pq);}
-  setPerguntas(perguntas);fecharModalPergunta();renderFormPerguntas();renderPreview();
-  toast(_editandoPqIdx!==null?'✅ Pergunta atualizada!':'✅ Pergunta adicionada!');
-}
-
-function renderPreview(){
-  if(!_formAtualId)return;
-  const f=getFormById(_formAtualId);if(!f)return;
-  const container=document.getElementById('form-preview');if(!container)return;
-  const perguntas=f.perguntas||[];
-  container.innerHTML=
-    (f.capa?'<img src="'+f.capa+'" style="width:100%;border-radius:8px;margin-bottom:1rem;max-height:120px;object-fit:cover;" />':'')
-    +'<div style="font-family:\'Cinzel\',serif;font-size:.95rem;color:var(--verde-cl);margin-bottom:.2rem;">'+f.titulo+'</div>'
-    +'<div style="font-size:.75rem;color:var(--suave);margin-bottom:1rem;">'+(f.subtitulo||'')+'</div>'
-    +perguntas.map((p,i)=>{
-      if(p.tipo==='secao')return'<div style="border-top:1px solid var(--borda);padding-top:.6rem;margin:.75rem 0 .35rem;font-size:.63rem;letter-spacing:.15em;text-transform:uppercase;color:var(--verde-cl);font-weight:600;">'+p.label+'</div>';
-      if(p.tipo==='imagem')return p.imagemUrl?'<img src="'+p.imagemUrl+'" style="max-width:100%;border-radius:7px;margin:.4rem 0;" />':'';
-      return'<div style="margin-bottom:.65rem;"><div style="font-size:.67rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--suave);margin-bottom:.25rem;">'+p.label+(p.obrig?' <span style="color:var(--verde-cl);">*</span>':'')+'</div>'+renderPreviewCampo(p)+'</div>';
-    }).join('')
-    +'<div style="margin-top:.85rem;text-align:center;"><div style="background:var(--verde-mid);color:#fff;padding:.5rem 1.25rem;border-radius:7px;font-size:.75rem;font-weight:600;display:inline-block;">'+(f.btnLabel||'Enviar')+'</div></div>';
-}
-function renderPreviewCampo(p){
-  const st='background:var(--input-bg,rgba(255,255,255,.04));border:1px solid var(--borda);border-radius:6px;padding:.4rem .65rem;font-size:.75rem;color:var(--suave);width:100%;pointer-events:none;';
-  if(['texto','numero'].includes(p.tipo))return'<div style="'+st+'">'+(p.placeholder||'　')+'</div>';
-  if(p.tipo==='textarea')return'<div style="'+st+';height:46px;">'+(p.placeholder||'　')+'</div>';
-  if(p.tipo==='select')return'<div style="'+st+';display:flex;justify-content:space-between;">Selecione... <span>▾</span></div>';
-  if(['radio','checkbox'].includes(p.tipo))return(p.opcoes||[]).slice(0,3).map(o=>'<div style="display:flex;align-items:center;gap:.4rem;padding:.2rem 0;font-size:.72rem;color:var(--texto);"><div style="width:13px;height:13px;border-radius:'+(p.tipo==='radio'?'50%':'3px')+';border:1.5px solid var(--borda);flex-shrink:0;"></div>'+o+'</div>').join('')+(p.opcoes?.length>3?'<div style="font-size:.63rem;color:var(--suave);">+'+(p.opcoes.length-3)+' mais...</div>':'');
-  return'';
-}
-
-// ── Init ──
-function initFormularios(){
-  garantirFormsDefault();
-  document.getElementById('fview-lista').style.display='';
-  document.getElementById('fview-editor').style.display='none';
-  _formAtualId=null;
-  renderListaForms();
-}
-
-// Fechar modal ao clicar fora
-document.getElementById('pergunta-modal')?.addEventListener('click', function(e) {
-  if (e.target === this) fecharModalPergunta();
-});
-
-// ══════════════════════════════════════════════════
-// GESTÃO DA LOJA
-// ══════════════════════════════════════════════════
-const LOJA_PRODUTOS_DEFAULT = [
-  {id:1,nome:'Moletom Temático ABCL 2026',categoria:'Moletom',desc:'Moletom oficial canguru com arte exclusiva.',preco:120,estoque:50,tamanhos:['P','M','G','GG','XGG'],cores:['Preto','Chumbo','Verde'],genero:['Masculino','Feminino','Infantil'],imagem:'',ativo:true,novo:true},
-  {id:2,nome:'Camisa Temática ABCL 2026',categoria:'Camisa',desc:'Camiseta malha 100% algodão com arte exclusiva.',preco:55,estoque:80,tamanhos:['PP','P','M','G','GG','XGG'],cores:['Branca','Preta'],genero:['Masculino','Feminino','Infantil'],imagem:'',ativo:true,novo:true},
-  {id:3,nome:'Caneca ABCL 2026',categoria:'Caneca',desc:'Caneca de porcelana 325ml com arte temática.',preco:35,estoque:30,tamanhos:[],cores:[],genero:[],imagem:'',ativo:true,novo:false},
-  {id:4,nome:'Boné ABCL 2026',categoria:'Boné',desc:'Boné strapback com bordado frontal da logo ABCL.',preco:45,estoque:20,tamanhos:['Único'],cores:['Preto','Verde'],genero:[],imagem:'',ativo:true,novo:false},
-  {id:5,nome:'Adesivo Pack ABCL',categoria:'Adesivo',desc:'Kit com 5 adesivos impermeáveis.',preco:12,estoque:100,tamanhos:[],cores:[],genero:[],imagem:'',ativo:true,novo:false},
-];
-
-function getLojaProdutos() {
-  const s = get('abcl-loja-produtos');
-  if (s && s.length) return s;
-  set('abcl-loja-produtos', LOJA_PRODUTOS_DEFAULT);
-  return LOJA_PRODUTOS_DEFAULT;
-}
-
-function initGestaoloja() {
-  renderLojaStats();
-  renderProdutosAdmin();
-  renderCategoriasAdmin();
-  carregarCfgLoja();
-}
-
-function renderLojaStats() {
-  const prods = getLojaProdutos();
-  const ativos   = prods.filter(p => p.ativo).length;
-  const estoque  = prods.reduce((s,p) => s+p.estoque, 0);
-  const receitas = (get('abcl-fin-receitas') || []).filter(r => r.origem === 'loja');
-  const totalVendas = receitas.reduce((s,r) => s+Number(r.valor||0), 0);
-  const el = document.getElementById('loja-stats');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="stat-card"><div class="sc-label">Produtos ativos</div><div class="sc-value" style="color:var(--verde-claro);">${ativos}</div></div>
-    <div class="stat-card"><div class="sc-label">Estoque total</div><div class="sc-value">${estoque}</div></div>
-    <div class="stat-card"><div class="sc-label">Receita (Loja)</div><div class="sc-value" style="color:var(--verde-claro);">R$ ${totalVendas.toFixed(2).replace('.',',')}</div></div>
-  `;
-}
-
-function renderProdutosAdmin() {
-  const busca = document.getElementById('loja-busca')?.value.toLowerCase() || '';
-  const prods = getLojaProdutos().filter(p => !busca || p.nome.toLowerCase().includes(busca) || p.categoria.toLowerCase().includes(busca));
-  const el = document.getElementById('loja-produtos-list');
-  if (!el) return;
-
-  const ICON = {'Moletom':'🧥','Camisa':'👕','Caneca':'☕','Boné':'🧢','Adesivo':'🏷️'};
-  el.innerHTML = prods.map(p => `
-    <div style="display:flex;align-items:center;gap:.85rem;padding:.7rem 0;border-bottom:1px solid rgba(64,145,108,.08);">
-      <div style="width:44px;height:44px;border-radius:8px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;overflow:hidden;">
-        ${p.imagem ? `<img src="${p.imagem}" style="width:100%;height:100%;object-fit:cover;" />` : (ICON[p.categoria]||'✨')}
-      </div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:.88rem;">${p.nome} ${p.novo?'<span style="font-size:.6rem;background:rgba(212,168,83,.2);color:#d4a853;padding:.1rem .4rem;border-radius:99px;">NOVO</span>':''}</div>
-        <div style="font-size:.7rem;color:var(--suave);">${p.categoria} · R$ ${p.preco.toFixed(2).replace('.',',')} · Estoque: ${p.estoque}</div>
-        <div style="font-size:.65rem;color:var(--suave);margin-top:.1rem;">
-          ${p.tamanhos?.length?'Tamanhos: '+p.tamanhos.join(', '):''}
-          ${p.cores?.length?' | Cores: '+p.cores.join(', '):''}
-        </div>
-      </div>
-      <div style="display:flex;gap:.35rem;align-items:center;flex-shrink:0;">
-        <span style="font-size:.65rem;padding:.2rem .5rem;border-radius:99px;border:1px solid;${p.ativo?'background:rgba(64,145,108,.15);color:var(--verde-claro);border-color:rgba(64,145,108,.3);':'background:rgba(255,255,255,.04);color:var(--suave);border-color:var(--borda);'}">
-          ${p.ativo?'● Ativo':'○ Inativo'}
-        </span>
-        <button class="btn btn-ghost btn-sm" onclick="toggleAtivoProdLoja(${p.id})">${p.ativo?'⏸️':'▶️'}</button>
-        <button class="btn btn-ghost btn-sm" onclick="duplicarProdLoja(${p.id})">📄</button>
-        <button class="btn btn-ghost btn-sm" onclick="editarProdLoja(${p.id})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="removerProdLoja(${p.id})">✕</button>
-      </div>
-    </div>`).join('') || '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum produto.</p>';
-}
-
-// ── Categorias ──
-const CATEGORIAS_DEFAULT = [
-  {nome:'Moletom',icone:'🧥'},{nome:'Camisa',icone:'👕'},{nome:'Caneca',icone:'☕'},
-  {nome:'Boné',icone:'🧢'},{nome:'Adesivo',icone:'🏷️'},{nome:'Outros',icone:'✨'}
-];
-function getCategorias() {
-  const s = get('abcl-loja-categorias');
-  if (s && s.length) return s;
-  set('abcl-loja-categorias', CATEGORIAS_DEFAULT);
-  return CATEGORIAS_DEFAULT;
-}
-function renderCategoriasAdmin() {
-  const cats = getCategorias();
-  const el = document.getElementById('loja-categorias-list');
-  if (!el) return;
-  // Populate select in product modal
-  const sel = document.getElementById('plm-cat');
-  if (sel) sel.innerHTML = cats.map(c=>`<option value="${c.nome}">${c.icone} ${c.nome}</option>`).join('');
-  if (!cats.length) { el.innerHTML='<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:1rem;">Nenhuma categoria.</p>'; return; }
-  el.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:.5rem;">` +
-    cats.map((c,i)=>`
-      <div style="display:flex;align-items:center;gap:.5rem;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.4rem .8rem;font-size:.82rem;">
-        <span>${c.icone}</span><span>${c.nome}</span>
-        <button class="btn btn-ghost btn-sm" style="padding:.15rem .5rem;font-size:.7rem;" onclick="editarCategoria(${i})">✏️</button>
-        <button class="btn btn-ghost btn-sm" style="padding:.15rem .5rem;font-size:.7rem;" onclick="removerCategoria(${i})">🗑</button>
-      </div>`).join('') + `</div>`;
-}
-function abrirModalCategoria(idx) {
-  document.getElementById('cat-modal-idx').value = idx !== undefined ? idx : -1;
-  if (idx !== undefined) {
-    const c = getCategorias()[idx];
-    document.getElementById('cat-modal-titulo').textContent = 'Editar categoria';
-    document.getElementById('cat-nome').value = c.nome;
-    document.getElementById('cat-icone').value = c.icone||'';
-  } else {
-    document.getElementById('cat-modal-titulo').textContent = 'Nova categoria';
-    document.getElementById('cat-nome').value = '';
-    document.getElementById('cat-icone').value = '';
-  }
-  document.getElementById('cat-modal').classList.add('open');
-}
-function editarCategoria(idx) { abrirModalCategoria(idx); }
-function removerCategoria(idx) {
-  if (!confirm('Remover esta categoria?')) return;
-  const cats = getCategorias();
-  cats.splice(idx, 1);
-  set('abcl-loja-categorias', cats);
-  renderCategoriasAdmin();
-  toast('🗑 Categoria removida.');
-}
-function salvarCategoria() {
-  const nome = document.getElementById('cat-nome').value.trim();
-  if (!nome) { toast('⚠️ Informe o nome da categoria.'); return; }
-  const icone = document.getElementById('cat-icone').value.trim() || '✨';
-  const idx = parseInt(document.getElementById('cat-modal-idx').value);
-  const cats = getCategorias();
-  if (idx >= 0) cats[idx] = {nome,icone};
-  else cats.push({nome,icone});
-  set('abcl-loja-categorias', cats);
-  document.getElementById('cat-modal').classList.remove('open');
-  renderCategoriasAdmin();
-  toast(idx>=0 ? '✅ Categoria atualizada!' : '✅ Categoria adicionada!');
-}
-
-// ── Config Loja ──
-function carregarCfgLoja() {
-  const cfg = get('abcl-loja-config') || {};
-  const el = document.getElementById('cfg-carrossel-tempo');
-  if (el) el.value = cfg.carrosselTempo || 2;
-}
-function salvarCfgLoja() {
-  const tempo = parseInt(document.getElementById('cfg-carrossel-tempo').value) || 2;
-  set('abcl-loja-config', {carrosselTempo: tempo});
-}
-
-let _editProdLojaId = null;
-let _prodImagens = [];
-
-function abrirModalProdLoja() {
-  _editProdLojaId = null;
-  _prodImagens = [];
-  document.getElementById('plm-titulo').textContent = 'Novo produto';
-  ['plm-nome','plm-desc','plm-preco','plm-estoque','plm-tamanhos','plm-cores','plm-genero','plm-img-url'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('plm-cat').value  = getCategorias()[0]?.nome || 'Moletom';
-  document.getElementById('plm-novo').checked  = false;
-  document.getElementById('plm-ativo').checked = true;
-  document.getElementById('plm-img-previews').innerHTML = '';
-  document.getElementById('prod-loja-modal').classList.add('open');
-}
-
-function editarProdLoja(id) {
-  _editProdLojaId = id;
-  const p = getLojaProdutos().find(x=>x.id===id);
-  if (!p) return;
-  document.getElementById('plm-titulo').textContent = 'Editar produto';
-  document.getElementById('plm-nome').value     = p.nome     || '';
-  document.getElementById('plm-cat').value      = p.categoria|| (getCategorias()[0]?.nome||'Moletom');
-  document.getElementById('plm-desc').value     = p.desc     || '';
-  document.getElementById('plm-preco').value    = p.preco    || '';
-  document.getElementById('plm-estoque').value  = p.estoque  || 0;
-  document.getElementById('plm-tamanhos').value = (p.tamanhos||[]).join(', ');
-  document.getElementById('plm-cores').value    = (p.cores||[]).join(', ');
-  document.getElementById('plm-genero').value   = (p.genero||[]).join(', ');
-  // Carregar imagens no array interno
-  _prodImagens = p.imagens && p.imagens.length ? [...p.imagens] : (p.imagem ? [p.imagem] : []);
-  sincronizarCampoUrls();
-  renderProdImagensPreviews();
-  document.getElementById('plm-novo').checked   = p.novo     || false;
-  document.getElementById('plm-ativo').checked  = p.ativo !== false;
-  document.getElementById('prod-loja-modal').classList.add('open');
-}
-
-function salvarProdLoja() {
-  const nome  = document.getElementById('plm-nome').value.trim();
-  const preco = parseFloat(document.getElementById('plm-preco').value);
-  if (!nome || !preco) { toast('⚠️ Preencha nome e preço.'); return; }
-
-  const parseLista = id => document.getElementById(id).value.split(',').map(s=>s.trim()).filter(Boolean);
-  // Sincronizar URLs do campo com o array antes de salvar
-  const urlsTexto = document.getElementById('plm-img-url').value.split(',').map(s=>s.trim()).filter(s=>s.startsWith('http'));
-  const base64s = _prodImagens.filter(s=>s.startsWith('data:'));
-  const urlsNovas = urlsTexto.filter(u=>!_prodImagens.includes(u));
-  const imagens = [...base64s, ..._prodImagens.filter(s=>!s.startsWith('data:')), ...urlsNovas];
-
-  const prod = {
-    id:        _editProdLojaId || Date.now(),
-    nome,
-    categoria: document.getElementById('plm-cat').value,
-    desc:      document.getElementById('plm-desc').value.trim(),
-    preco,
-    estoque:   parseInt(document.getElementById('plm-estoque').value)||0,
-    tamanhos:  parseLista('plm-tamanhos'),
-    cores:     parseLista('plm-cores'),
-    genero:    parseLista('plm-genero'),
-    imagens,
-    imagem:    imagens[0] || '',
-    novo:      document.getElementById('plm-novo').checked,
-    ativo:     document.getElementById('plm-ativo').checked,
-    variacaoEstoque: {},
-  };
-
-  const lista = getLojaProdutos();
-  const idx   = lista.findIndex(p=>p.id===_editProdLojaId);
-  if (idx>=0) lista[idx]=prod; else lista.push(prod);
-  if (!trySet('abcl-loja-produtos', lista)) return;
-
-  document.getElementById('prod-loja-modal').classList.remove('open');
-  renderProdutosAdmin();
-  renderLojaStats();
-  toast(_editProdLojaId ? '✅ Produto atualizado!' : '✅ Produto adicionado!');
-}
-
-function removerProdLoja(id) {
-  if (!confirm('Remover este produto da loja?')) return;
-  set('abcl-loja-produtos', getLojaProdutos().filter(p=>p.id!==id));
-  renderProdutosAdmin(); renderLojaStats();
-  toast('🗑 Produto removido.');
-}
-
-function duplicarProdLoja(id) {
-  const base = getLojaProdutos().find(p => p.id === id);
-  if (!base) return;
-  const copia = { ...base, id: Date.now(), nome: `${base.nome} (Cópia)`, variacaoEstoque: { ...(base.variacaoEstoque || {}) } };
-  const lista = [...getLojaProdutos(), copia];
-  if (!trySet('abcl-loja-produtos', lista)) return;
-  renderProdutosAdmin(); renderLojaStats();
-  toast('✅ Produto duplicado!');
-}
-
-function toggleAtivoProdLoja(id) {
-  const lista = getLojaProdutos();
-  const idx = lista.findIndex(p => p.id === id);
-  if (idx < 0) return;
-  lista[idx].ativo = !(lista[idx].ativo !== false);
-  if (!trySet('abcl-loja-produtos', lista)) return;
-  renderProdutosAdmin(); renderLojaStats();
-  toast(lista[idx].ativo ? '✅ Produto ativado.' : '⚫ Produto desativado.');
-}
-
-// Array interno que guarda as imagens do produto em edição (suporta base64 e URLs)
-
-function getProdImagensDocampo() {
-  // Lê o campo de URLs externas e mescla com o array interno
-  const urlsTexto = document.getElementById('plm-img-url').value
-    .split('\n').join(',')
-    .split(',').map(s=>s.trim()).filter(s=>s && s.startsWith('http'));
-  // Mantém base64 já existentes no array interno e adiciona URLs novas não duplicadas
-  const base64s = _prodImagens.filter(s=>s.startsWith('data:'));
-  const urlsNovas = urlsTexto.filter(u=>!_prodImagens.includes(u));
-  return [...base64s, ..._prodImagens.filter(s=>!s.startsWith('data:')), ...urlsNovas];
-}
-
-function sincronizarCampoUrls() {
-  // Mostra apenas URLs externas no campo de texto (base64 ficam só no array)
-  const urls = _prodImagens.filter(s=>s.startsWith('http'));
-  document.getElementById('plm-img-url').value = urls.join(', ');
-}
-
-function previewProdLoja() {
-  // Ao digitar URLs no campo, sincronizar para o array interno
-  const urlsTexto = document.getElementById('plm-img-url').value
-    .split(',').map(s=>s.trim()).filter(s=>s.startsWith('http'));
-  // Manter base64 existentes, substituir URLs pelas do campo
-  _prodImagens = [..._prodImagens.filter(s=>s.startsWith('data:')), ...urlsTexto];
-  renderProdImagensPreviews();
-}
-
-function renderProdImagensPreviews() {
-  const wrap = document.getElementById('plm-img-previews');
-  if (!_prodImagens.length) { wrap.innerHTML=''; return; }
-  wrap.innerHTML = _prodImagens.map((src,i)=>`
-    <div style="position:relative;display:inline-block;">
-      <img src="${src}" style="width:70px;height:70px;object-fit:cover;border-radius:7px;border:1px solid var(--borda);" />
-      <span style="position:absolute;top:-4px;right:-4px;background:var(--card2);color:var(--suave);font-size:.6rem;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--borda);line-height:1;"
-        onclick="removerImgPreview(${i})">✕</span>
-    </div>`).join('');
-}
-
-function removerImgPreview(idx) {
-  _prodImagens.splice(idx, 1);
-  sincronizarCampoUrls();
-  renderProdImagensPreviews();
-}
-
-function lerImgProdLoja(input) {
-  const files = Array.from(input.files);
-  if (!files.length) return;
-  let processadas = 0;
-
-  files.forEach(file => {
-    if (!file.type.startsWith('image/')) { toast('⚠️ Selecione apenas arquivos de imagem.'); return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const maxLado = 1200;
-        const scale = Math.min(1, maxLado / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        let quality = 0.85;
-        let dataUrl = canvas.toDataURL('image/jpeg', quality);
-        while (dataUrl.length > 450000 && quality > 0.45) { quality -= 0.1; dataUrl = canvas.toDataURL('image/jpeg', quality); }
-        _prodImagens.push(dataUrl);
-        processadas++;
-        if (processadas === files.length) {
-          sincronizarCampoUrls();
-          renderProdImagensPreviews();
-          toast(`🖼️ ${files.length} imagem(ns) adicionada(s).`);
+    window.addEventListener('online', atualizarStatusConexao);
+    window.addEventListener('offline', atualizarStatusConexao);
+    atualizarStatusConexao();
+
+    // ── REALIZAR LOGIN ──
+    async function realizarLogin(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btnLogin = document.getElementById('btn-login');
+      const msgErro = document.getElementById('msg-erro');
+
+      msgErro.style.display = 'none';
+      btnLogin.disabled = true;
+      btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
+
+      try {
+        // Tenta login Firebase se estiver online
+        if (navigator.onLine) {
+          const userCredential = await firebase.auth().signInWithEmailAndPassword(email, senha);
+          const user = userCredential.user;
+
+          // Verificar perfil no Firestore
+          const perfilDoc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
+
+          if (!perfilDoc.exists) {
+            await firebase.auth().signOut();
+            throw new Error('Usuário não encontrado no sistema.');
+          }
+
+          const perfil = perfilDoc.data();
+
+          if (!perfil.aprovado) {
+            await firebase.auth().signOut();
+            throw new Error('Sua conta ainda não foi aprovada pelo administrador.');
+          }
+
+          if (!['admin', 'coordenacao'].includes(perfil.perfil_tipo)) {
+            await firebase.auth().signOut();
+            throw new Error('Você não tem permissão para acessar esta área.');
+          }
+
+          // Salvar credenciais localmente (para fallback offline)
+          salvarCredenciaisLocais(email, senha, perfil);
+
+          // Redirecionar para área administrativa
+          window.location.href = 'admin.html';
+
+        } else {
+          // MODO OFFLINE: Validar localmente
+          if (validarCredenciaisLocais(email, senha)) {
+            window.location.href = 'admin.html';
+          } else {
+            throw new Error('Credenciais inválidas. É necessário fazer login online pelo menos uma vez.');
+          }
         }
-      };
-      img.onerror = () => toast('⚠️ Não foi possível ler uma imagem.');
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
-// Fechar modais ao clicar no overlay
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
-});
-
-// ══ GESTÃO CÂNTICOS ══
-const CANTICOS_DEFAULT = [
-  {id:1, titulo:'Grande És Tu', autor:'Carl Boberg / Stuart K. Hine', categoria:'Hino', tom:'Ré', tags:['clássico','adoração'], drive:'', letra:'[verso]\nSenhor meu Deus, quando eu maravilhado\nContemplo o mundo que as Tuas mãos criou,\n\n[refrão]\nEntão minh\'alma canta, então minh\'alma canta:\nQuão grande és Tu, quão grande és Tu!', ativo:true},
-  {id:2, titulo:'Castelo Forte', autor:'Martinho Lutero', categoria:'Hino', tom:'Fá', tags:['clássico','Reforma'], drive:'', letra:'[verso]\nUm poderoso castelo é o nosso Deus,\nUm bom escudo e forte arma.\n\n[refrão]\nO Senhor é nossa esperança e proteção,\nEle é nossa salvação!', ativo:true},
-  {id:3, titulo:'Preciso de Ti', autor:'Tradicional', categoria:'Hino', tom:'Sol', tags:['clássico','súplica'], drive:'', letra:'[verso]\nPreciso de Ti, Senhor,\nA toda hora preciso de Ti.\n\n[refrão]\nNas horas de gozo, nas horas de dor,\nPreciso de Ti, meu Salvador.', ativo:true},
-  {id:4, titulo:'A Deus Seja a Glória', autor:'Fanny Crosby', categoria:'Hino', tom:'Lá', tags:['louvor','vitória'], drive:'', letra:'[verso]\nA Deus seja a glória, grandes coisas Ele fez!\n\n[refrão]\nLouvai, louvai ao Senhor!', ativo:true},
-  {id:5, titulo:'Sola Scriptura', autor:'Hinário ABCL', categoria:'Cântico', tom:'Mi', tags:['acampamento','Reforma'], drive:'', letra:'[verso]\nSomente a Escritura nos guia na verdade.\n\n[refrão]\nSola Scriptura, Sola Fide!', ativo:true},
-];
-
-function getCanticos() {
-  const s = get('abcl-canticos');
-  if (s && s.length) return s;
-  set('abcl-canticos', CANTICOS_DEFAULT);
-  return CANTICOS_DEFAULT;
-}
-
-function initGestaoCanticos() {
-  renderCanticosAdmin();
-}
-
-function renderCanticosAdmin() {
-  const busca = (document.getElementById('cantico-busca')?.value || '').toLowerCase();
-  const todos = getCanticos();
-  const lista = busca ? todos.filter(c =>
-    (c.titulo||'').toLowerCase().includes(busca) ||
-    (c.autor||'').toLowerCase().includes(busca) ||
-    (c.tags||[]).some(t=>t.toLowerCase().includes(busca))
-  ) : todos;
-
-  const countEl = document.getElementById('cantico-count');
-  if (countEl) countEl.textContent = `${lista.length} cântico${lista.length!==1?'s':''}`;
-
-  const el = document.getElementById('canticos-admin-list');
-  if (!el) return;
-  if (!lista.length) {
-    el.innerHTML = '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum cântico encontrado.</p>';
-    return;
-  }
-  el.innerHTML = lista.map(c => `
-    <div style="display:flex;align-items:center;gap:.75rem;padding:.85rem 0;border-bottom:1px solid var(--borda);">
-      <div style="width:36px;height:36px;background:var(--card2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">🎵</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:600;font-size:.88rem;color:var(--texto);">${c.titulo||'(sem título)'}</div>
-        <div style="font-size:.72rem;color:var(--suave);">${[c.autor,c.categoria,c.tom?'Tom: '+c.tom:''].filter(Boolean).join(' · ')}</div>
-        ${(c.tags||[]).length ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.3rem;">${(c.tags).map(t=>`<span style="font-size:.62rem;background:var(--card2);border:1px solid var(--borda);border-radius:99px;padding:.1rem .55rem;color:var(--suave);">${t}</span>`).join('')}</div>` : ''}
-      </div>
-      <div style="display:flex;gap:.35rem;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="editarCantico(${c.id})" title="Editar">✏️</button>
-        <button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:rgba(239,68,68,.8);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:.3rem .6rem;cursor:pointer;" onclick="removerCantico(${c.id})" title="Remover">✕</button>
-      </div>
-    </div>`).join('');
-}
-
-function abrirModalCantico() {
-  document.getElementById('cm-id').value = '';
-  document.getElementById('cm-titulo').textContent = 'Novo cântico';
-  document.getElementById('cm-nome').value = '';
-  document.getElementById('cm-autor').value = '';
-  document.getElementById('cm-categoria').value = 'Hino';
-  document.getElementById('cm-tom').value = '';
-  document.getElementById('cm-tags').value = '';
-  document.getElementById('cm-drive').value = '';
-  document.getElementById('cm-letra').value = '';
-  document.getElementById('cm-ativo').checked = true;
-  document.getElementById('cantico-modal').classList.add('open');
-}
-
-function editarCantico(id) {
-  const c = getCanticos().find(x=>x.id===id);
-  if (!c) return;
-  document.getElementById('cm-id').value = id;
-  document.getElementById('cm-titulo').textContent = 'Editar cântico';
-  document.getElementById('cm-nome').value = c.titulo || '';
-  document.getElementById('cm-autor').value = c.autor || '';
-  document.getElementById('cm-categoria').value = c.categoria || 'Hino';
-  document.getElementById('cm-tom').value = c.tom || '';
-  document.getElementById('cm-tags').value = (c.tags||[]).join(', ');
-  document.getElementById('cm-drive').value = c.drive || '';
-  document.getElementById('cm-letra').value = c.letra || '';
-  document.getElementById('cm-ativo').checked = c.ativo !== false;
-  document.getElementById('cantico-modal').classList.add('open');
-}
-
-function salvarCantico() {
-  const titulo = document.getElementById('cm-nome').value.trim();
-  if (!titulo) { toast('⚠️ Informe o título do cântico.'); return; }
-  const idVal = document.getElementById('cm-id').value;
-  const id = idVal ? parseInt(idVal) : Date.now();
-  const cantico = {
-    id,
-    titulo,
-    autor:     document.getElementById('cm-autor').value.trim(),
-    categoria: document.getElementById('cm-categoria').value,
-    tom:       document.getElementById('cm-tom').value.trim(),
-    tags:      document.getElementById('cm-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
-    drive:     document.getElementById('cm-drive').value.trim(),
-    letra:     document.getElementById('cm-letra').value,
-    ativo:     document.getElementById('cm-ativo').checked,
-  };
-  const lista = getCanticos();
-  const idx = lista.findIndex(c=>c.id===id);
-  if (idx >= 0) lista[idx] = cantico; else lista.push(cantico);
-  if (!trySet('abcl-canticos', lista)) return;
-  document.getElementById('cantico-modal').classList.remove('open');
-  renderCanticosAdmin();
-  toast(idVal ? '✅ Cântico atualizado!' : '✅ Cântico adicionado!');
-}
-
-function removerCantico(id) {
-  if (!confirm('Remover este cântico?')) return;
-  set('abcl-canticos', getCanticos().filter(c=>c.id!==id));
-  renderCanticosAdmin();
-  toast('🗑 Cântico removido.');
-}
-
-function getHinos(){ return get('abcl-hinos') || []; }
-function renderHinosAdmin() {
-  const el = document.getElementById('hinos-admin-list');
-  if (!el) return;
-  const hinos = getHinos();
-  el.innerHTML = hinos.map(h => `
-    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:.5rem;margin-bottom:.5rem;">
-      <input value="${h.titulo||''}" onchange="editarHinoCampo(${h.id},'titulo',this.value)" placeholder="Título do hino" />
-      <input value="${h.drive||''}" onchange="editarHinoCampo(${h.id},'drive',this.value)" placeholder="Link Google Drive (PPT)" />
-      <label style="font-size:.75rem;display:flex;align-items:center;gap:.35rem;"><input type="checkbox" ${h.ativo!==false?'checked':''} onchange="editarHinoCampo(${h.id},'ativo',this.checked)" /> Ativo</label>
-      <button class="btn btn-danger btn-sm" onclick="removerHinoAdmin(${h.id})">✕</button>
-    </div>
-  `).join('') || '<p style="color:var(--suave);font-size:.82rem;">Nenhum hino cadastrado ainda.</p>';
-}
-function salvarHinos(lista){ if (!trySet('abcl-hinos', lista)) return false; renderHinosAdmin(); return true; }
-function adicionarHinoAdmin(){ salvarHinos([...getHinos(), {id:Date.now(),titulo:'',drive:'',ativo:true}]); }
-function editarHinoCampo(id,campo,valor){ const l=getHinos(); const i=l.findIndex(h=>h.id===id); if(i<0)return; l[i][campo]=valor; salvarHinos(l); }
-function removerHinoAdmin(id){ salvarHinos(getHinos().filter(h=>h.id!==id)); }
-
-// ══════════════════════════════════════════════════
-// BLOCO 4 — STATUS SINCRONIZAÇÃO FIREBASE (Admin)
-// ══════════════════════════════════════════════════
-function mostrarStatusSync() {
-  try {
-    if (typeof OfflineSync === 'undefined') {
-      alert('ℹ️ Módulo OfflineSync não carregado.\nVerifique se offline-sync.js está na pasta do projeto.');
-      return;
+      } catch (erro) {
+        console.error('Erro ao fazer login:', erro);
+        msgErro.textContent = erro.message || 'Erro ao fazer login. Verifique suas credenciais.';
+        msgErro.style.display = 'block';
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'Entrar';
+      }
     }
-    const s = OfflineSync.obterStatusSincronizacao();
-    const icone = s.online ? (s.pendentes === 0 ? '✅' : '🟡') : '🔴';
-    alert(
-      `${icone} Status de Sincronização ABCL\n\n` +
-      `Conexão: ${s.online ? '🟢 Online' : '🔴 Offline'}\n` +
-      `Status: ${s.status || (s.online ? 'conectado' : 'offline')}\n` +
-      `Vendas pendentes: ${s.pendentes || 0}\n\n` +
-      `Módulos: Vendinha · Livraria · Loja`
-    );
-  } catch(e) {
-    alert('Erro ao verificar status: ' + e.message);
-  }
-}
 
-function atualizarAdminSyncBadge() {
-  const badge  = document.getElementById('admin-sync-badge');
-  const status = document.getElementById('admin-sync-status');
-  if (!badge || !status) return;
-  try {
-    if (typeof OfflineSync === 'undefined') {
-      badge.textContent = '⚠ módulo ausente';
-      badge.style.background = 'rgba(239,68,68,.15)';
-      badge.style.color = '#fca5a5';
-      return;
+    // ── SALVAR CREDENCIAIS LOCAIS (FALLBACK OFFLINE) ──
+    function salvarCredenciaisLocais(email, senha, perfil) {
+      const hash = btoa(email + ':' + senha); // Simples base64 (em produção, use bcrypt!)
+      localStorage.setItem('abcl_auth_fallback', JSON.stringify({
+        hash: hash,
+        perfil: perfil,
+        timestamp: Date.now()
+      }));
     }
-    const s = OfflineSync.obterStatusSincronizacao();
-    if (s.online && s.pendentes === 0) {
-      badge.textContent = '✅ Tudo sincronizado';
-      badge.style.background = 'rgba(64,145,108,.15)';
-      badge.style.color = 'var(--verde-claro)';
-      status.textContent = 'Todas as vendas dos PDVs estão sincronizadas com o Firebase.';
-    } else if (s.online && s.pendentes > 0) {
-      badge.textContent = `🟡 ${s.pendentes} pendente(s)`;
-      badge.style.background = 'rgba(245,158,11,.15)';
-      badge.style.color = '#fcd34d';
-      status.textContent = `Sincronizando ${s.pendentes} venda(s) pendente(s) com o Firebase…`;
-    } else {
-      badge.textContent = `🔴 Offline · ${s.pendentes || 0} pendente(s)`;
-      badge.style.background = 'rgba(239,68,68,.15)';
-      badge.style.color = '#fca5a5';
-      status.textContent = 'Admin sem conexão. Vendas nos PDVs serão sincronizadas ao reconectar.';
-    }
-  } catch(e) {
-    badge.textContent = '— sem dados';
-  }
-}
 
-setInterval(atualizarAdminSyncBadge, 5000);
-window.addEventListener('online',  atualizarAdminSyncBadge);
-window.addEventListener('offline', atualizarAdminSyncBadge);
-document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarAdminSyncBadge, 1500));
-</script>
-<button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
+    // ── VALIDAR CREDENCIAIS LOCAIS ──
+    function validarCredenciaisLocais(email, senha) {
+      const saved = localStorage.getItem('abcl_auth_fallback');
+      if (!saved) return false;
+
+      try {
+        const data = JSON.parse(saved);
+        const hash = btoa(email + ':' + senha);
+
+        // Verifica se o hash bate E se não expirou (30 dias)
+        const expired = (Date.now() - data.timestamp) > (30 * 24 * 60 * 60 * 1000);
+        return data.hash === hash && !expired;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── ESQUECEU SENHA ──
+    function esqueceuSenha() {
+      const email = prompt('Digite seu e-mail para redefinir a senha:');
+      if (!email) return;
+
+      if (!navigator.onLine) {
+        alert('É necessário estar online para redefinir a senha.');
+        return;
+      }
+
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(() => {
+          alert('E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.');
+        })
+        .catch((erro) => {
+          alert('Erro ao enviar e-mail: ' + erro.message);
+        });
+    }
+
+    // ── VERIFICAR SE JÁ ESTÁ LOGADO ──
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        // Já está logado, redirecionar
+        window.location.href = 'admin.html';
+      }
+    });
+  </script>
+
 </body>
 </html>
