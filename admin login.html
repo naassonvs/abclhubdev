@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ABCL Hub — Admin</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde:       #2D6A4F;
+      --verde-mid:   #40916C;
+      --verde-claro: #74C69D;
+      --verde-neon:  #95D5B2;
+      --fundo:       #080F0B;
+      --fundo-card:  #0F1A14;
+      --cinza:       #1a1a1a;
+      --cinza-medio: #2a2a2a;
+      --cinza-claro: #888;
+      --texto:       #F0EDE6;
+      --suave:       rgba(240,237,230,0.5);
+      --erro:        #ef4444;
+      --borda:       rgba(64,145,108,0.2);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--fundo);
+      color: var(--texto);
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── LADO ESQUERDO ── */
+    .lado-esquerdo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lado-esquerdo::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(64,145,108,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(45,106,79,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .grade {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-icone {
+      width: 42px;
+      height: 42px;
+      background: var(--verde-mid);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-texto { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      max-width: 520px;
+    }
+
+    .hero h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, var(--texto) 0%, var(--verde-neon) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p { font-size: 16px; color: var(--suave); line-height: 1.6; margin-bottom: 32px; }
+
+    .recursos {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .recurso-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: rgba(64,145,108,0.08);
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .recurso-item:hover { background: rgba(64,145,108,0.12); border-color: var(--verde-mid); }
+
+    .recurso-icone {
+      width: 40px;
+      height: 40px;
+      background: var(--verde-mid);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .recurso-texto { flex: 1; }
+    .recurso-titulo { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .recurso-desc { font-size: 13px; color: var(--suave); }
+
+    .rodape {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      color: var(--cinza-claro);
+    }
+
+    /* ── LADO DIREITO ── */
+    .lado-direito {
+      width: 480px;
+      background: var(--fundo-card);
+      border-left: 1px solid var(--borda);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+      position: relative;
+    }
+
+    .form-container { width: 100%; max-width: 360px; }
+
+    .form-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .form-header h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--verde-claro);
+    }
+
+    .form-header p { font-size: 14px; color: var(--suave); }
+
+    .status-conexao {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      background: rgba(64,145,108,0.1);
+      border: 1px solid var(--borda);
+    }
+
+    .status-conexao.offline {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: #fca5a5;
+    }
+
+    .status-conexao.online { color: var(--verde-neon); }
+
+    .campo-grupo {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--suave);
+    }
+
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 14px 16px;
+      background: var(--fundo);
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      font-size: 14px;
+      color: var(--texto);
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--verde-mid);
+      box-shadow: 0 0 0 3px rgba(64,145,108,0.1);
+    }
+
+    .msg-erro {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #fca5a5;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--verde-mid);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: var(--verde-claro);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(64,145,108,0.3);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .links-adicionais {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 13px;
+      color: var(--suave);
+    }
+
+    .links-adicionais a {
+      color: var(--verde-claro);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .links-adicionais a:hover { color: var(--verde-neon); }
+
+    /* Responsivo */
+    @media (max-width: 968px) {
+      body { flex-direction: column; }
+      .lado-esquerdo { padding: 32px; min-height: auto; }
+      .lado-direito { width: 100%; padding: 32px; border-left: none; border-top: 1px solid var(--borda); }
+      .hero h1 { font-size: 32px; }
+      .recursos { display: none; }
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Lado Esquerdo -->
+  <div class="lado-esquerdo">
+    <div class="grade"></div>
+    
+    <div class="logo-area">
+      <div class="logo-icone">⛺</div>
+      <div class="logo-texto">ABCL HUB</div>
+    </div>
+
+    <div class="hero">
+      <h1>Gestão Completa do Acampamento</h1>
+      <p>Sistema integrado para administração financeira, controle de vendas e gerenciamento de inscrições do acampamento ABCL.</p>
+
+      <div class="recursos">
+        <div class="recurso-item">
+          <div class="recurso-icone">💰</div>
+          <div class="recurso-texto">
+            <div class="recurso-titulo">Dashboard Financeiro</div>
+            <div class="recurso-desc">Acompanhe receitas, despesas e projeções em tempo real</div>
+          </div>
+        </div>
+
+        <div class="recurso-item">
+          <div class="recurso-icone">🛒</div>
+          <div class="recurso-texto">
+            <div class="recurso-titulo">Controle de PDV</div>
+            <div class="recurso-desc">Vendinha, Livraria e Loja com sincronização Firebase</div>
+          </div>
+        </div>
+
+        <div class="recurso-item">
+          <div class="recurso-icone">📊</div>
+          <div class="recurso-texto">
+            <div class="recurso-titulo">Relatórios Detalhados</div>
+            <div class="recurso-desc">Análises comparativas e exportação de dados</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rodape">
+      © 2026 ABCL Hub — Sistema de Gestão do Acampamento
+    </div>
+  </div>
+
+  <!-- Lado Direito (Formulário) -->
+  <div class="lado-direito">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>Área Administrativa</h2>
+        <p>Entre com suas credenciais</p>
+      </div>
+
+      <div id="status-conexao" class="status-conexao online">
+        <span id="status-icone">🟢</span>
+        <span id="status-texto">Online</span>
+      </div>
+
+      <div id="msg-erro" class="msg-erro"></div>
+
+      <form id="form-login" onsubmit="realizarLogin(event)">
+        <div class="campo-grupo">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+
+        <div class="campo-grupo">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" id="btn-login" class="btn-login">
+          Entrar
+        </button>
+      </form>
+
+      <div class="links-adicionais">
+        <a href="#" onclick="esqueceuSenha(); return false;">Esqueceu sua senha?</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuração Firebase (inline para evitar conflitos)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+      authDomain: "abcl-hub-dev.firebaseapp.com",
+      projectId: "abcl-hub-dev",
+      storageBucket: "abcl-hub-dev.firebasestorage.app",
+      messagingSenderId: "243573406078",
+      appId: "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ── MONITORAR STATUS DE CONEXÃO ──
+    function atualizarStatusConexao() {
+      const statusEl = document.getElementById('status-conexao');
+      const iconeEl = document.getElementById('status-icone');
+      const textoEl = document.getElementById('status-texto');
+
+      if (navigator.onLine) {
+        statusEl.classList.remove('offline');
+        statusEl.classList.add('online');
+        iconeEl.textContent = '🟢';
+        textoEl.textContent = 'Online';
+      } else {
+        statusEl.classList.remove('online');
+        statusEl.classList.add('offline');
+        iconeEl.textContent = '🔴';
+        textoEl.textContent = 'Offline — Auth local ativo';
+      }
+    }
+
+    window.addEventListener('online', atualizarStatusConexao);
+    window.addEventListener('offline', atualizarStatusConexao);
+    atualizarStatusConexao();
+
+    // ── REALIZAR LOGIN ──
+    async function realizarLogin(event) {
+      event.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const btnLogin = document.getElementById('btn-login');
+      const msgErro = document.getElementById('msg-erro');
+
+      msgErro.style.display = 'none';
+      btnLogin.disabled = true;
+      btnLogin.innerHTML = '<span class="spinner"></span> Entrando...';
+
+      try {
+        // Tenta login Firebase se estiver online
+        if (navigator.onLine) {
+          const userCredential = await firebase.auth().signInWithEmailAndPassword(email, senha);
+          const user = userCredential.user;
+
+          // Verificar perfil no Firestore
+          const perfilDoc = await firebase.firestore().collection('usuarios').doc(user.uid).get();
+
+          if (!perfilDoc.exists) {
+            await firebase.auth().signOut();
+            throw new Error('Usuário não encontrado no sistema.');
+          }
+
+          const perfil = perfilDoc.data();
+
+          if (!perfil.aprovado) {
+            await firebase.auth().signOut();
+            throw new Error('Sua conta ainda não foi aprovada pelo administrador.');
+          }
+
+          if (!['admin', 'coordenacao'].includes(perfil.perfil_tipo)) {
+            await firebase.auth().signOut();
+            throw new Error('Você não tem permissão para acessar esta área.');
+          }
+
+          // Salvar credenciais localmente (para fallback offline)
+          salvarCredenciaisLocais(email, senha, perfil);
+
+          // Redirecionar para área administrativa
+          window.location.href = 'financeiro.html';
+
+        } else {
+          // MODO OFFLINE: Validar localmente
+          if (validarCredenciaisLocais(email, senha)) {
+            window.location.href = 'financeiro.html';
+          } else {
+            throw new Error('Credenciais inválidas. É necessário fazer login online pelo menos uma vez.');
+          }
+        }
+
+      } catch (erro) {
+        console.error('Erro ao fazer login:', erro);
+        msgErro.textContent = erro.message || 'Erro ao fazer login. Verifique suas credenciais.';
+        msgErro.style.display = 'block';
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'Entrar';
+      }
+    }
+
+    // ── SALVAR CREDENCIAIS LOCAIS (FALLBACK OFFLINE) ──
+    function salvarCredenciaisLocais(email, senha, perfil) {
+      const hash = btoa(email + ':' + senha); // Simples base64 (em produção, use bcrypt!)
+      localStorage.setItem('abcl_auth_fallback', JSON.stringify({
+        hash: hash,
+        perfil: perfil,
+        timestamp: Date.now()
+      }));
+    }
+
+    // ── VALIDAR CREDENCIAIS LOCAIS ──
+    function validarCredenciaisLocais(email, senha) {
+      const saved = localStorage.getItem('abcl_auth_fallback');
+      if (!saved) return false;
+
+      try {
+        const data = JSON.parse(saved);
+        const hash = btoa(email + ':' + senha);
+
+        // Verifica se o hash bate E se não expirou (30 dias)
+        const expired = (Date.now() - data.timestamp) > (30 * 24 * 60 * 60 * 1000);
+        return data.hash === hash && !expired;
+      } catch {
+        return false;
+      }
+    }
+
+    // ── ESQUECEU SENHA ──
+    function esqueceuSenha() {
+      const email = prompt('Digite seu e-mail para redefinir a senha:');
+      if (!email) return;
+
+      if (!navigator.onLine) {
+        alert('É necessário estar online para redefinir a senha.');
+        return;
+      }
+
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(() => {
+          alert('E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.');
+        })
+        .catch((erro) => {
+          alert('Erro ao enviar e-mail: ' + erro.message);
+        });
+    }
+
+    // ── VERIFICAR SE JÁ ESTÁ LOGADO ──
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        // Já está logado, redirecionar
+        window.location.href = 'financeiro.html';
+      }
+    });
+  </script>
+
+</body>
+</html>

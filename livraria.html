@@ -52,41 +52,8 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--texto); min-height: 100vh; }
 
     /* ── LOGIN ── */
-    #login-screen {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      background: radial-gradient(ellipse at 30% 30%, rgba(37,99,235,.15) 0%, transparent 60%),
-                  radial-gradient(ellipse at 70% 70%, rgba(212,168,83,.08) 0%, transparent 60%),
-                  var(--bg);
-    }
-    .login-box {
-      background: var(--card); border: 1px solid var(--borda);
-      border-radius: 18px; padding: 2.5rem; width: 100%; max-width: 360px;
-      box-shadow: 0 24px 60px rgba(0,0,0,.5);
-    }
-    .login-logo { text-align: center; margin-bottom: 1.75rem; }
-    .login-logo img { width: 60px; height: 60px; }
-    .login-logo .l-titulo { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--azul-cl); margin-top: .5rem; }
-    .login-logo .l-sub { font-size: .72rem; color: var(--suave); }
-    .login-field { margin-bottom: .85rem; }
-    .login-field label { display: block; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: .35rem; }
-    .login-field input {
-      width: 100%; background: rgba(255,255,255,.05); border: 1px solid var(--borda);
-      border-radius: 8px; padding: .75rem 1rem; font-size: 1rem;
-      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
-      transition: border-color .2s;
-    }
-    .login-field input:focus { border-color: var(--azul); }
-    .btn-login {
-      width: 100%; background: var(--azul-mid); color: #fff; border: none;
-      border-radius: 10px; padding: .85rem; font-size: .9rem; font-weight: 600;
-      font-family: 'Cinzel', serif; letter-spacing: .06em; cursor: pointer;
-      margin-top: .5rem; transition: background .2s;
-    }
-    .btn-login:hover { background: var(--azul); }
-    .login-error { color: #fca5a5; font-size: .75rem; text-align: center; margin-top: .5rem; display: none; }
-
     /* ── APP ── */
-    #app { display: none; }
+    #app { display: block; }
 
     /* ── TOP BAR ── */
     .top-bar {
@@ -423,21 +390,6 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </head>
 <body>
 
-<!-- ══ LOGIN ══ -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">
-      <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
-      <div class="l-titulo">ABCL Livraria</div>
-      <div class="l-sub">Caixa rápido · Acampamento 2026</div>
-    </div>
-    <div class="login-field"><label>Usuário</label><input type="text" id="l-user" placeholder="seu usuário" onkeydown="if(event.key==='Enter')lLogin()" /></div>
-    <div class="login-field"><label>Senha</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')lLogin()" /></div>
-    <button class="btn-login" onclick="lLogin()">Entrar</button>
-    <div class="login-error" id="l-error">Usuário ou senha incorretos.</div>
-  </div>
-</div>
-
 <!-- ══ APP ══ -->
 <div id="app">
 
@@ -460,7 +412,6 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     <span id="sync-icon">🔴</span>
     <span id="sync-msg">Offline — vendas serão sincronizadas ao conectar</span>
     <span id="sync-pending" style="background:rgba(239,68,68,.2);padding:.1rem .45rem;border-radius:9px;margin-left:.25rem;"></span>
-    <button id="btn-sync-now" onclick="forcarSincronizacao()" style="display:none;margin-left:.75rem;padding:.25rem .65rem;border-radius:6px;border:none;background:rgba(245,158,11,.25);color:#fbbf24;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;">⚡ Sincronizar agora</button>
   </div>
 
   <!-- Stats -->
@@ -752,34 +703,16 @@ function ajustarAlturaLayout() {
 window.addEventListener('resize', ajustarAlturaLayout);
 
 // ══════════════════════════════════════════════════
-// AUTH
+// AUTH REMOVIDO — centralizado no Admin
 // ══════════════════════════════════════════════════
-const L_USERS = { 'caixa':'vendinha','naasson':'abcl2026','haniel':'abcl2026','mauri':'abcl2026','admin':'abcl@admin' };
-function lLogin() {
-  const u = document.getElementById('l-user').value.trim().toLowerCase();
-  const p = document.getElementById('l-pass').value;
-  if (L_USERS[u] && L_USERS[u] === p) {
-    sessionStorage.setItem('abcl-livraria-auth', u);
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('l-username').textContent = u;
-    FirebaseAuthPatch.loginFirebaseLocal();
-    initApp();
-  } else {
-    document.getElementById('l-error').style.display = 'block';
-  }
-}
-function lSair() { sessionStorage.removeItem('abcl-livraria-auth'); location.reload(); }
-(function checkAuth() {
-  if (sessionStorage.getItem('abcl-livraria-auth')) {
-    const u = sessionStorage.getItem('abcl-livraria-auth');
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('l-username').textContent = u;
-    FirebaseAuthPatch.loginFirebaseLocal();
-    window.addEventListener('DOMContentLoaded', initApp);
-  }
-})();
+function lLogin() {}
+function lSair() { window.location.href = 'admin.html'; }
+window.addEventListener('DOMContentLoaded', () => {
+  const u = sessionStorage.getItem('abcl-livraria-auth') || sessionStorage.getItem('abcl-auth') || 'Caixa';
+  document.getElementById('l-username').textContent = u;
+  if (typeof FirebaseAuthPatch !== 'undefined') FirebaseAuthPatch.loginFirebaseLocal();
+  initApp();
+});
 
 // ══════════════════════════════════════════════════
 // STORAGE
@@ -992,23 +925,13 @@ function renderLivros() {
 // ══════════════════════════════════════════════════
 async function buscarCapasGoogle() {
   const livros = getLivros();
-  const semCapa = livros.filter(l => !l.capa).slice(0, 5); // REDUZIDO: máx 5 por inicialização
+  const semCapa = livros.filter(l => !l.capa).slice(0, 20); // máx 20 por vez
   if (semCapa.length === 0) return;
 
-  console.log(`[Google Books] Buscando capas para ${semCapa.length} livros...`);
-  
   for (const l of semCapa) {
     try {
       const q = encodeURIComponent(l.titulo + (l.autor ? ' ' + l.autor : ''));
       const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&fields=items(volumeInfo(imageLinks))`);
-      
-      if (res.status === 429) {
-        console.warn('[Google Books] Rate limit (429) — parando busca de capas');
-        break; // Para a busca se receber 429
-      }
-      
-      if (!res.ok) continue;
-      
       const data = await res.json();
       const img = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
       if (img) {
@@ -1017,11 +940,8 @@ async function buscarCapasGoogle() {
         const wrap = document.getElementById(`capa-wrap-${l.id}`);
         if (wrap) wrap.innerHTML = `<img src="${l.capa}" alt="${l.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='📖'" />`;
       }
-    } catch(e) {
-      console.warn('[Google Books] Erro ao buscar capa:', e.message);
-    }
-    // Throttle aumentado: 300ms entre requisições (era 120ms)
-    await new Promise(r => setTimeout(r, 300));
+    } catch(e) {}
+    await new Promise(r => setTimeout(r, 120)); // throttle gentil
   }
   set('abcl-livraria-livros', livros);
 }
@@ -1435,17 +1355,6 @@ async function buscarCapaGoogle() {
   try {
     const q = encodeURIComponent(titulo);
     const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=1&fields=items(volumeInfo(imageLinks))`);
-    
-    if (res.status === 429) {
-      toast('⏳ Muitas requisições — aguarde um pouco e tente novamente.');
-      return;
-    }
-    
-    if (!res.ok) {
-      toast('❌ Erro ao conectar no Google Books.');
-      return;
-    }
-    
     const data = await res.json();
     const img = data?.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
     if (img) {
@@ -1453,12 +1362,8 @@ async function buscarCapaGoogle() {
       document.getElementById('lm-capa-url').value = url;
       previewCapa();
       toast('✅ Capa encontrada!');
-    } else { 
-      toast('Capa não encontrada no Google Books.'); 
-    }
-  } catch(e) { 
-    toast('❌ Erro ao buscar capa: ' + e.message); 
-  }
+    } else { toast('Capa não encontrada no Google Books.'); }
+  } catch(e) { toast('Erro ao buscar capa.'); }
 }
 
 // ══════════════════════════════════════════════════
@@ -1476,27 +1381,12 @@ function buildPixPayload(chave, nome, cidade, valor) {
 }
 
 function gerarQRSVG(texto, container) {
-  // Tenta usar QRCodeOffline se disponível (SVG puro offline)
-  if (typeof QRCodeOffline !== 'undefined' && QRCodeOffline.generate) {
-    try {
-      QRCodeOffline.generate(texto, container, 200);
-      return;
-    } catch (e) {
-      console.warn('[QR] SVG offline falhou, usando API fallback:', e.message);
-    }
-  }
-
-  // Fallback: API externa (requer conexão)
-  container.innerHTML = `<div style="font-size:.7rem;color:#999;padding:1rem;">Gerando QR...</div>`;
+  // QR Code inline via API pública (fallback online) ou placeholder offline
+  container.innerHTML = `<div style="font-size:.7rem;color:#999;padding:1rem;">Carregando QR...</div>`;
   const img = document.createElement('img');
   img.style.cssText = 'width:200px;height:200px;border-radius:4px;';
   img.onload = () => { container.innerHTML = ''; container.appendChild(img); };
-  img.onerror = () => {
-    // Se API falhar também, mostra payload como fallback
-    container.innerHTML = `<div style="font-size:.65rem;padding:1rem;word-break:break-all;color:#666;max-height:200px;overflow:auto;background:#f0f0f0;border-radius:4px;">
-      <strong>QR Code (offline):</strong><br>${texto}
-    </div>`;
-  };
+  img.onerror = () => { container.innerHTML = `<div style="font-size:.65rem;padding:1rem;word-break:break-all;color:#666;">${texto}</div>`; };
   img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(texto)}`;
 }
 
@@ -1705,17 +1595,9 @@ function toggleOfertaBloco() {
 // Patch finalizarVenda para também enviar ao Firebase
 const _finalizarVendaLivOrig = finalizarVenda;
 window.finalizarVenda = async function(total, subtotal, desconto, oferta, livros) {
-  // 1. Chama a função original para salvar localmente (localStorage)
   _finalizarVendaLivOrig(total, subtotal, desconto, oferta, livros);
-  
-  // 2. Aguarda um pouco para garantir que a venda foi salva
-  await new Promise(r => setTimeout(r, 100));
-  
-  // 3. Envia para Firebase (apenas se não foi sincronizada ainda)
   const ultimaVenda = getSales()[0];
-  if (ultimaVenda && !ultimaVenda.firebase_synced) {
-    await _enviarVendaFirebaseLiv(ultimaVenda);
-  }
+  if (ultimaVenda) await _enviarVendaFirebaseLiv(ultimaVenda);
 };
 
 async function _enviarVendaFirebaseLiv(sale) {
@@ -1735,27 +1617,17 @@ async function _enviarVendaFirebaseLiv(sale) {
       operador_uid:    sessionStorage.getItem('abcl-livraria-auth') || 'operador',
       operador_nome:   sessionStorage.getItem('abcl-livraria-auth') || 'Caixa',
       ano_acampamento: new Date().getFullYear(),
-      acampante:       sale.cliente || null,
+      cliente:         sale.cliente,
       periodo:         sale.periodo,
       hora:            sale.hora,
       data:            sale.data,
       local_id:        sale.id,
     };
-    
     if (navigator.onLine) {
       await VendasFirebase.salvarVendaFirebase(venda, MODULO_LIVRARIA);
-      // Marca como sincronizada no localStorage para evitar duplicação
-      sale.firebase_synced = true;
-      const sales = getSales();
-      const idx = sales.findIndex(s => s.id === sale.id);
-      if (idx !== -1) {
-        sales[idx] = sale;
-        set('abcl-livraria-sales', sales);
-      }
     } else {
       await OfflineSync.adicionarFilaSincronizacao(venda);
     }
-    
     if (document.getElementById('chk-oferta')) {
       document.getElementById('chk-oferta').checked = false;
       document.getElementById('detalhe-oferta').style.display = 'none';
@@ -1769,14 +1641,12 @@ async function _enviarVendaFirebaseLiv(sale) {
 // ── Indicador offline ──
 function atualizarSyncBarLiv() {
   const bar = document.getElementById('sync-bar');
-  const btnSync = document.getElementById('btn-sync-now');
   if (!bar) return;
   if (typeof OfflineSync === 'undefined') { bar.style.display = 'none'; return; }
   try {
     const status = OfflineSync.obterStatusSincronizacao();
     if (status.online && status.pendentes === 0) {
       bar.style.display = 'none';
-      if (btnSync) btnSync.style.display = 'none';
     } else {
       bar.style.display = 'flex';
       if (status.online && status.pendentes > 0) {
@@ -1784,45 +1654,15 @@ function atualizarSyncBarLiv() {
         document.getElementById('sync-icon').textContent = '🟡';
         document.getElementById('sync-msg').textContent = 'Sincronizando vendas pendentes…';
         document.getElementById('sync-pending').textContent = status.pendentes + ' pendente(s)';
-        if (btnSync) btnSync.style.display = 'inline-block'; // Mostra botão
       } else {
         bar.style.background = 'rgba(239,68,68,.12)'; bar.style.borderBottomColor = 'rgba(239,68,68,.25)'; bar.style.color = '#fca5a5';
         document.getElementById('sync-icon').textContent = '🔴';
         document.getElementById('sync-msg').textContent = 'Offline — vendas serão sincronizadas ao conectar';
         document.getElementById('sync-pending').textContent = status.pendentes > 0 ? status.pendentes + ' pendente(s)' : '';
-        if (btnSync) btnSync.style.display = 'none'; // Esconde botão (offline)
       }
     }
   } catch(e) {}
 }
-
-// Força sincronização manual das vendas pendentes
-async function forcarSincronizacao() {
-  if (typeof OfflineSync === 'undefined') {
-    toast('Sistema de sincronização não disponível.');
-    return;
-  }
-  
-  const btnSync = document.getElementById('btn-sync-now');
-  if (btnSync) {
-    btnSync.disabled = true;
-    btnSync.textContent = '⏳ Sincronizando...';
-  }
-  
-  try {
-    await OfflineSync.sincronizarAgora();
-    toast('✅ Vendas sincronizadas com sucesso!');
-    atualizarSyncBarLiv();
-  } catch (e) {
-    toast('❌ Erro ao sincronizar: ' + e.message);
-  } finally {
-    if (btnSync) {
-      btnSync.disabled = false;
-      btnSync.textContent = '⚡ Sincronizar agora';
-    }
-  }
-}
-
 setInterval(atualizarSyncBarLiv, 4000);
 window.addEventListener('online',  atualizarSyncBarLiv);
 window.addEventListener('offline', atualizarSyncBarLiv);

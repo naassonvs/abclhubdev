@@ -81,30 +81,8 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     body { font-family: 'Inter', sans-serif; background: var(--fundo); color: var(--texto); min-height: 100vh; }
 
     /* ── LOGIN ── */
-    #login-screen {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;
-    }
-
-    .login-box {
-      width: 100%; max-width: 360px;
-      background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 2.5rem;
-    }
-
-    .login-box h1 {
-      font-family: 'Cinzel', serif; font-size: 1.4rem; color: var(--verde-cl);
-      text-align: center; margin-bottom: .25rem;
-    }
-
-    .login-box .sub { font-size: .78rem; color: var(--suave); text-align: center; margin-bottom: 2rem; }
-
-    .login-error {
-      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
-      border-radius: 6px; padding: .6rem .9rem; font-size: .78rem;
-      color: #fca5a5; margin-bottom: 1rem; display: none;
-    }
-
     /* ── APP ── */
-    #app { display: none; }
+    #app { display: block; }
 
     /* Header */
     .app-header {
@@ -443,18 +421,6 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </head>
 <body>
 
-<!-- ══ LOGIN ══ -->
-<div id="login-screen">
-  <div class="login-box">
-    <h1>🛒 ABCL Vendinha</h1>
-    <p class="sub">Caixa rápido do acampamento</p>
-    <div class="login-error" id="v-login-error">Usuário ou senha incorretos.</div>
-    <div class="field"><label>Usuário</label><input type="text" id="v-user" placeholder="caixa" autocomplete="username" onkeydown="if(event.key==='Enter') vLogin()" /></div>
-    <div class="field"><label>Senha</label><input type="password" id="v-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') vLogin()" /></div>
-    <button class="btn btn-solid btn-full btn-lg" onclick="vLogin()" style="margin-top:.5rem;">Entrar</button>
-  </div>
-</div>
-
 <!-- ══ APP ══ -->
 <div id="app">
 
@@ -479,7 +445,6 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     <span id="sync-icon">🔴</span>
     <span id="sync-msg">Offline — vendas serão sincronizadas ao conectar</span>
     <span id="sync-pending" style="background:rgba(239,68,68,.2);padding:.1rem .45rem;border-radius:9px;margin-left:.25rem;"></span>
-    <button id="btn-sync-now" onclick="forcarSincronizacao()" style="display:none;margin-left:.75rem;padding:.25rem .65rem;border-radius:6px;border:none;background:rgba(245,158,11,.25);color:#fbbf24;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;">⚡ Sincronizar agora</button>
   </div>
 
   <!-- Stats -->
@@ -756,43 +721,19 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 // ══════════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════════
-const V_USERS = {
-  'caixa':    'vendinha',
-  'naasson':  'abcl2026',
-  'haniel':   'abcl2026',
-  'mauri':    'abcl2026',
-  'admin':    'abcl@admin',
-};
+const V_USERS = {};  // Login removido — auth centralizado no Admin
 
-function vLogin() {
-  const u = document.getElementById('v-user').value.trim().toLowerCase();
-  const p = document.getElementById('v-pass').value;
-  if (V_USERS[u] && V_USERS[u] === p) {
-    sessionStorage.setItem('abcl-vendinha-auth', u);
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('v-username').textContent = u;
-    FirebaseAuthPatch.loginFirebaseLocal();
-    initApp();
-  } else {
-    document.getElementById('v-login-error').style.display = 'block';
-  }
-}
+function vLogin() {}
 
 function vLogout() {
-  sessionStorage.removeItem('abcl-vendinha-auth');
-  location.reload();
+  window.location.href = 'admin.html';
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const u = sessionStorage.getItem('abcl-vendinha-auth');
-  if (u) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('v-username').textContent = u;
-    FirebaseAuthPatch.loginFirebaseLocal();
-    initApp();
-  }
+  const u = sessionStorage.getItem('abcl-vendinha-auth') || sessionStorage.getItem('abcl-auth') || 'Caixa';
+  document.getElementById('v-username').textContent = u;
+  if (typeof FirebaseAuthPatch !== 'undefined') FirebaseAuthPatch.loginFirebaseLocal();
+  initApp();
 });
 
 // ══════════════════════════════════════════════════
@@ -1698,14 +1639,12 @@ window.finalizarVenda = async function(total, subtotal, desconto, oferta) {
 // ── Indicador de status offline ──
 function atualizarSyncBar() {
   const bar = document.getElementById('sync-bar');
-  const btnSync = document.getElementById('btn-sync-now');
   if (!bar) return;
   if (typeof OfflineSync === 'undefined') { bar.style.display = 'none'; return; }
   try {
     const status = OfflineSync.obterStatusSincronizacao();
     if (status.online && status.pendentes === 0) {
       bar.style.display = 'none';
-      if (btnSync) btnSync.style.display = 'none';
     } else {
       bar.style.display = 'flex';
       if (status.online && status.pendentes > 0) {
@@ -1715,7 +1654,6 @@ function atualizarSyncBar() {
         document.getElementById('sync-icon').textContent = '🟡';
         document.getElementById('sync-msg').textContent = 'Sincronizando vendas pendentes…';
         document.getElementById('sync-pending').textContent = status.pendentes + ' pendente(s)';
-        if (btnSync) btnSync.style.display = 'inline-block'; // Mostra botão
       } else {
         bar.style.background = 'rgba(239,68,68,.12)';
         bar.style.borderBottomColor = 'rgba(239,68,68,.25)';
@@ -1723,37 +1661,9 @@ function atualizarSyncBar() {
         document.getElementById('sync-icon').textContent = '🔴';
         document.getElementById('sync-msg').textContent = 'Offline — vendas serão sincronizadas ao conectar';
         document.getElementById('sync-pending').textContent = status.pendentes > 0 ? status.pendentes + ' pendente(s)' : '';
-        if (btnSync) btnSync.style.display = 'none'; // Esconde botão (offline)
       }
     }
   } catch(e) {}
-}
-
-// Força sincronização manual das vendas pendentes
-async function forcarSincronizacao() {
-  if (typeof OfflineSync === 'undefined') {
-    toast('Sistema de sincronização não disponível.');
-    return;
-  }
-  
-  const btnSync = document.getElementById('btn-sync-now');
-  if (btnSync) {
-    btnSync.disabled = true;
-    btnSync.textContent = '⏳ Sincronizando...';
-  }
-  
-  try {
-    await OfflineSync.sincronizarAgora();
-    toast('✅ Vendas sincronizadas com sucesso!');
-    atualizarSyncBar();
-  } catch (e) {
-    toast('❌ Erro ao sincronizar: ' + e.message);
-  } finally {
-    if (btnSync) {
-      btnSync.disabled = false;
-      btnSync.textContent = '⚡ Sincronizar agora';
-    }
-  }
 }
 
 setInterval(atualizarSyncBar, 4000);

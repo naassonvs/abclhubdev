@@ -19,15 +19,23 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Habilitar persistência offline do Firestore
-db.enablePersistence({ synchronizeTabs: true })
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Persistência: múltiplas abas abertas');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Persistência: não suportada neste navegador');
-    }
-  });
+// Habilitar persistência offline do Firestore (apenas 1 vez)
+if (!window._firestorePersistenceEnabled) {
+  window._firestorePersistenceEnabled = true;
+  db.enablePersistence({ synchronizeTabs: true })
+    .then(() => {
+      console.log('✅ Firestore offline persistence enabled');
+    })
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('⚠️ Persistência: múltiplas abas abertas');
+      } else if (err.code === 'unimplemented') {
+        console.warn('⚠️ Persistência: não suportada neste navegador');
+      } else {
+        console.warn('⚠️ Persistência Firestore:', err.message);
+      }
+    });
+}
 
 // ── ESTADO GLOBAL DO USUÁRIO ──
 window.usuarioAtual = null;
