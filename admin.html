@@ -1036,13 +1036,13 @@
 
         <!-- Pedidos recentes -->
         <div class="section-card" style="margin-top:1.25rem;">
-          <h2 style="margin-bottom:1rem;">📋 Pedidos via Financeiro</h2>
-          <p style="font-size:.78rem;color:var(--suave);line-height:1.6;">
-            Cada pedido finalizado na loja é registrado automaticamente em
-            <strong style="color:var(--texto);">Financeiro → Receitas</strong>
-            com a categoria <strong style="color:var(--verde-claro);">"Lucro Loja"</strong>.
-            <button class="btn btn-ghost btn-sm" onclick="window.open('financeiro.html','_blank')" style="margin-left:.5rem;">Abrir Financeiro →</button>
-          </p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <h2>📋 Pedidos da Loja</h2>
+            <button class="btn btn-ghost btn-sm" id="btn-atualizar-pedidos-loja" onclick="carregarPedidosLoja()">🔄 Atualizar</button>
+          </div>
+          <div id="loja-pedidos-tabela">
+            <p style="font-size:.82rem;color:var(--suave);text-align:center;padding:2rem;">Clique em Atualizar para carregar os pedidos.</p>
+          </div>
         </div>
       </div>
 
@@ -2601,6 +2601,87 @@ function initGestaoloja() {
   renderProdutosAdmin();
   renderCategoriasAdmin();
   carregarCfgLoja();
+  carregarPedidosLoja();
+}
+
+async function carregarPedidosLoja() {
+  const el = document.getElementById('loja-pedidos-tabela');
+  if (!el) return;
+
+  el.innerHTML = '<p style="font-size:.82rem;color:var(--suave);text-align:center;padding:1.5rem;">Carregando...</p>';
+
+  try {
+    if (typeof VendasFirebase === 'undefined') {
+      el.innerHTML = '<p style="font-size:.82rem;color:var(--suave);text-align:center;padding:1.5rem;">Firebase não disponível.</p>';
+      return;
+    }
+
+    const vendas = await VendasFirebase.buscarVendasFirebase('loja', {});
+
+    if (!vendas || vendas.length === 0) {
+      el.innerHTML = '<p style="font-size:.82rem;color:var(--suave);text-align:center;padding:2rem;">Nenhum pedido encontrado.</p>';
+      return;
+    }
+
+    const STATUS_COR = {
+      confirmada: 'background:rgba(64,145,108,.2);color:#74c69d;',
+      cancelada:  'background:rgba(239,68,68,.15);color:#fca5a5;',
+      pendente:   'background:rgba(245,158,11,.15);color:#fbbf24;',
+    };
+
+    const linhas = vendas.map(v => {
+      const produtos = (v.produtos || []).map(p => `${p.nome}${p.tamanho?' ('+p.tamanho+')':''} ×${p.qtd||1}`).join(', ') || '—';
+      const acampante = v.acampante || v.pessoa || v.cliente || v.operador_nome || '—';
+      const tel = v.operador_tel ? `<div style="font-size:.65rem;color:var(--suave);">${v.operador_tel}</div>` : '';
+      const statusCor = STATUS_COR[v.status] || STATUS_COR.confirmada;
+      const total = `R$ ${(v.total||0).toFixed(2).replace('.',',')}`;
+      const data = v.data || '—';
+      const hora = v.hora || '';
+      const pag  = v.forma_pagamento || '—';
+
+      return `<tr>
+        <td style="padding:.6rem .75rem;font-size:.78rem;color:var(--suave);">${data}<br><span style="font-size:.65rem;">${hora}</span></td>
+        <td style="padding:.6rem .75rem;font-size:.82rem;font-weight:600;">${acampante}${tel}</td>
+        <td style="padding:.6rem .75rem;font-size:.75rem;color:var(--suave);max-width:220px;">${produtos}</td>
+        <td style="padding:.6rem .75rem;font-size:.78rem;">${pag}</td>
+        <td style="padding:.6rem .75rem;font-size:.88rem;font-family:'Cinzel',serif;color:var(--verde-claro);text-align:right;">${total}</td>
+        <td style="padding:.6rem .75rem;text-align:center;">
+          <span style="font-size:.65rem;padding:.2rem .55rem;border-radius:99px;${statusCor}">${v.status||'confirmada'}</span>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const totalGeral = vendas.reduce((s,v) => s+(v.total||0), 0);
+
+    el.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--borda);">
+              <th style="padding:.5rem .75rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);text-align:left;">Data/Hora</th>
+              <th style="padding:.5rem .75rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);text-align:left;">Cliente</th>
+              <th style="padding:.5rem .75rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);text-align:left;">Produtos</th>
+              <th style="padding:.5rem .75rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);text-align:left;">Pagamento</th>
+              <th style="padding:.5rem .75rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);text-align:right;">Total</th>
+              <th style="padding:.5rem .75rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);text-align:center;">Status</th>
+            </tr>
+          </thead>
+          <tbody style="border-bottom:1px solid var(--borda);">
+            ${linhas}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" style="padding:.65rem .75rem;font-size:.78rem;color:var(--suave);">${vendas.length} pedido${vendas.length!==1?'s':''}</td>
+              <td style="padding:.65rem .75rem;font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-claro);text-align:right;font-weight:700;">R$ ${totalGeral.toFixed(2).replace('.',',')}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+  } catch(err) {
+    el.innerHTML = '<p style="font-size:.82rem;color:#fca5a5;text-align:center;padding:1.5rem;">Erro ao carregar: ' + err.message + '</p>';
+    console.error('[Admin] carregarPedidosLoja:', err);
+  }
 }
 
 function renderLojaStats() {

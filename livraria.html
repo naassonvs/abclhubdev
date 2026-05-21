@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -32,20 +32,32 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:       #060C14;
-      --bg2:      #0A1220;
-      --card:     #0D1828;
-      --card2:    #111F35;
-      --texto:    #EDE8DF;
-      --suave:    rgba(237,232,223,0.45);
-      --borda:    rgba(91,141,193,0.18);
+      --bg:       #060F09;
+      --bg2:      #0C1A11;
+      --card:     #0C1A11;
+      --card2:    #112218;
+      --texto:    #F0EDE6;
+      --suave:    rgba(240,237,230,0.5);
+      --borda:    rgba(64,145,108,0.2);
       --azul:     #3B82F6;
-      --azul-cl:  #93C5FD;
-      --azul-mid: #2563EB;
+      --azul-cl:  #74C69D;
+      --azul-mid: #40916C;
       --dourado:  #D4A853;
       --verde:    #40916C;
+      --verde-cl: #74C69D;
       --vermelho: #EF4444;
       --amarelo:  #F59E0B;
+    }
+    [data-theme="light"] {
+      --bg:       #F2F7F3;
+      --bg2:      #E8F2EA;
+      --card:     #FFFFFF;
+      --card2:    #E8F2EA;
+      --texto:    #1A2E22;
+      --suave:    rgba(26,46,34,.5);
+      --borda:    rgba(45,106,79,.16);
+      --amarelo:  #A06800;
+      --vermelho: #C0392B;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; }
@@ -57,27 +69,29 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
     /* ── TOP BAR ── */
     .top-bar {
-      background: rgba(6,12,20,.97); border-bottom: 1px solid var(--borda);
-      padding: .6rem 1.25rem; display: flex; align-items: center; gap: 1rem;
-      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.5rem;
+      background: var(--card); border-bottom: 1px solid var(--borda);
+      position: sticky; top: 0; z-index: 50;
     }
-    .top-bar img { width: 28px; height: 28px; }
-    .top-bar-title { font-family: 'Cinzel', serif; font-size: .88rem; color: var(--azul-cl); flex: 1; }
-    .top-bar-sub { font-size: .62rem; color: var(--suave); }
-    .top-bar-actions { display: flex; gap: .5rem; }
+    .top-bar-left { display: flex; align-items: center; gap: .75rem; }
+    .top-bar img { width: 36px; height: 36px; object-fit: contain; }
+    .top-bar-title { font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 700; color: var(--azul-cl); }
+    .top-bar-sub { display: block; font-size: .62rem; color: var(--suave); }
+    .top-bar-actions { display: flex; gap: .5rem; align-items: center; }
 
     /* ── STATS ── */
     .stats-bar {
       display: grid; grid-template-columns: repeat(4, 1fr);
-      border-bottom: 1px solid var(--borda); background: var(--bg2);
+      border-bottom: 1px solid var(--borda); background: var(--card);
     }
     .stat-item {
-      padding: .6rem 1rem; text-align: center;
+      padding: .9rem 1rem; text-align: center;
       border-right: 1px solid var(--borda);
     }
     .stat-item:last-child { border-right: none; }
-    .stat-label { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); }
-    .stat-val { font-family: 'Cinzel', serif; font-size: 1rem; margin-top: .1rem; }
+    .stat-label { font-size: .6rem; letter-spacing: .15em; text-transform: uppercase; color: var(--suave); margin-bottom: .2rem; }
+    .stat-val { font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 700; }
 
     /* ── TABS ── */
     .view-tabs {
@@ -211,11 +225,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     /* Busca de cliente */
     .pedido-cliente { padding: .75rem 1rem; border-bottom: 1px solid var(--borda); position: relative; }
     .busca-cliente-input {
-      width: 100%; background: var(--card); border: 1px solid var(--borda);
-      border-radius: 8px; padding: .6rem .85rem; font-size: 1rem;
+      width: 100%; background: var(--card2); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .65rem .9rem; font-size: 1rem;
       color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+      transition: border-color .2s;
     }
-    .busca-cliente-input:focus { border-color: var(--azul); }
+    .busca-cliente-input:focus { border-color: var(--verde); }
     .dropdown-clientes {
       position: absolute; top: 100%; left: .75rem; right: .75rem;
       background: var(--card); border: 1px solid var(--borda); border-radius: 0 0 8px 8px;
@@ -223,10 +238,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       box-shadow: 0 8px 24px rgba(0,0,0,.4);
     }
     .cliente-chip {
-      display: none; margin-top: .4rem; padding: .35rem .75rem;
-      background: rgba(37,99,235,.15); border: 1px solid rgba(37,99,235,.3);
-      border-radius: 6px; font-size: .78rem; color: var(--azul-cl);
-      align-items: center; justify-content: space-between; font-weight: 600;
+      display: none; margin-top: .4rem; padding: .4rem .75rem;
+      background: rgba(64,145,108,.15); border: 1px solid var(--borda);
+      border-radius: 6px; font-size: .8rem;
+      align-items: center; justify-content: space-between;
     }
     .cliente-chip.show { display: flex; }
 
@@ -242,49 +257,58 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     .pedido-vazio { text-align: center; color: var(--suave); font-size: .78rem; padding: 2rem 1rem; }
 
     .item-pedido {
-      display: flex; gap: .5rem; align-items: center; padding: .5rem .35rem;
-      border-bottom: 1px solid rgba(91,141,193,.08); font-size: .8rem;
+      display: flex; align-items: center; gap: .75rem;
+      padding: .6rem 0; border-bottom: 1px solid rgba(64,145,108,.1);
     }
-    .item-nome { flex: 1; line-height: 1.3; font-size: .75rem; }
-    .item-preco { color: var(--azul-cl); font-size: .75rem; min-width: 52px; text-align: right; font-family: 'Cinzel', serif; }
-    .qty-ctrl { display: flex; align-items: center; gap: .25rem; }
+    .item-nome { flex: 1; font-size: .85rem; line-height: 1.3; }
+    .item-preco { font-size: .75rem; color: var(--suave); margin-top: .1rem; font-family: 'Cinzel', serif; min-width: 52px; text-align: right; }
+    .qty-ctrl { display: flex; align-items: center; gap: .4rem; }
     .qty-btn {
-      width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--borda);
-      background: var(--card2); color: var(--texto); font-size: .8rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; transition: background .15s;
+      width: 26px; height: 26px; border-radius: 5px;
+      background: var(--card2); border: 1px solid var(--borda);
+      color: var(--texto); font-size: .9rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
     }
-    .qty-btn:hover { background: var(--azul-mid); border-color: var(--azul-mid); }
-    .qty-num { font-size: .8rem; min-width: 16px; text-align: center; font-weight: 600; }
+    .qty-btn:hover { background: rgba(64,145,108,.2); }
+    .qty-num { font-size: .85rem; font-weight: 600; min-width: 18px; text-align: center; }
 
     /* ── CHECKOUT AREA ── */
-    .checkout-area { border-top: 1px solid var(--borda); padding: .75rem 1rem; background: var(--bg); }
+    .checkout-area { border-top: 1px solid var(--borda); padding: .75rem 1rem; background: var(--card); }
     .extras-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .6rem; }
     .extras-input {
-      background: var(--card); border: 1px solid var(--borda); border-radius: 6px;
-      padding: .45rem .7rem; font-size: 1rem; color: var(--texto);
+      background: var(--card2); border: 1px solid var(--borda); border-radius: 5px;
+      padding: .45rem .75rem; font-size: .82rem; color: var(--texto);
       font-family: 'Inter', sans-serif; outline: none; width: 100%;
     }
-    .pagamento-row { display: flex; gap: .4rem; margin-bottom: .65rem; }
+    .extras-input:focus { border-color: var(--verde); }
+    .pagamento-row { display: flex; gap: .4rem; margin-bottom: .65rem; flex-wrap: wrap; }
     .pag-btn {
-      flex: 1; padding: .45rem .4rem; border-radius: 6px; border: 1px solid var(--borda);
-      background: transparent; color: var(--suave); font-size: .72rem;
-      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .15s;
+      flex: 1; padding: .5rem; border-radius: 6px; font-size: .74rem; font-weight: 500;
+      cursor: pointer; border: 1px solid var(--borda); background: var(--card2); color: var(--suave);
+      font-family: 'Inter', sans-serif; transition: background .15s; text-align: center;
     }
-    .pag-btn.active { background: var(--azul-mid); border-color: var(--azul-mid); color: #fff; font-weight: 600; }
+    .pag-btn.active.pix      { background: var(--verde); border-color: var(--verde); color: #fff; }
+    .pag-btn.active.dinheiro { background: #16a34a; border-color: #16a34a; color: #fff; }
+    .pag-btn.active.fiado    { background: var(--amarelo); border-color: var(--amarelo); color: #000; }
+    .pag-btn.active.credito  { background: var(--azul); border-color: var(--azul); color: #fff; }
+    .pag-btn.active.debito   { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
     .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .65rem; }
-    .total-label { font-size: .75rem; color: var(--suave); }
-    .total-val { font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--azul-cl); }
-    .acao-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+    .total-label { font-size: .82rem; color: var(--suave); }
+    .total-val { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; color: var(--verde-cl); }
+    .acao-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
     .btn-finalizar {
-      background: var(--azul-mid); color: #fff; border: none; border-radius: 8px;
-      padding: .7rem; font-size: .82rem; font-weight: 600; cursor: pointer;
-      font-family: 'Cinzel', serif; transition: background .2s;
+      background: var(--verde); color: #fff; border: none; border-radius: 8px;
+      padding: .9rem 1.25rem; font-size: .85rem; font-weight: 500; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: opacity .2s;
+      display: flex; align-items: center; justify-content: center; gap: .4rem;
     }
-    .btn-finalizar:hover { background: var(--azul); }
+    .btn-finalizar:hover { opacity: .85; }
     .btn-limpar {
-      background: transparent; color: var(--suave); border: 1px solid var(--borda);
-      border-radius: 8px; padding: .7rem; font-size: .78rem; cursor: pointer;
-      transition: all .15s;
+      background: var(--card2); color: var(--suave); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .9rem 1.25rem; font-size: .78rem; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: all .15s;
+      display: flex; align-items: center; justify-content: center; gap: .4rem;
     }
     .btn-limpar:hover { border-color: var(--vermelho); color: #fca5a5; }
 
@@ -394,18 +418,20 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 <div id="app">
 
   <!-- Top bar -->
-  <div class="top-bar">
-    <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
-    <div>
-      <div class="top-bar-title">ABCL LIVRARIA</div>
-      <div class="top-bar-sub">Caixa rápido · <span id="l-username"></span></div>
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <img src="assets/logo-abcl.svg" alt="ABCL" onerror="this.src='assets/logo-abcl.png'" />
+      <div>
+        <div class="top-bar-title">ABCL Livraria</div>
+        <small class="top-bar-sub">Caixa rápido · <span id="l-username"></span></small>
+      </div>
     </div>
     <div class="top-bar-actions">
-      <button class="btn btn-ghost btn-sm" onclick="abrirImport()">📥 Importar CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirImport()">📥 CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="window.open('admin.html','_blank')">⚙ Admin</button>
       <button class="btn btn-ghost btn-sm" onclick="lSair()">Sair</button>
     </div>
-  </div>
+  </header>
 
   <!-- ── Indicador Offline Sync ── -->
   <div id="sync-bar" style="display:none;align-items:center;justify-content:center;gap:.5rem;padding:.4rem 1rem;font-size:.75rem;font-weight:600;background:rgba(239,68,68,.12);border-bottom:1px solid rgba(239,68,68,.25);color:#fca5a5;">
@@ -416,10 +442,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
   <!-- Stats -->
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-label">Vendas</div><div class="stat-val" id="s-vendas" style="color:var(--azul-cl)">0</div></div>
-    <div class="stat-item"><div class="stat-label">Total</div><div class="stat-val" id="s-total" style="color:var(--verde)">R$ 0,00</div></div>
+    <div class="stat-item"><div class="stat-label">Vendas</div><div class="stat-val" id="s-vendas" style="color:var(--verde-cl)">0</div></div>
+    <div class="stat-item"><div class="stat-label">Total</div><div class="stat-val" id="s-total" style="color:var(--verde-cl)">R$ 0,00</div></div>
     <div class="stat-item"><div class="stat-label">Fiado</div><div class="stat-val" id="s-fiado" style="color:var(--amarelo)">R$ 0,00</div></div>
-    <div class="stat-item"><div class="stat-label">Recebido</div><div class="stat-val" id="s-recebido" style="color:var(--azul-cl)">R$ 0,00</div></div>
+    <div class="stat-item"><div class="stat-label">Recebido</div><div class="stat-val" id="s-recebido" style="color:var(--azul)">R$ 0,00</div></div>
   </div>
 
   <!-- Tabs -->
@@ -467,16 +493,21 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
         <!-- Cliente -->
         <div class="pedido-cliente">
-          <input class="busca-cliente-input" id="busca-cliente" type="text"
-            placeholder="🔍 Buscar acampante..."
-            oninput="filtrarClientes(this.value)" onfocus="filtrarClientes(this.value)" />
-          <div id="dropdown-clientes" class="dropdown-clientes"></div>
+          <div style="position:relative;">
+            <input class="busca-cliente-input" id="busca-cliente" type="text"
+              placeholder="🔍 Buscar acampante..."
+              oninput="filtrarClientes(this.value)" onfocus="filtrarClientes(this.value)" />
+            <div id="dropdown-clientes" class="dropdown-clientes"></div>
+          </div>
           <div class="cliente-chip" id="cliente-chip">
-            <span id="cliente-chip-nome"></span>
-            <button onclick="limparCliente()" style="background:none;border:none;color:var(--suave);cursor:pointer;padding:0 .25rem;">✕</button>
+            <span id="cliente-chip-nome" style="color:var(--verde-cl);font-weight:600;"></span>
+            <button onclick="limparCliente()" style="background:none;border:none;color:var(--suave);cursor:pointer;font-size:.9rem;padding:0 .25rem;">✕</button>
           </div>
           <input type="text" id="input-avulso" placeholder="Nome (avulso)"
-            style="display:none;margin-top:.4rem;width:100%;background:var(--card);border:1px solid var(--borda);border-radius:8px;padding:.55rem .8rem;font-size:1rem;color:var(--texto);outline:none;"
+            style="display:none;margin-top:.5rem;width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);outline:none;font-family:'Inter',sans-serif;"
+            oninput="setClienteAvulso()" />
+          <input type="tel" id="input-avulso-tel" placeholder="WhatsApp (avulso)"
+            style="display:none;margin-top:.4rem;width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);outline:none;font-family:'Inter',sans-serif;"
             oninput="setClienteAvulso()" />
         </div>
 
@@ -498,33 +529,21 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             <input class="extras-input" type="number" id="desconto" placeholder="Desconto (R$)" step="0.5" oninput="renderCart()" />
             <input class="extras-input" type="number" id="oferta" placeholder="Oferta (R$)" step="0.5" oninput="renderCart()" />
           </div>
-          <div class="pagamento-row" style="flex-wrap:wrap;">
-            <button class="pag-btn active" onclick="setPag('PIX',this)">📲 PIX</button>
-            <button class="pag-btn" onclick="setPag('Dinheiro',this)">💵 Dinheiro</button>
-            <button class="pag-btn" onclick="setPag('Crédito',this)">💳 Crédito</button>
-            <button class="pag-btn" onclick="setPag('Débito',this)">💳 Débito</button>
-            <button class="pag-btn" onclick="setPag('Fiado',this)">📒 Fiado</button>
+          <div class="pagamento-row">
+            <button class="pag-btn pix active" id="pb-pix" onclick="setPag('PIX',this)">📲 PIX</button>
+            <button class="pag-btn dinheiro" id="pb-din" onclick="setPag('Dinheiro',this)">💵 Dinheiro</button>
+            <button class="pag-btn credito" id="pb-cred" onclick="setPag('Crédito',this)">💳 Crédito</button>
+            <button class="pag-btn debito" id="pb-deb" onclick="setPag('Débito',this)">💳 Débito</button>
+            <button class="pag-btn fiado" id="pb-fia" onclick="setPag('Fiado',this)">📒 Fiado</button>
           </div>
 
-          <!-- Bloco de Oferta -->
-          <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:.7rem .9rem;margin-bottom:.6rem;">
-            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.8rem;font-weight:600;color:#fbbf24;">
-              <input type="checkbox" id="chk-oferta" onchange="toggleOfertaBloco()" />
-              🎁 Esta venda é uma oferta
-            </label>
-            <div id="detalhe-oferta" style="display:none;margin-top:.5rem;">
-              <label style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);display:block;margin-bottom:.25rem;">Valor da oferta (R$)</label>
-              <input type="number" id="campo-valor-oferta" min="0" step="1" placeholder="0"
-                style="width:110px;background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.4);border-radius:6px;padding:.4rem .65rem;color:var(--texto);font-family:inherit;font-size:.85rem;" />
-              <div style="font-size:.65rem;color:var(--suave);margin-top:.25rem;">Status: <span id="status-oferta-label" style="color:#fbbf24;font-weight:600;">pendente</span></div>
-            </div>
-          </div>
+
           <div class="total-row">
             <span class="total-label">Total</span>
             <span class="total-val" id="cart-total">R$ 0,00</span>
           </div>
           <div class="acao-row">
-            <button class="btn-finalizar" onclick="checkout()">✓ Finalizar</button>
+            <button class="btn-finalizar" onclick="checkout()">✅ Finalizar</button>
             <button class="btn-limpar" onclick="limparPedido()">✕ Limpar</button>
           </div>
         </div>
@@ -991,13 +1010,15 @@ function renderCart() {
 
   container.innerHTML = cart.map(i => `
     <div class="item-pedido">
-      <div class="item-nome">${i.titulo}</div>
+      <div style="flex:1">
+        <div class="item-nome">${i.titulo}</div>
+        <div class="item-preco">R$ ${i.preco.toFixed(2).replace('.',',')} × ${i.qtd} = R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}</div>
+      </div>
       <div class="qty-ctrl">
         <button class="qty-btn" onclick="changeQty(${i.id},-1)">−</button>
         <span class="qty-num">${i.qtd}</span>
         <button class="qty-btn" onclick="changeQty(${i.id},1)">+</button>
       </div>
-      <div class="item-preco">R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}</div>
     </div>`).join('');
 }
 
@@ -1006,6 +1027,9 @@ function limparPedido() {
   document.getElementById('busca-cliente').value = '';
   document.getElementById('cliente-chip').className = 'cliente-chip';
   document.getElementById('input-avulso').style.display = 'none';
+  document.getElementById('input-avulso').value = '';
+  const inpTel = document.getElementById('input-avulso-tel');
+  if (inpTel) { inpTel.style.display = 'none'; inpTel.value = ''; }
   document.getElementById('desconto').value = '';
   document.getElementById('oferta').value   = '';
   renderCart();
@@ -1037,14 +1061,19 @@ function filtrarClientes(q) {
 
 function selecionarCliente(val, label) {
   document.getElementById('dropdown-clientes').style.display = 'none';
-  const inp  = document.getElementById('input-avulso');
-  const chip = document.getElementById('cliente-chip');
+  const inp    = document.getElementById('input-avulso');
+  const inpTel = document.getElementById('input-avulso-tel');
+  const chip   = document.getElementById('cliente-chip');
   if (val === '__avulso__') {
-    inp.style.display = 'block'; chip.className = 'cliente-chip';
+    inp.style.display = 'block';
+    if (inpTel) inpTel.style.display = 'block';
+    chip.className = 'cliente-chip';
     document.getElementById('busca-cliente').value = '';
     cliente = ''; inp.focus();
   } else {
-    inp.style.display = 'none'; inp.value = '';
+    inp.style.display = 'none';
+    if (inpTel) { inpTel.style.display = 'none'; inpTel.value = ''; }
+    inp.value = '';
     chip.className = 'cliente-chip show';
     document.getElementById('cliente-chip-nome').textContent = label;
     document.getElementById('busca-cliente').value = '';
@@ -1057,9 +1086,15 @@ function limparCliente() {
   document.getElementById('cliente-chip').className = 'cliente-chip';
   document.getElementById('busca-cliente').value = '';
   document.getElementById('input-avulso').style.display = 'none';
+  const inpTel = document.getElementById('input-avulso-tel');
+  if (inpTel) { inpTel.style.display = 'none'; inpTel.value = ''; }
 }
 
-function setClienteAvulso() { cliente = document.getElementById('input-avulso').value.trim(); }
+function setClienteAvulso() {
+  const nome = document.getElementById('input-avulso').value.trim();
+  const tel  = document.getElementById('input-avulso-tel')?.value.trim() || '';
+  cliente = nome + (tel ? ` (${tel})` : '');
+}
 
 document.addEventListener('click', e => {
   if (!e.target.closest('.pedido-cliente')) document.getElementById('dropdown-clientes').style.display = 'none';
@@ -1609,15 +1644,16 @@ async function _enviarVendaFirebaseLiv(sale) {
       subtotal:        sale.subtotal,
       desconto:        sale.desconto || 0,
       total:           sale.total,
-      eh_oferta:       document.getElementById('chk-oferta')?.checked || false,
-      valor_oferta:    parseInt(document.getElementById('campo-valor-oferta')?.value) || 0,
-      status_oferta:   document.getElementById('chk-oferta')?.checked ? 'pendente' : null,
+      eh_oferta:       false,
+      valor_oferta:    0,
+      status_oferta:   null,
       forma_pagamento: sale.pagamento,
       cartao_tipo:     ['Crédito','Débito'].includes(sale.pagamento) ? sale.pagamento : null,
       operador_uid:    sessionStorage.getItem('abcl-livraria-auth') || 'operador',
       operador_nome:   sessionStorage.getItem('abcl-livraria-auth') || 'Caixa',
       ano_acampamento: new Date().getFullYear(),
       cliente:         sale.cliente,
+      pessoa:          sale.cliente,
       periodo:         sale.periodo,
       hora:            sale.hora,
       data:            sale.data,
@@ -1667,6 +1703,13 @@ setInterval(atualizarSyncBarLiv, 4000);
 window.addEventListener('online',  atualizarSyncBarLiv);
 window.addEventListener('offline', atualizarSyncBarLiv);
 document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarSyncBarLiv, 1000));
+</script>
+<button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
+<script>
+window.toggleTheme = function() {
+  const html = document.documentElement;
+  html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+};
 </script>
 </body>
 </html>

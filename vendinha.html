@@ -646,19 +646,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         <button class="pag-btn fiado" id="pb-fia" onclick="setPagamento('Fiado',this)">📒 Fiado</button>
       </div>
 
-      <!-- Bloco de Oferta -->
-      <div class="oferta-bloco">
-        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.82rem;font-weight:600;color:#fbbf24;">
-          <input type="checkbox" id="chk-oferta" onchange="toggleOfertaBloco()" />
-          🎁 Esta venda é uma oferta
-        </label>
-        <div id="detalhe-oferta" style="display:none;margin-top:.6rem;">
-          <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);display:block;margin-bottom:.3rem;">Valor da oferta (R$)</label>
-          <input type="number" id="campo-valor-oferta" min="0" step="1" placeholder="0"
-            style="width:120px;background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.4);border-radius:6px;padding:.45rem .7rem;color:var(--texto);font-family:inherit;font-size:.88rem;" />
-          <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Status: <span id="status-oferta-label" style="color:#fbbf24;font-weight:600;">pendente</span></div>
-        </div>
-      </div>
+
 
       <div class="pedido-footer">
         <div class="total-row">

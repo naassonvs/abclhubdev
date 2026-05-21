@@ -185,6 +185,48 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     .pmi-btn:hover { background:var(--verde-cl); color:var(--bg); }
 
     /* ── SACOLA / SIDEBAR ── */
+    /* ── Modal Checkout ── */
+    #checkout-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.72); z-index: 2000;
+      align-items: center; justify-content: center;
+    }
+    #checkout-modal-overlay.open { display: flex; }
+    #checkout-modal {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 14px;
+      width: min(400px, 90vw); padding: 1.75rem; position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+    #checkout-modal h3 {
+      font-family: 'Cinzel', serif; font-size: 1rem;
+      color: var(--verde-cl); margin: 0 0 1.25rem;
+    }
+    .cm-field { margin-bottom: .9rem; }
+    .cm-field label {
+      display: block; font-size: .68rem; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--suave); margin-bottom: .3rem;
+    }
+    .cm-field input {
+      width: 100%; background: var(--card2); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .65rem .9rem; font-size: 1rem;
+      color: var(--texto); font-family: 'Inter', sans-serif; outline: none;
+      box-sizing: border-box; transition: border-color .2s;
+    }
+    .cm-field input:focus { border-color: var(--verde); }
+    .cm-actions { display: flex; gap: .6rem; margin-top: 1.25rem; }
+    .cm-btn-confirmar {
+      flex: 1; background: var(--verde); color: #fff; border: none;
+      border-radius: 8px; padding: .85rem; font-size: .88rem; font-weight: 600;
+      cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity .2s;
+    }
+    .cm-btn-confirmar:hover { opacity: .85; }
+    .cm-btn-cancelar {
+      background: var(--card2); color: var(--suave); border: 1px solid var(--borda);
+      border-radius: 8px; padding: .85rem 1.25rem; font-size: .82rem;
+      cursor: pointer; font-family: 'Inter', sans-serif;
+    }
+    #cm-erro { color: #fca5a5; font-size: .78rem; margin-top: .4rem; display: none; }
+
     .sacola-fab {
       position:fixed; bottom:1.75rem; right:1.75rem; z-index:100;
       background:var(--verde-mid); color:#fff; border:none; border-radius:99px;
@@ -313,6 +355,26 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </div>
 
 <!-- SACOLA -->
+<!-- Modal Checkout -->
+<div id="checkout-modal-overlay">
+  <div id="checkout-modal">
+    <h3>💬 Finalizar Pedido</h3>
+    <div class="cm-field">
+      <label>Nome completo *</label>
+      <input type="text" id="cm-nome" placeholder="Seu nome" autocomplete="name" />
+    </div>
+    <div class="cm-field">
+      <label>WhatsApp com DDD</label>
+      <input type="tel" id="cm-tel" placeholder="Ex: 31 9 9907 2784" autocomplete="tel" />
+    </div>
+    <p id="cm-erro" class="cm-erro">Por favor, informe seu nome.</p>
+    <div class="cm-actions">
+      <button class="cm-btn-cancelar" onclick="fecharCheckoutModal()">Cancelar</button>
+      <button class="cm-btn-confirmar" onclick="confirmarCheckout()">✅ Confirmar Pedido</button>
+    </div>
+  </div>
+</div>
+
 <div id="sacola-overlay" onclick="fecharSacola(event)">
   <div id="sacola-drawer">
     <div class="sacola-header">
@@ -663,77 +725,117 @@ function selecionarPagLoja(btn) {
 }
 
 // ── Checkout ──
-async function checkout() {
-  if (sacola.length===0) { toast('Sua sacola está vazia.'); return; }
-  const nome   = prompt('Seu nome completo:');
-  if (!nome?.trim()) { toast('Nome obrigatório.'); return; }
-  const tel    = prompt('Seu WhatsApp com DDD:');
-  const total  = sacola.reduce((s,i)=>s+i.preco*i.qtd,0);
+function checkout() {
+  if (sacola.length === 0) { toast('Sua sacola está vazia.'); return; }
+  // Abre modal em vez de prompt()
+  document.getElementById('cm-nome').value = '';
+  document.getElementById('cm-tel').value  = '';
+  document.getElementById('cm-erro').style.display = 'none';
+  document.getElementById('checkout-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('cm-nome').focus(), 80);
+}
+
+function fecharCheckoutModal() {
+  document.getElementById('checkout-modal-overlay').classList.remove('open');
+}
+
+async function confirmarCheckout() {
+  const nome = document.getElementById('cm-nome').value.trim();
+  const tel  = document.getElementById('cm-tel').value.trim();
+
+  if (!nome) {
+    const erro = document.getElementById('cm-erro');
+    erro.style.display = 'block';
+    document.getElementById('cm-nome').focus();
+    return;
+  }
+
+  fecharCheckoutModal();
+
+  const total = sacola.reduce((s,i) => s + i.preco * i.qtd, 0);
 
   const linhas = [
     `🛍️ *ABCL 2026 — Pedido da Loja*`,
     ``,
-    `👤 *${nome.trim()}*`,
-    tel ? `📱 ${tel.trim()}` : '',
+    `👤 *${nome}*`,
+    tel ? `📱 ${tel}` : '',
     `💳 Pagamento: ${lojaPagamento}`,
     ``,
     `*ITENS:*`,
-    ...sacola.map(i=>`  • ${i.nome}${[i.tamanho,i.cor,i.genero].filter(Boolean).length?' ('+[i.tamanho,i.cor,i.genero].filter(Boolean).join(', ')+')':''} ×${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`),
+    ...sacola.map(i => `  • ${i.nome}${[i.tamanho,i.cor,i.genero].filter(Boolean).length ? ' ('+[i.tamanho,i.cor,i.genero].filter(Boolean).join(', ')+')' : ''} ×${i.qtd} — R$ ${(i.preco*i.qtd).toFixed(2).replace('.',',')}`),
     ``,
     `💰 *Total: R$ ${total.toFixed(2).replace('.',',')}*`,
     ``,
     `_Pedido via Loja ABCL 2026_`,
   ].filter(Boolean);
 
-  // Registrar no financeiro local
+  // ── Financeiro local ──
   try {
     const receitas = get('abcl-fin-receitas') || [];
     receitas.unshift({
-      id:'loja_'+Date.now(), descricao:`Loja — ${nome.trim()} (${sacola.length} item${sacola.length!==1?'s':''})`,
-      categoria:'Lucro Loja', valor:total,
-      data:new Date().toISOString().slice(0,10), status:'Pendente', origem:'loja',
+      id: 'loja_' + Date.now(),
+      descricao: `Loja — ${nome} (${sacola.length} item${sacola.length !== 1 ? 's' : ''})`,
+      categoria: 'Lucro Loja', valor: total,
+      data: new Date().toISOString().slice(0, 10),
+      status: 'Pendente', origem: 'loja',
     });
     set('abcl-fin-receitas', receitas);
-  } catch(e){}
+  } catch(e) {}
 
   // ── Firebase / Offline Sync ──
   try {
-    if (typeof VendasFirebase !== 'undefined' && typeof OfflineSync !== 'undefined') {
-      const venda = {
-        tipo:            'loja',
-        produtos:        sacola.map(i=>({ id:i.uid||i.id, nome:i.nome, preco:i.preco, qtd:i.qtd, tamanho:i.tamanho, cor:i.cor })),
-        subtotal:        total,
-        desconto:        0,
-        total:           total,
-        eh_oferta:       false,
-        valor_oferta:    null,
-        status_oferta:   null,
-        forma_pagamento: lojaPagamento,
-        cartao_tipo:     ['Crédito','Débito'].includes(lojaPagamento) ? lojaPagamento : null,
-        operador_uid:    'cliente_' + Date.now(),
-        operador_nome:   nome.trim(),
-        operador_tel:    tel?.trim() || '',
-        ano_acampamento: new Date().getFullYear(),
-        data:            new Date().toLocaleDateString('pt-BR'),
-        hora:            new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
-      };
-      if (navigator.onLine) {
-        await VendasFirebase.salvarVendaFirebase(venda, 'loja');
-      } else {
-        await OfflineSync.adicionarFilaSincronizacao(venda);
-      }
+    if (typeof VendasFirebase === 'undefined') {
+      throw new Error('VendasFirebase não carregado — verifique se vendas-firebase.js está acessível');
     }
-  } catch(err) { console.warn('Firebase loja (non-critical):', err.message); }
+    if (typeof OfflineSync === 'undefined') {
+      throw new Error('OfflineSync não carregado — verifique se offline-sync.js está acessível');
+    }
 
-  const whats = '5531988262599';
+    const venda = {
+      tipo:            'loja',
+      pessoa:          nome,
+      acampante:       nome,
+      cliente:         nome,
+      operador_nome:   nome,
+      operador_uid:    'loja_' + Date.now(),
+      operador_tel:    tel,
+      produtos:        sacola.map(i => ({ id: i.uid || i.id, nome: i.nome, preco: i.preco, qtd: i.qtd, tamanho: i.tamanho || '', cor: i.cor || '' })),
+      subtotal:        total,
+      desconto:        0,
+      total:           total,
+      eh_oferta:       false,
+      valor_oferta:    null,
+      status_oferta:   null,
+      forma_pagamento: lojaPagamento,
+      cartao_tipo:     ['Crédito','Débito'].includes(lojaPagamento) ? lojaPagamento : null,
+      ano_acampamento: new Date().getFullYear(),
+      data:            new Date().toLocaleDateString('pt-BR'),
+      hora:            new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+    };
+
+    if (navigator.onLine) {
+      const docId = await VendasFirebase.salvarVendaFirebase(venda, 'loja');
+      console.log('[Loja] ✅ Venda salva no Firebase:', docId);
+    } else {
+      await OfflineSync.adicionarFilaSincronizacao(venda);
+      console.log('[Loja] 📴 Offline — venda na fila de sync');
+    }
+  } catch(err) {
+    console.error('[Loja] ❌ Firebase erro COMPLETO:', err);
+    toast('⚠️ Venda salva localmente. Firebase: ' + err.message);
+  }
+
+  // ── Abre WhatsApp depois do Firebase (não bloqueia mais o prompt) ──
+  const whats = '5531999072784';
   window.open(`https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener');
+
   sacola = [];
   renderSacola();
   document.getElementById('sacola-overlay').classList.remove('open');
-  document.getElementById('produtos-grid').style.display='none';
-  document.querySelector('.filtros-strip').style.display='none';
+  document.getElementById('produtos-grid').style.display = 'none';
+  document.querySelector('.filtros-strip').style.display = 'none';
   document.getElementById('sucesso').classList.add('show');
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 // ── Toast ──
