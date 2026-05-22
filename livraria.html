@@ -21,7 +21,9 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 <!-- Módulos ABCL -->
 <script src="offline-sync.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="vendas-firebase.js"></script>
+<script src="produtos-sync.js"></script>
 <script src="firebase-auth-patch.js"></script>
 
   <meta charset="UTF-8" />
@@ -32,16 +34,16 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:       #060F09;
-      --bg2:      #0C1A11;
-      --card:     #0C1A11;
-      --card2:    #112218;
-      --texto:    #F0EDE6;
-      --suave:    rgba(240,237,230,0.5);
-      --borda:    rgba(64,145,108,0.2);
+      --bg:       #060C14;
+      --bg2:      #0A1220;
+      --card:     #0D1828;
+      --card2:    #111F35;
+      --texto:    #EDE8DF;
+      --suave:    rgba(237,232,223,0.45);
+      --borda:    rgba(91,141,193,0.18);
       --azul:     #3B82F6;
-      --azul-cl:  #74C69D;
-      --azul-mid: #40916C;
+      --azul-cl:  #93C5FD;
+      --azul-mid: #2563EB;
       --dourado:  #D4A853;
       --verde:    #40916C;
       --verde-cl: #74C69D;
@@ -49,13 +51,13 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       --amarelo:  #F59E0B;
     }
     [data-theme="light"] {
-      --bg:       #F2F7F3;
-      --bg2:      #E8F2EA;
+      --bg:       #EFF4FB;
+      --bg2:      #E2EBF7;
       --card:     #FFFFFF;
-      --card2:    #E8F2EA;
-      --texto:    #1A2E22;
-      --suave:    rgba(26,46,34,.5);
-      --borda:    rgba(45,106,79,.16);
+      --card2:    #E2EBF7;
+      --texto:    #1A2640;
+      --suave:    rgba(26,38,64,.5);
+      --borda:    rgba(37,99,235,.16);
       --amarelo:  #A06800;
       --vermelho: #C0392B;
     }
@@ -295,10 +297,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     .pag-btn.active.debito   { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
     .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .65rem; }
     .total-label { font-size: .82rem; color: var(--suave); }
-    .total-val { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; color: var(--verde-cl); }
+    .total-val { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; color: var(--azul-cl); }
     .acao-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
     .btn-finalizar {
-      background: var(--verde); color: #fff; border: none; border-radius: 8px;
+      background: var(--azul-mid); color: #fff; border: none; border-radius: 8px;
       padding: .9rem 1.25rem; font-size: .85rem; font-weight: 500; cursor: pointer;
       font-family: 'Inter', sans-serif; transition: opacity .2s;
       display: flex; align-items: center; justify-content: center; gap: .4rem;
@@ -629,21 +631,24 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       <div class="field"><label>Autor</label><input type="text" id="lm-autor" placeholder="Nome do autor" /></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Editora</label>
-        <select id="lm-editora">
-          <option value="">Selecione...</option>
-          <option>Chamada</option><option>DLC</option><option>Deivison</option>
-          <option>Lucas</option><option>SBC</option><option>Verdade</option><option>Outra</option>
-        </select>
+      <div class="field">
+        <label>Editora</label>
+        <div style="display:flex;gap:.35rem;">
+          <select id="lm-editora" style="flex:1;"></select>
+          <button class="btn btn-ghost btn-sm" onclick="gerenciarOpcoes('editora')" title="Gerenciar editoras">⚙</button>
+        </div>
       </div>
-      <div class="field"><label>Categoria</label>
-        <select id="lm-categoria">
-          <option value="">Selecione...</option>
-          <option>Infantil</option><option>Bíblia</option><option>Teologia</option>
-          <option>Apologética</option><option>Profecia</option><option>Vida Cristã</option>
-          <option>Liderança</option><option>Biografia</option><option>Família</option><option>Devocional</option>
-        </select>
+      <div class="field">
+        <label>Categoria</label>
+        <div style="display:flex;gap:.35rem;">
+          <select id="lm-categoria" style="flex:1;"></select>
+          <button class="btn btn-ghost btn-sm" onclick="gerenciarOpcoes('categoria')" title="Gerenciar categorias">⚙</button>
+        </div>
       </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>ISBN</label><input type="text" id="lm-isbn" placeholder="Ex: 978-85-00-00000-0" maxlength="17" /></div>
+      <div class="field"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Preço de venda (R$) *</label><input type="number" id="lm-preco" placeholder="29.90" step="0.01" /></div>
@@ -654,13 +659,22 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       <div class="field"><label>Alerta estoque baixo</label><input type="number" id="lm-alerta" placeholder="3" /></div>
     </div>
     <div class="field">
-      <label>Capa (URL, base64 ou buscar pelo título)</label>
-      <div style="display:flex;gap:.4rem;margin-bottom:.4rem;">
-        <input type="text" id="lm-capa-url" placeholder="https://... ou cole base64" oninput="previewCapa()" />
-        <button class="btn btn-ghost btn-sm" onclick="buscarCapaGoogle()" title="Buscar capa pelo Google Books">🔍</button>
+      <label>Capa do livro</label>
+      <div id="lm-capa-preview-wrap" style="display:none;position:relative;width:80px;margin-bottom:.5rem;">
+        <img id="lm-capa-preview" src="" alt="Capa" style="width:80px;height:110px;object-fit:cover;border-radius:6px;border:1px solid var(--borda);" />
+        <button onclick="removerCapaModal()" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
       </div>
-      <input type="file" id="lm-capa-file" accept="image/*" onchange="lerCapaFile(this)" style="font-size:.78rem;color:var(--suave);" />
-      <img id="lm-capa-preview" src="" style="display:none;max-width:80px;max-height:110px;border-radius:5px;margin-top:.5rem;object-fit:cover;" />
+      <div id="lm-capa-upload-area" style="border:2px dashed var(--borda);border-radius:8px;padding:.9rem;text-align:center;cursor:pointer;font-size:.78rem;color:var(--suave);" onclick="document.getElementById('lm-capa-file').click()">
+        📷 Clique para fazer upload da capa
+      </div>
+      <input type="file" id="lm-capa-file" accept="image/*" style="display:none;" onchange="previewCapaModal(event)" />
+      <input type="hidden" id="lm-capa-url" />
+      <div id="lm-capa-progress" style="display:none;margin-top:.4rem;">
+        <div style="background:#eee;border-radius:99px;height:5px;overflow:hidden;">
+          <div id="lm-capa-progress-bar" style="background:#40916c;height:100%;width:0%;transition:width .3s;"></div>
+        </div>
+        <div id="lm-capa-progress-txt" style="font-size:.68rem;color:var(--suave);margin-top:.2rem;text-align:center;">Enviando...</div>
+      </div>
     </div>
     <div class="field">
       <label>Descrição / Resumo <span style="font-size:.6rem;font-weight:400;color:var(--suave);">(aparece no preview ao passar o mouse ou pressionar)</span></label>
@@ -850,6 +864,11 @@ let pagamento = 'PIX';
 // INIT
 // ══════════════════════════════════════════════════
 function initApp() {
+  if (typeof ProdutosSync !== 'undefined') {
+    ProdutosSync.carregarDoFirebase('produtos_livraria', 'abcl-livraria-livros')
+      .then(atualizados => { if (atualizados) { renderLivros(); renderEstoque(); } })
+      .catch(() => {});
+  }
   ajustarAlturaLayout();
   renderLivros();
   renderCart();
@@ -857,7 +876,6 @@ function initApp() {
   renderHistorico();
   renderBestSellers();
   renderEstoque();
-  buscarCapasGoogle();
 }
 
 // ══════════════════════════════════════════════════
@@ -914,11 +932,11 @@ function renderLivros() {
     const baixo    = !esgotado && l.estoque <= (l.alertaBaixo || 3);
     return `
     <div class="livro-card ${esgotado?'esgotado':baixo?'estoque-baixo':''}"
-      onclick="addToCart(${l.id})"
-      onmouseenter="showTooltip(event,${l.id})"
+      onclick="addToCart('${l.id}')"
+      onmouseenter="showTooltip(event,'${l.id}')"
       onmouseleave="hideTooltip()"
       onmousemove="moveTooltip(event)"
-      ontouchstart="startLongPress(${l.id})"
+      ontouchstart="startLongPress('${l.id}')"
       ontouchend="cancelLongPress()"
       ontouchmove="cancelLongPress()"
       title="${l.titulo}">
@@ -970,11 +988,11 @@ async function buscarCapasGoogle() {
 // ══════════════════════════════════════════════════
 function addToCart(id) {
   const livros = getLivros();
-  const l = livros.find(x => x.id === id);
+  const l = livros.find(x => String(x.id) === String(id));
   if (!l || l.estoque <= 0) return;
 
   // Verificar estoque vs carrinho
-  const noCart = cart.find(x => x.id === id);
+  const noCart = cart.find(x => String(x.id) === String(id));
   if (noCart) {
     if (noCart.qtd >= l.estoque) { toast('⛔ Limite de estoque!'); return; }
     noCart.qtd++;
@@ -989,7 +1007,7 @@ function changeQty(id, delta) {
   if (idx < 0) return;
   if (delta > 0) {
     const livros = getLivros();
-    const l = livros.find(x => x.id === id);
+    const l = livros.find(x => String(x.id) === String(id));
     if (l && cart[idx].qtd >= l.estoque) { toast('⛔ Limite de estoque!'); return; }
   }
   cart[idx].qtd += delta;
@@ -1270,16 +1288,16 @@ function renderEstoque() {
         </div>
       </div>
       <input class="estoque-qty-input" type="number" value="${l.estoque}" min="0"
-        onchange="atualizarEstoque(${l.id},+this.value)" />
-      <button class="btn btn-ghost btn-sm" onclick="editarLivro(${l.id})" style="margin-left:.3rem;">✏️</button>
-      <button class="btn btn-sm" onclick="removerLivro(${l.id})" style="margin-left:.2rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:5px;">✕</button>
+        onchange="atualizarEstoque('${l.id}',+this.value)" />
+      <button class="btn btn-ghost btn-sm" onclick="editarLivro('${l.id}')" style="margin-left:.3rem;">✏️</button>
+      <button class="btn btn-sm" onclick="removerLivro('${l.id}')" style="margin-left:.2rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:5px;">✕</button>
     </div>`;
   }).join('');
 }
 
 function atualizarEstoque(id, val) {
   const livros = getLivros();
-  const l = livros.find(x => x.id === id);
+  const l = livros.find(x => String(x.id) === String(id));
   if (l) { l.estoque = Math.max(0, val); set('abcl-livraria-livros', livros); renderLivros(); }
 }
 
@@ -1292,96 +1310,213 @@ function salvarEstoque() {
   renderLivros();
   renderEstoque();
   toast('✅ Estoque salvo!');
+
+  if (typeof ProdutosSync !== 'undefined')
+    ProdutosSync.salvarNoFirebase('produtos_livraria', getLivros()).catch(() => {});
 }
 
 function removerLivro(id) {
   if (!confirm('Remover este livro?')) return;
-  const livros = getLivros().filter(l => l.id !== id);
+  const livros = getLivros().filter(l => String(l.id) !== String(id));
   set('abcl-livraria-livros', livros);
   renderLivros(); renderEstoque();
   toast('🗑 Livro removido.');
+
+  if (typeof ProdutosSync !== 'undefined') {
+    ProdutosSync.deletarNoFirebase('produtos_livraria', id).catch(() => {});
+    ProdutosSync.salvarNoFirebase('produtos_livraria', livros).catch(() => {});
+  }
 }
 
 // ══════════════════════════════════════════════════
 // MODAL NOVO / EDITAR LIVRO
 // ══════════════════════════════════════════════════
-let _editLivroId = null;
+let _editLivroId  = null;
+let _capaPendente = null; // { file, localUrl }
+
+// ── Opções dinâmicas de editora/categoria ──────────────────────────────────
+const EDITORAS_DEFAULT   = ['Chamada','DLC','Deivison','Lucas','SBC','Verdade','Outra'];
+const CATEGORIAS_DEFAULT = ['Infantil','Bíblia','Teologia','Apologética','Profecia','Vida Cristã','Liderança','Biografia','Família','Devocional'];
+
+function getOpcoes(tipo) {
+  return JSON.parse(localStorage.getItem('abcl-livraria-' + tipo) || 'null')
+    || (tipo === 'editora' ? EDITORAS_DEFAULT : CATEGORIAS_DEFAULT);
+}
+
+function setOpcoes(tipo, lista) {
+  localStorage.setItem('abcl-livraria-' + tipo, JSON.stringify(lista));
+}
+
+function renderDropdown(selectId, tipo, valorAtual) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const opcoes = getOpcoes(tipo);
+  sel.innerHTML = `<option value="">Selecione...</option>` +
+    opcoes.map(o => `<option value="${o}"${o === valorAtual ? ' selected' : ''}>${o}</option>`).join('');
+}
+
+function gerenciarOpcoes(tipo) {
+  const label  = tipo === 'editora' ? 'Editoras' : 'Categorias';
+  const opcoes = getOpcoes(tipo);
+  const nova   = prompt(`${label} atuais:
+${opcoes.join(', ')}
+
+Digite um novo item para adicionar (ou deixe vazio para cancelar):`);
+  if (nova === null) return;
+  if (nova.trim()) {
+    if (opcoes.includes(nova.trim())) { toast('Item já existe.'); return; }
+    opcoes.push(nova.trim());
+    setOpcoes(tipo, opcoes);
+    toast(`✅ "${nova.trim()}" adicionado às ${label.toLowerCase()}.`);
+  }
+  const remover = prompt(`Deseja remover algum item? Digite o nome exato (ou deixe vazio para cancelar):
+${opcoes.join(', ')}`);
+  if (remover === null || !remover.trim()) { renderDropdown('lm-' + tipo, tipo, document.getElementById('lm-' + tipo)?.value); return; }
+  const idx = opcoes.indexOf(remover.trim());
+  if (idx < 0) { toast('Item não encontrado.'); return; }
+  opcoes.splice(idx, 1);
+  setOpcoes(tipo, opcoes);
+  renderDropdown('lm-' + tipo, tipo, '');
+  toast(`🗑 "${remover.trim()}" removido.`);
+}
 
 function abrirNovoLivro() {
-  _editLivroId = null;
+  _editLivroId  = null;
+  _capaPendente = null;
   document.getElementById('livro-modal-titulo').textContent = 'Novo livro';
-  ['lm-titulo','lm-autor','lm-preco','lm-custo','lm-estoque','lm-alerta','lm-capa-url','lm-desc'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
+  ['lm-titulo','lm-autor','lm-preco','lm-custo','lm-estoque','lm-alerta','lm-isbn','lm-desc'].forEach(id => {
+    const e = document.getElementById(id); if (e) e.value = '';
+  });
   document.getElementById('lm-desc-count').textContent = '0/400';
-  document.getElementById('lm-editora').value  = '';
-  document.getElementById('lm-categoria').value= '';
-  document.getElementById('lm-capa-preview').style.display = 'none';
+  renderDropdown('lm-editora',   'editora',   '');
+  renderDropdown('lm-categoria', 'categoria', '');
+  removerCapaModal();
   document.getElementById('livro-modal').style.display = 'flex';
 }
 
 function editarLivro(id) {
-  _editLivroId = id;
-  const l = getLivros().find(x => x.id === id);
+  _editLivroId  = id;
+  _capaPendente = null;
+  const l = getLivros().find(x => String(x.id) === String(id));
   if (!l) return;
   document.getElementById('livro-modal-titulo').textContent = 'Editar livro';
-  document.getElementById('lm-titulo').value   = l.titulo   || '';
-  document.getElementById('lm-autor').value    = l.autor    || '';
-  document.getElementById('lm-editora').value  = l.editora  || '';
-  document.getElementById('lm-categoria').value= l.categoria|| '';
-  document.getElementById('lm-preco').value    = l.preco    || '';
-  document.getElementById('lm-custo').value    = l.custo    || '';
-  document.getElementById('lm-estoque').value  = l.estoque  || 0;
-  document.getElementById('lm-alerta').value   = l.alertaBaixo || 3;
-  document.getElementById('lm-capa-url').value = l.capa     || '';
-  document.getElementById('lm-desc').value      = l.desc     || '';
+  document.getElementById('lm-titulo').value  = l.titulo  || '';
+  document.getElementById('lm-autor').value   = l.autor   || '';
+  document.getElementById('lm-preco').value   = l.preco   || '';
+  document.getElementById('lm-custo').value   = l.custo   || '';
+  document.getElementById('lm-estoque').value = l.estoque || 0;
+  document.getElementById('lm-alerta').value  = l.alertaBaixo || 3;
+  document.getElementById('lm-isbn').value    = l.isbn    || '';
+  document.getElementById('lm-desc').value    = l.desc    || '';
   document.getElementById('lm-desc-count').textContent = (l.desc||'').length + '/400';
-  const prev = document.getElementById('lm-capa-preview');
-  if (l.capa) { prev.src = l.capa; prev.style.display = 'block'; }
-  else prev.style.display = 'none';
+  renderDropdown('lm-editora',   'editora',   l.editora   || '');
+  renderDropdown('lm-categoria', 'categoria', l.categoria || '');
+  _carregarPreviewCapaExistente(l.capa || '');
   document.getElementById('livro-modal').style.display = 'flex';
 }
 
-function salvarLivro() {
+async function salvarLivro() {
   const titulo = document.getElementById('lm-titulo').value.trim();
   const preco  = parseFloat(document.getElementById('lm-preco').value);
   if (!titulo || !preco) { toast('⚠️ Preencha título e preço.'); return; }
+
+  const livroId = _editLivroId || String(Date.now());
+
+  // Upload de capa se houver arquivo pendente
+  let capaUrl = document.getElementById('lm-capa-url').value.trim();
+  if (_capaPendente) {
+    try {
+      capaUrl      = await _uploadCapaStorage(_capaPendente.file, livroId);
+      _capaPendente = null;
+    } catch (err) {
+      toast('❌ Erro ao enviar capa. Tente novamente.');
+      console.error('[Storage] capa:', err);
+      return;
+    }
+  }
+
   const livro = {
-    id:         _editLivroId || Date.now(),
+    id:          livroId,
     titulo,
-    autor:      document.getElementById('lm-autor').value.trim(),
-    editora:    document.getElementById('lm-editora').value,
-    categoria:  document.getElementById('lm-categoria').value,
+    autor:       document.getElementById('lm-autor').value.trim(),
+    editora:     document.getElementById('lm-editora').value,
+    categoria:   document.getElementById('lm-categoria').value,
+    isbn:        document.getElementById('lm-isbn').value.trim(),
     preco,
-    custo:      parseFloat(document.getElementById('lm-custo').value) || 0,
-    estoque:    parseInt(document.getElementById('lm-estoque').value) || 0,
-    alertaBaixo:parseInt(document.getElementById('lm-alerta').value)  || 3,
-    capa:       document.getElementById('lm-capa-url').value.trim(),
-    desc:       document.getElementById('lm-desc').value.trim(),
+    custo:       parseFloat(document.getElementById('lm-custo').value) || 0,
+    estoque:     parseInt(document.getElementById('lm-estoque').value) || 0,
+    alertaBaixo: parseInt(document.getElementById('lm-alerta').value)  || 3,
+    capa:        capaUrl,
+    desc:        document.getElementById('lm-desc').value.trim(),
   };
+
   const livros = getLivros();
-  const idx = livros.findIndex(l => l.id === _editLivroId);
+  const idx = livros.findIndex(l => String(l.id) === String(_editLivroId));
   if (idx >= 0) livros[idx] = livro; else livros.push(livro);
   set('abcl-livraria-livros', livros);
   document.getElementById('livro-modal').style.display = 'none';
   renderLivros(); renderEstoque();
   toast(_editLivroId ? '✅ Livro atualizado!' : '✅ Livro adicionado!');
+
+  if (typeof ProdutosSync !== 'undefined')
+    ProdutosSync.salvarNoFirebase('produtos_livraria', getLivros()).catch(() => {});
 }
 
-function previewCapa() {
-  const url = document.getElementById('lm-capa-url').value.trim();
-  const prev = document.getElementById('lm-capa-preview');
-  if (url) { prev.src = url; prev.style.display = 'block'; }
-  else prev.style.display = 'none';
+function previewCapaModal(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('⚠️ Imagem muito grande (máx 2MB).'); event.target.value = ''; return; }
+  _capaPendente = { file, localUrl: URL.createObjectURL(file) };
+  document.getElementById('lm-capa-preview').src = _capaPendente.localUrl;
+  document.getElementById('lm-capa-preview-wrap').style.display = 'block';
+  document.getElementById('lm-capa-upload-area').style.display  = 'none';
+  document.getElementById('lm-capa-url').value = '';
 }
 
-function lerCapaFile(input) {
-  const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('lm-capa-url').value = e.target.result;
-    previewCapa();
-  };
-  reader.readAsDataURL(file);
+function removerCapaModal() {
+  _capaPendente = null;
+  document.getElementById('lm-capa-preview').src = '';
+  document.getElementById('lm-capa-preview-wrap').style.display = 'none';
+  document.getElementById('lm-capa-upload-area').style.display  = 'block';
+  document.getElementById('lm-capa-file').value  = '';
+  document.getElementById('lm-capa-url').value   = '';
 }
+
+function _carregarPreviewCapaExistente(url) {
+  if (!url) { removerCapaModal(); return; }
+  document.getElementById('lm-capa-preview').src = url;
+  document.getElementById('lm-capa-preview-wrap').style.display = 'block';
+  document.getElementById('lm-capa-upload-area').style.display  = 'none';
+  document.getElementById('lm-capa-url').value = url;
+}
+
+async function _uploadCapaStorage(file, livroId) {
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const path = `produtos/livraria/${livroId}.${ext}`;
+  const ref  = firebase.storage().ref(path);
+  const prog = document.getElementById('lm-capa-progress');
+  const bar  = document.getElementById('lm-capa-progress-bar');
+  const txt  = document.getElementById('lm-capa-progress-txt');
+  prog.style.display = 'block';
+  return new Promise((resolve, reject) => {
+    const task = ref.put(file);
+    task.on('state_changed',
+      snap => {
+        const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+        bar.style.width = pct + '%';
+        txt.textContent = `Enviando... ${pct}%`;
+      },
+      err => { prog.style.display = 'none'; reject(err); },
+      async () => {
+        const url = await task.snapshot.ref.getDownloadURL();
+        prog.style.display = 'none'; bar.style.width = '0%';
+        resolve(url);
+      }
+    );
+  });
+}
+
+// lerCapaFile substituído por previewCapaModal + Storage
 
 async function buscarCapaGoogle() {
   const titulo = document.getElementById('lm-titulo')?.value.trim();
@@ -1535,7 +1670,7 @@ function showTooltip(e, id) {
   // Só em desktop (pointer não touch)
   if (window.matchMedia('(hover: none)').matches) return;
   _tooltipTimer = setTimeout(() => {
-    const l = getLivros().find(x => x.id === id);
+    const l = getLivros().find(x => String(x.id) === String(id));
     if (!l) return;
     document.getElementById('tt-titulo').textContent = l.titulo;
     document.getElementById('tt-autor').textContent  = [l.autor, l.editora].filter(Boolean).join(' · ');
@@ -1573,7 +1708,7 @@ function cancelLongPress() {
 }
 
 function abrirBottomSheet(id) {
-  const l = getLivros().find(x => x.id === id);
+  const l = getLivros().find(x => String(x.id) === String(id));
   if (!l) return;
   _bsLivroId = id;
 
