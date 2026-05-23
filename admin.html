@@ -515,6 +515,7 @@
       <button class="nav-item" onclick="switchTab('gestao-loja', this)">⚙️ Gerir Loja</button>
       <button class="nav-item" onclick="window.open('financeiro.html','_blank')">💰 Financeiro</button>
       <button class="nav-item" onclick="switchTab('formularios', this)">📝 Formulários</button>
+      <button class="nav-item" onclick="switchTab('importar-acampantes', this)">👥 Importar Acampantes</button>
       <button class="nav-item" onclick="window.open('links.html','_blank')">👁 Ver Hub</button>
       <button class="nav-item" onclick="window.open('index.html','_blank')">🌐 Ver Site</button>
 
@@ -985,6 +986,63 @@
             </div>
             <div id="form-preview" style="background:var(--card2);border-radius:10px;padding:1.25rem;border:1px solid var(--borda);"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ABA: IMPORTAR ACAMPANTES -->
+      <div class="tab" id="tab-importar-acampantes">
+        <div class="page-header">
+          <div>
+            <h1>👥 Importar Acampantes</h1>
+            <p>Importe a lista de inscritos via CSV ou XLSX exportado do Google Forms</p>
+          </div>
+        </div>
+        <div class="section-card" style="margin-bottom:1.25rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+            <h2>📋 Acampantes cadastrados</h2>
+            <button class="btn btn-ghost btn-sm" onclick="carregarStatusAcampantes()">🔄 Atualizar</button>
+          </div>
+          <div id="acampantes-status" style="font-size:.85rem;color:var(--suave);">Clique em Atualizar para ver o total.</div>
+          <div id="acampantes-lista-preview" style="margin-top:.75rem;max-height:200px;overflow-y:auto;"></div>
+        </div>
+        <div class="section-card" style="margin-bottom:1.25rem;">
+          <h2 style="margin-bottom:1rem;">📥 Importar nova lista</h2>
+          <div style="background:rgba(64,145,108,.07);border:1px solid rgba(64,145,108,.2);border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:.8rem;line-height:1.7;">
+            <strong>Como exportar do Google Forms:</strong><br>
+            Respostas → ⋮ → Fazer download das respostas (.csv)<br>
+            <strong>Ou do Google Sheets:</strong> Arquivo → Fazer download → CSV
+          </div>
+          <div id="import-drop-area"
+            style="border:2px dashed var(--borda);border-radius:10px;padding:2rem;text-align:center;cursor:pointer;"
+            onclick="document.getElementById('import-file-input').click()"
+            ondragover="event.preventDefault();this.style.background='rgba(64,145,108,.1)'"
+            ondragleave="this.style.background=''"
+            ondrop="handleImportDrop(event)">
+            <div style="font-size:2rem;margin-bottom:.5rem;">📂</div>
+            <div style="font-size:.9rem;font-weight:600;">Clique ou arraste o arquivo aqui</div>
+            <div style="font-size:.75rem;color:var(--suave);margin-top:.25rem;">CSV ou XLSX · exportado do Google Forms ou planilha</div>
+          </div>
+          <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handleImportFile(event)" />
+          <div id="import-mapping" style="display:none;margin-top:1.25rem;">
+            <h3 style="font-size:.88rem;margin-bottom:.75rem;">🗂️ Qual coluna contém o nome completo?</h3>
+            <select id="import-coluna-nome" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.65rem .9rem;font-size:1rem;color:var(--texto);outline:none;margin-bottom:.75rem;"></select>
+            <div id="import-preview-box" style="background:var(--bg);border-radius:8px;padding:.75rem;max-height:180px;overflow-y:auto;font-size:.78rem;color:var(--suave);margin-bottom:1rem;"></div>
+            <div style="display:flex;gap:.6rem;">
+              <button onclick="cancelarImport()" style="background:var(--card2);color:var(--suave);border:1px solid var(--borda);border-radius:8px;padding:.8rem 1.25rem;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;">Cancelar</button>
+              <button onclick="confirmarImport()" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:.8rem;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">✅ Importar para o Firebase</button>
+            </div>
+          </div>
+          <div id="import-progress" style="display:none;margin-top:1rem;">
+            <div style="background:rgba(255,255,255,.1);border-radius:99px;height:8px;overflow:hidden;margin-bottom:.5rem;">
+              <div id="import-progress-bar" style="background:var(--verde);height:100%;width:0%;transition:width .3s;"></div>
+            </div>
+            <div id="import-progress-txt" style="font-size:.78rem;color:var(--suave);text-align:center;"></div>
+          </div>
+        </div>
+        <div class="section-card">
+          <h2 style="margin-bottom:.75rem;color:#fca5a5;">⚠️ Zona de risco</h2>
+          <p style="font-size:.82rem;color:var(--suave);margin-bottom:.75rem;">Remove todos os acampantes do Firebase. Use apenas para trocar de edição.</p>
+          <button onclick="limparAcampantesFirebase()" style="background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:.7rem 1.25rem;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;">🗑️ Limpar todos os acampantes</button>
         </div>
       </div>
 
@@ -3192,5 +3250,202 @@ window.addEventListener('offline', atualizarAdminSyncBadge);
 document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarAdminSyncBadge, 1500));
 </script>
 <button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
+
+<!-- SheetJS para leitura de XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// IMPORTAR ACAMPANTES
+// ══════════════════════════════════════════════════════════════════
+
+let _importDados    = [];   // linhas brutas do arquivo
+let _importColunas  = [];   // cabeçalhos detectados
+let _importNomes    = [];   // nomes já processados para preview
+
+// ── Drag & drop ──
+function handleImportDrop(event) {
+  event.preventDefault();
+  document.getElementById('import-drop-area').style.background = '';
+  const file = event.dataTransfer.files[0];
+  if (file) processarArquivoImport(file);
+}
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  if (file) processarArquivoImport(file);
+}
+
+function processarArquivoImport(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  if (ext === 'csv') {
+    reader.onload = e => {
+      const linhas = e.target.result.split('\n').filter(l => l.trim());
+      if (linhas.length < 2) { alert('Arquivo vazio ou sem dados.'); return; }
+      const sep = linhas[0].includes(';') ? ';' : ',';
+      _importColunas = linhas[0].split(sep).map(c => c.replace(/"/g,'').trim());
+      _importDados   = linhas.slice(1).map(l =>
+        l.split(sep).map(c => c.replace(/"/g,'').trim())
+      );
+      mostrarMapeamento();
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    reader.onload = e => {
+      const wb    = XLSX.read(e.target.result, { type: 'array' });
+      const ws    = wb.Sheets[wb.SheetNames[0]];
+      const dados = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      if (dados.length < 2) { alert('Planilha vazia.'); return; }
+      _importColunas = dados[0].map(c => String(c).trim());
+      _importDados   = dados.slice(1).map(row => row.map(c => String(c).trim()));
+      mostrarMapeamento();
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function mostrarMapeamento() {
+  const sel = document.getElementById('import-coluna-nome');
+  sel.innerHTML = _importColunas.map((c, i) =>
+    `<option value="${i}">${c}</option>`
+  ).join('');
+
+  // Tentar detectar automaticamente coluna de nome
+  const autoIdx = _importColunas.findIndex(c =>
+    /nome|name|completo/i.test(c)
+  );
+  if (autoIdx >= 0) sel.value = String(autoIdx);
+
+  sel.onchange = atualizarPreviewImport;
+  atualizarPreviewImport();
+  document.getElementById('import-mapping').style.display = 'block';
+}
+
+function atualizarPreviewImport() {
+  const idx = parseInt(document.getElementById('import-coluna-nome').value);
+  _importNomes = _importDados
+    .map(row => row[idx])
+    .filter(n => n && n.trim().length > 1)
+    .map(n => n.trim());
+
+  const unicos = [...new Set(_importNomes)];
+  document.getElementById('import-preview-box').innerHTML =
+    `<strong>${unicos.length} acampantes detectados:</strong><br>` +
+    unicos.slice(0, 20).join('<br>') +
+    (unicos.length > 20 ? `<br><em>... e mais ${unicos.length - 20}</em>` : '');
+
+  _importNomes = unicos;
+}
+
+function cancelarImport() {
+  document.getElementById('import-mapping').style.display = 'none';
+  document.getElementById('import-file-input').value = '';
+  _importDados = []; _importColunas = []; _importNomes = [];
+}
+
+async function confirmarImport() {
+  if (_importNomes.length === 0) { alert('Nenhum nome encontrado.'); return; }
+
+  const prog    = document.getElementById('import-progress');
+  const bar     = document.getElementById('import-progress-bar');
+  const txt     = document.getElementById('import-progress-txt');
+  const db      = firebase.firestore();
+
+  document.getElementById('import-mapping').style.display = 'none';
+  prog.style.display = 'block';
+
+  // Verificar já existentes para não duplicar
+  const snap    = await db.collection('inscricoes').get();
+  const existentes = new Set(snap.docs.map(d => (d.data().nome || '').toLowerCase()));
+
+  const novos = _importNomes.filter(n => !existentes.has(n.toLowerCase()));
+  const total = novos.length;
+
+  if (total === 0) {
+    prog.style.display = 'none';
+    alert(`Todos os ${_importNomes.length} acampantes já estão cadastrados.`);
+    cancelarImport();
+    return;
+  }
+
+  // Salvar em batches de 500 (limite do Firestore)
+  const BATCH_SIZE = 400;
+  let salvos = 0;
+
+  for (let i = 0; i < novos.length; i += BATCH_SIZE) {
+    const batch = db.batch();
+    const chunk = novos.slice(i, i + BATCH_SIZE);
+    chunk.forEach(nome => {
+      const ref = db.collection('inscricoes').doc();
+      batch.set(ref, {
+        nome,
+        origem:    'importacao_csv',
+        importado_em: firebase.firestore.FieldValue.serverTimestamp(),
+        ano:       new Date().getFullYear(),
+      });
+    });
+    await batch.commit();
+    salvos += chunk.length;
+    const pct = Math.round(salvos / total * 100);
+    bar.style.width = pct + '%';
+    txt.textContent = `Importando... ${salvos} de ${total}`;
+  }
+
+  prog.style.display = 'none';
+  bar.style.width = '0%';
+  cancelarImport();
+
+  // Invalidar cache do AcampantesSync
+  localStorage.removeItem('abcl-acampantes-cache');
+  localStorage.removeItem('abcl-acampantes-cache-ts');
+
+  alert(`✅ ${total} acampantes importados! (${_importNomes.length - total} já existiam)`);
+  carregarStatusAcampantes();
+}
+
+// ── Status / preview dos cadastrados ──
+async function carregarStatusAcampantes() {
+  const el = document.getElementById('acampantes-status');
+  const lista = document.getElementById('acampantes-lista-preview');
+  el.textContent = 'Carregando...';
+  lista.innerHTML = '';
+  try {
+    const snap = await firebase.firestore().collection('inscricoes').orderBy('nome').get();
+    el.innerHTML = `<strong>${snap.size} acampante${snap.size !== 1 ? 's' : ''}</strong> cadastrados no Firebase.`;
+    if (snap.size > 0) {
+      lista.innerHTML = snap.docs.slice(0, 30).map(d =>
+        `<div style="padding:.2rem 0;border-bottom:1px solid var(--borda);font-size:.78rem;">${d.data().nome || '—'}</div>`
+      ).join('') + (snap.size > 30 ? `<div style="font-size:.72rem;color:var(--suave);padding:.4rem 0;">... e mais ${snap.size - 30}</div>` : '');
+    }
+  } catch (err) {
+    el.textContent = 'Erro ao carregar: ' + err.message;
+  }
+}
+
+// ── Limpar todos ──
+async function limparAcampantesFirebase() {
+  if (!confirm('Tem certeza? Isso remove TODOS os acampantes do Firebase. Esta ação não pode ser desfeita.')) return;
+  if (!confirm('Confirmar novamente: remover todos os acampantes?')) return;
+
+  try {
+    const snap = await firebase.firestore().collection('inscricoes').get();
+    const BATCH_SIZE = 400;
+    for (let i = 0; i < snap.docs.length; i += BATCH_SIZE) {
+      const batch = firebase.firestore().batch();
+      snap.docs.slice(i, i + BATCH_SIZE).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    }
+    localStorage.removeItem('abcl-acampantes-cache');
+    localStorage.removeItem('abcl-acampantes-cache-ts');
+    alert('✅ Todos os acampantes foram removidos.');
+    carregarStatusAcampantes();
+  } catch (err) {
+    alert('Erro: ' + err.message);
+  }
+}
+</script>
+
 </body>
 </html>

@@ -24,6 +24,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="vendas-firebase.js"></script>
 <script src="produtos-sync.js"></script>
+<script src="acampantes-sync.js"></script>
 <script src="firebase-auth-patch.js"></script>
 
   <meta charset="UTF-8" />
@@ -297,10 +298,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     .pag-btn.active.debito   { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
     .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .65rem; }
     .total-label { font-size: .82rem; color: var(--suave); }
-    .total-val { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; color: var(--azul-cl); }
+    .total-val { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 700; color: var(--verde-cl); }
     .acao-row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
     .btn-finalizar {
-      background: var(--azul-mid); color: #fff; border: none; border-radius: 8px;
+      background: var(--verde); color: #fff; border: none; border-radius: 8px;
       padding: .9rem 1.25rem; font-size: .85rem; font-weight: 500; cursor: pointer;
       font-family: 'Inter', sans-serif; transition: opacity .2s;
       display: flex; align-items: center; justify-content: center; gap: .4rem;
@@ -840,15 +841,12 @@ function getLivros() {
 }
 function getSales()   { return get('abcl-livraria-sales') || []; }
 function getPessoas() {
-  // Tenta múltiplas fontes onde acampantes podem estar cadastrados
-  const p1 = get('abcl-pessoas')         || [];
-  const p2 = get('abcl-acampantes')      || [];
-  const p3 = get('abcl-fin-inscricoes')  || [];
-  // Extrai nomes dos inscritos do módulo financeiro
-  const nomesInscritos = p3.map(i => i.nome).filter(Boolean);
-  // Une e deduplica
-  const todos = [...new Set([...p1, ...p2, ...nomesInscritos])].filter(Boolean).sort();
-  return todos;
+  if (typeof AcampantesSync !== 'undefined') return AcampantesSync.getPessoasSync();
+  // Fallback: múltiplas fontes locais
+  const p1 = get('abcl-pessoas')        || [];
+  const p2 = get('abcl-acampantes')     || [];
+  const p3 = (get('abcl-fin-inscricoes') || []).map(i => i.nome).filter(Boolean);
+  return [...new Set([...p1, ...p2, ...p3])].filter(Boolean).sort();
 }
 function getDefinicoes() { return get('abcl-definicoes') || { pixChave:'', pixNome:'ABCL', pixCidade:'CONSELHEIRO LAFAIETE' }; }
 
@@ -864,6 +862,9 @@ let pagamento = 'PIX';
 // INIT
 // ══════════════════════════════════════════════════
 function initApp() {
+  if (typeof AcampantesSync !== 'undefined') {
+    AcampantesSync.getPessoas().catch(() => {});
+  }
   if (typeof ProdutosSync !== 'undefined') {
     ProdutosSync.carregarDoFirebase('produtos_livraria', 'abcl-livraria-livros')
       .then(atualizados => { if (atualizados) { renderLivros(); renderEstoque(); } })
@@ -1447,6 +1448,7 @@ async function salvarLivro() {
     estoque:     parseInt(document.getElementById('lm-estoque').value) || 0,
     alertaBaixo: parseInt(document.getElementById('lm-alerta').value)  || 3,
     capa:        capaUrl,
+    imagem_url:  capaUrl,
     desc:        document.getElementById('lm-desc').value.trim(),
   };
 

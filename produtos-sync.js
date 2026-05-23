@@ -134,24 +134,30 @@
       };
     }
     // livraria
+    const capaUrl = p.capa || p.imagem_url || p.imagem || '';
     return {
       id:        p._fbId || p.id,
       titulo:    p.titulo    || p.nome || '',
       autor:     p.autor     || '',
       editora:   p.editora   || '',
       categoria: p.categoria || '',
+      isbn:      p.isbn      || '',
       preco:     p.preco     || 0,
       estoque:   p.estoque   || 0,
-      imagem:    p.imagem_url || p.imagem || '',
+      alertaBaixo: p.alertaBaixo || 3,
+      desc:      p.desc      || '',
+      capa:      capaUrl,
+      imagem:    capaUrl,
       _fbId:     p._fbId || p.id,
     };
   }
 
   function _prepararParaFirebase(p, agora) {
     const d = { ...p, atualizado_em: agora };
-    delete d._fbId; // não salvar campo interno
-    // mapear imagem para imagem_url (padrão do Firebase)
-    if (d.imagem && !d.imagem_url) { d.imagem_url = d.imagem; }
+    delete d._fbId;
+    // garantir imagem_url sempre preenchido
+    if (!d.imagem_url) d.imagem_url = d.capa || d.imagem || '';
+    if (!d.capa)       d.capa       = d.imagem_url;
     return d;
   }
 

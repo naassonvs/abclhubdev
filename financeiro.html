@@ -638,13 +638,57 @@ function renderDashboard() {
         </div>`).join('')
     : '<p style="font-size:.78rem;color:var(--suave);">Nenhuma receita lançada ainda.</p>';
 
-  // Lançamentos recentes
+  // Lançamentos recentes — mescla localStorage + Firebase
+  _renderLancamentosRecentes(despesas, receitas);
+}
+
+async function _renderLancamentosRecentes(despesas, receitas) {
+  const el = document.getElementById('dash-lancamentos');
+  if (!el) return;
+
+  // Vendas do Firebase (best-effort)
+  let vendasFb = [];
+  try {
+    if (window.VendasFirebase) {
+      vendasFb = await VendasFirebase.buscarVendasFirebase(null, { status: 'confirmada' });
+    }
+  } catch {}
+
+  // Converter vendas Firebase para o formato de lançamento
+  const vendasComoReceitas = vendasFb.map(v => {
+    const modulo = v.tipo ? (v.tipo.charAt(0).toUpperCase() + v.tipo.slice(1)) : 'PDV';
+    const pessoa = v.acampante || v.pessoa || v.cliente || v.operador_nome || '';
+    const itens  = (v.produtos || []).length;
+    return {
+      id:        v.id || v.firestore_id,
+      descricao: `${modulo} — ${pessoa}${itens ? ` (${itens} item${itens!==1?'s':''})` : ''}`,
+      categoria: `Lucro ${modulo}`,
+      tipo:      'Receita',
+      valor:     v.total || 0,
+      data:      v.data_iso || (() => {
+        // Converter data pt-BR para ISO se necessário
+        if (v.data && v.data.includes('/')) {
+          const [d,m,y] = v.data.split('/');
+          return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+        return v.data || new Date().toISOString().slice(0,10);
+      })(),
+      status: v.status === 'confirmada' ? 'Recebido' : (v.status || 'Pendente'),
+      _origem: 'firebase',
+    };
+  });
+
+  // IDs já no localStorage para não duplicar
+  const idsLocal = new Set(receitas.map(r => r.id));
+  const vendasNovas = vendasComoReceitas.filter(v => !idsLocal.has(v.id));
+
   const todos = [
     ...despesas.map(d => ({...d, tipo:'Despesa'})),
     ...receitas.map(r => ({...r, tipo:'Receita'})),
+    ...vendasNovas,
   ].sort((a,b) => new Date(b.data) - new Date(a.data)).slice(0,10);
 
-  document.getElementById('dash-lancamentos').innerHTML = todos.length
+  el.innerHTML = todos.length
     ? todos.map(l => `
         <tr>
           <td style="color:var(--suave)">${l.data ? new Date(l.data+'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
@@ -655,7 +699,7 @@ function renderDashboard() {
           <td><span class="td-tag ${l.status === 'Pago' || l.status === 'Recebido' ? 'tag-pago' : 'tag-pendente'}">${l.status||'—'}</span></td>
         </tr>`)
     .join('')
-    : '<tr><td colspan="6" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhum lançamento ainda. Adicione despesas ou receitas.</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhum lançamento ainda.</td></tr>';
 }
 
 // ══════════════════════════════════════════════════
@@ -1070,7 +1114,7 @@ function renderTabelaVendasPDV(vendas) {
       <td>${venda.tipo === 'vendinha' ? '🛒' : venda.tipo === 'livraria' ? '📚' : '👕'} ${modulo}</td>
       <td style="font-size:.78rem;">${acampante}${periodo}</td>
       <td style="font-size:.78rem;">${produtos}</td>
-      <td style="font-size:.75rem;">${pgto === 'dinheiro' ? '💵' : pgto === 'pix' ? '📲' : '💳'} ${pgto}</td>
+      <td style="font-size:.75rem;">${_iconePgto(pgto)}${venda.forma_quitacao && venda.forma_pagamento === 'Fiado' ? ' Fiado → ' + _iconePgto(venda.forma_quitacao) + venda.forma_quitacao : ' ' + pgto}</td>
       <td style="font-size:.75rem;">${oper}</td>
       <td>${status}</td>
       <td style="text-align:right;font-weight:600;font-family:monospace;">R$ ${total}</td>
@@ -1121,6 +1165,33 @@ function atualizarCardsResumo(vendas) {
 /**
  * Abre modal com detalhes da venda
  */
+function _iconePgto(p) { if (!p) return "💳 "; var pl = p.toLowerCase(); if (pl === "pix") return "📲 "; if (pl === "dinheiro") return "💵 "; if (pl === "fiado") return "📒 "; return "💳 "; }
+
+function _blocoQuitacao(v) {
+  const ico = function(p) {
+    if (!p) return '💳';
+    var pl = p.toLowerCase();
+    if (pl === 'pix')      return '📲';
+    if (pl === 'dinheiro') return '💵';
+    if (pl === 'fiado')    return '📒';
+    return '💳';
+  };
+  var pgto = v.forma_pagamento || '—';
+  if (v.forma_pagamento === 'Fiado') {
+    var quitacaoHtml = v.forma_quitacao
+      ? '<div style="color:#74c69d;">' + ico(v.forma_quitacao) + ' <strong>Quitação:</strong> ' + v.forma_quitacao + ' · ' + (v.quitado_em_fmt || '—') + '</div>'
+      : '<div style="color:#fbbf24;">⏳ Aguardando quitação</div>';
+    return '<div style="margin-bottom:1rem;padding:.75rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;font-size:.78rem;">'
+      + '<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#fbbf24;margin-bottom:.5rem;">💳 Pagamento</div>'
+      + '<div style="margin-bottom:.3rem;">' + ico('fiado') + ' <strong>Origem:</strong> Fiado · ' + (v.data || '—') + ' ' + (v.hora || '') + '</div>'
+      + quitacaoHtml
+      + '</div>';
+  }
+  return '<div style="margin-bottom:1rem;padding:.5rem .75rem;background:var(--bg);border-radius:8px;font-size:.78rem;">'
+    + '<span style="color:var(--suave);">💳 Pagamento:</span> ' + ico(pgto) + ' <strong>' + pgto + '</strong>'
+    + '</div>';
+}
+
 async function abrirModalVendaPDV(vendaId) {
   try {
     venda_pdv_selecionada = vendas_pdv_lista.find(v => v.id === vendaId);
@@ -1157,6 +1228,8 @@ async function abrirModalVendaPDV(vendaId) {
         <strong>Operador:</strong> ${v.operador_nome}<br>
         <strong>Status:</strong> ${v.status === 'cancelada' ? '❌ Cancelada' : '✅ Confirmada'}
       </div>
+
+      ${_blocoQuitacao(v)}
 
       <div style="margin-bottom:1rem;padding:.75rem;background:var(--bg);border-radius:8px;">
         <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">Produtos</div>

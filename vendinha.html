@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
+<meta charset="UTF-8" />
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -21,12 +22,13 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 <!-- Módulos ABCL -->
 <script src="offline-sync.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="vendas-firebase.js"></script>
 <script src="produtos-sync.js"></script>
+<script src="acampantes-sync.js"></script>
 <script src="firebase-auth-patch.js"></script>
 
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL Vendinha</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -250,18 +252,21 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     .item-nome { flex: 1; font-size: .85rem; }
     .item-preco { font-size: .75rem; color: var(--suave); margin-top: .1rem; }
 
-    .qty-ctrl { display: flex; align-items: center; gap: .4rem; }
+    .qty-ctrl { display: flex; align-items: center; gap: .3rem; }
 
     .qty-btn {
-      width: 26px; height: 26px; border-radius: 5px;
-      background: var(--card2); border: 1px solid var(--borda);
-      color: var(--texto); font-size: .9rem; font-weight: 600;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(64,145,108,.15); border: none;
+      color: var(--verde-cl,#74c69d); font-size: 1.1rem; font-weight: 700; line-height: 1;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: background .15s;
+      transition: background .15s, transform .1s; user-select: none;
     }
-
-    .qty-btn:hover { background: rgba(64,145,108,.2); }
-    .qty-num { font-size: .85rem; font-weight: 600; min-width: 18px; text-align: center; }
+    .qty-btn:hover  { background: rgba(64,145,108,.3); }
+    .qty-btn:active { transform: scale(.88); }
+    .qty-num {
+      font-size: .9rem; font-weight: 700; min-width: 22px; text-align: center;
+      background: var(--card2); border-radius: 5px; padding: .15rem .3rem;
+    }
 
     /* Desconto / oferta */
     .discount-row {
@@ -620,8 +625,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
           <span id="pessoa-selecionada-nome" style="color:var(--verde-cl);font-weight:600;"></span>
           <button onclick="limparPessoa()" style="background:none;border:none;color:var(--suave);cursor:pointer;font-size:.9rem;padding:0 .25rem;">✕</button>
         </div>
-        <input type="text" id="input-avulso" placeholder="Nome (avulso)" style="margin-top:.5rem; display:none;" oninput="setAvulso()" />
-        <input type="tel" id="input-avulso-tel" placeholder="WhatsApp (avulso)" style="margin-top:.4rem; display:none;" oninput="setAvulso()" />
+        <input type="text" id="input-avulso" placeholder="Nome (avulso)"
+          style="display:none;margin-top:.5rem;width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);outline:none;font-family:'Inter',sans-serif;box-sizing:border-box;"
+          oninput="setAvulso()" />
+        <input type="tel" id="input-avulso-tel" placeholder="WhatsApp (avulso)"
+          style="display:none;margin-top:.4rem;width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);outline:none;font-family:'Inter',sans-serif;box-sizing:border-box;"
+          oninput="setAvulso()" />
       </div>
 
       <div class="pedido-periodo">
@@ -767,12 +776,19 @@ const set = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
 function getProdutos() { return get('abcl-produtos') || PRODUTOS_DEFAULT; }
 function getSales()    { return get('abcl-sales-v2') || []; }
-function getPessoas()  { return get('abcl-pessoas') || PESSOAS_DEFAULT; }
+function getPessoas() {
+  if (typeof AcampantesSync !== 'undefined') return AcampantesSync.getPessoasSync();
+  return get('abcl-pessoas') || PESSOAS_DEFAULT;
+}
 
 // ══════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════
 function initApp() {
+  // Carregar acampantes do Firebase em background
+  if (typeof AcampantesSync !== 'undefined') {
+    AcampantesSync.getPessoas().catch(() => {});
+  }
   if (typeof ProdutosSync !== 'undefined') {
     ProdutosSync.carregarDoFirebase('produtos_vendinha', 'abcl-produtos')
       .then(atualizados => { if (atualizados) { renderProdutos(); renderEstoque(); } })
@@ -871,7 +887,7 @@ function renderProdutos() {
   const produtos = getProdutos();
   document.getElementById('prod-count').textContent = produtos.length + ' itens';
   document.getElementById('produtos-grid').innerHTML = produtos.map(p => `
-    <div class="prod-card ${p.estoque <= 0 ? 'esgotado' : ''}" onclick="addToCart(${p.id})">
+    <div class="prod-card ${p.estoque <= 0 ? 'esgotado' : ''}" onclick="addToCart('${p.id}')">
       ${p.estoque <= 3 && p.estoque > 0 ? `<span class="badge-estoque">últimos ${p.estoque}</span>` : ''}
       <div class="prod-icon" style="${p.imagem?'padding:0;overflow:hidden;border-radius:6px;':''}">
         ${p.imagem
@@ -924,9 +940,9 @@ function renderCart() {
         <div class="item-preco">R$ ${i.preco.toFixed(2)} × ${i.qtd} = R$ ${(i.preco * i.qtd).toFixed(2)}</div>
       </div>
       <div class="qty-ctrl">
-        <button class="qty-btn" onclick="changeQty(${i.id},-1)">−</button>
+        <button class="qty-btn" onclick="changeQty('${i.id}',-1)">−</button>
         <span class="qty-num">${i.qtd}</span>
-        <button class="qty-btn" onclick="changeQty(${i.id},1)">+</button>
+        <button class="qty-btn" onclick="changeQty('${i.id}',1)">+</button>
       </div>
     </div>
   `).join('');
@@ -1338,14 +1354,54 @@ function confirmarQuitarPix() {
   if (!_quitarCtx) return;
   showQrCode(_quitarCtx.total, () => _efetivarQuitar('PIX'));
 }
-function _efetivarQuitar(forma) {
+async function _efetivarQuitar(forma) {
   const { nome, ids } = _quitarCtx;
+  const agora = new Date();
+  const quitado_em     = agora.toISOString();
+  const quitado_em_fmt = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
   const sales = getSales();
-  ids.forEach(id => { const s = sales.find(x => x.id === id); if (s) { s.quitado = true; s.pagamento = forma; s.pago = true; } });
+  const fbAtualizacoes = [];
+
+  ids.forEach(id => {
+    const s = sales.find(x => x.id === id);
+    if (s) {
+      s.quitado        = true;
+      s.pago           = true;
+      s.forma_quitacao = forma;
+      s.quitado_em     = quitado_em;
+      s.quitado_em_fmt = quitado_em_fmt;
+      // Guardar forma original se ainda não foi guardada
+      if (!s.forma_original) s.forma_original = s.pagamento;
+      if (s.firestore_id) fbAtualizacoes.push(s.firestore_id);
+    }
+  });
+
   set('abcl-sales-v2', sales);
   renderDevendo(); renderStats(); renderHistorico(); renderResumo();
   toast(`✅ Fiado de ${nome} quitado via ${forma}!`);
   _quitarCtx = null;
+
+  // Atualizar no Firebase (best-effort)
+  if (fbAtualizacoes.length && typeof firebase !== 'undefined') {
+    try {
+      const db  = firebase.firestore();
+      const batch = db.batch();
+      fbAtualizacoes.forEach(docId => {
+        batch.update(db.collection('vendas').doc(docId), {
+          status:          'confirmada',
+          forma_quitacao:  forma,
+          quitado_em:      firebase.firestore.FieldValue.serverTimestamp(),
+          quitado_em_fmt:  quitado_em_fmt,
+          forma_original:  'Fiado',
+        });
+      });
+      await batch.commit();
+      console.log(`[Vendinha] ✅ ${fbAtualizacoes.length} venda(s) fiado quitada(s) no Firebase`);
+    } catch (err) {
+      console.warn('[Vendinha] Quitação Firebase (non-critical):', err.message);
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -1365,19 +1421,31 @@ function renderEstoque() {
         <div class="estoque-qtd">R$ ${p.preco.toFixed(2)}</div>
       </div>
       <div class="estoque-ctrl">
-        <label style="font-size:.6rem;color:var(--suave);">Qtd</label>
-        <input type="number" value="${p.estoque}" min="0" id="est-${p.id}" style="width:60px;" />
-        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})" title="Remover produto">✕</button>
+        <div style="display:flex;align-items:center;gap:.3rem;">
+          <button class="qty-btn" onclick="adjustEstoque('${p.id}',-1)" style="width:28px;height:28px;">−</button>
+          <span id="est-${p.id}" style="min-width:32px;text-align:center;font-weight:700;font-size:.9rem;background:var(--card2);border-radius:5px;padding:.15rem .4rem;">${p.estoque}</span>
+          <button class="qty-btn" onclick="adjustEstoque('${p.id}',1)" style="width:28px;height:28px;">+</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirEditarProduto('${p.id}')" title="Editar produto" style="padding:.3rem .5rem;">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')" title="Remover produto" style="padding:.3rem .5rem;">✕</button>
       </div>
     </div>
   `).join('');
 }
 
+function adjustEstoque(id, delta) {
+  const el = document.getElementById(`est-${id}`);
+  if (!el) return;
+  const atual = parseInt(el.textContent) || 0;
+  const novo  = Math.max(0, atual + delta);
+  el.textContent = novo;
+}
+
 function saveEstoque() {
   const produtos = getProdutos();
   produtos.forEach(p => {
-    const inp = document.getElementById(`est-${p.id}`);
-    if (inp) p.estoque = parseInt(inp.value) || 0;
+    const el = document.getElementById(`est-${p.id}`);
+    if (el) p.estoque = parseInt(el.textContent) || 0;
   });
   set('abcl-produtos', produtos);
   renderProdutos();
@@ -1397,35 +1465,158 @@ function previewNpImg() {
 
 function lerNpImg(input) {
   const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX = 300;
-      const ratio = Math.min(MAX/img.width, MAX/img.height, 1);
-      canvas.width  = Math.round(img.width  * ratio);
-      canvas.height = Math.round(img.height * ratio);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const compressed = canvas.toDataURL('image/jpeg', 0.75);
-      document.getElementById('np-img-url').value = compressed;
-      previewNpImg();
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+  if (file.size > 2 * 1024 * 1024) { toast('⚠️ Imagem muito grande (máx 2MB).'); input.value = ''; return; }
+  // Preview local imediato — upload ocorre no addProduct
+  _npImgPendente = { file, localUrl: URL.createObjectURL(file) };
+  document.getElementById('np-img-url').value = '';
+  document.getElementById('np-img-preview').src = _npImgPendente.localUrl;
+  document.getElementById('np-img-preview').style.display = 'block';
 }
 
-function addProduct() {
+let _npImgPendente  = null; // { file, localUrl } — imagem pendente no form de novo produto
+let _epImgPendente  = null; // { file, localUrl } — imagem pendente no modal de edição
+let _epEditandoId   = null; // id do produto sendo editado
+
+// ── Upload para Storage ──
+async function _uploadProdutoImg(file, produtoId) {
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const path = `produtos/vendinha/${produtoId}.${ext}`;
+  const ref  = firebase.storage().ref(path);
+  return new Promise((resolve, reject) => {
+    const task = ref.put(file);
+    task.on('state_changed', null,
+      err => reject(err),
+      async () => resolve(await task.snapshot.ref.getDownloadURL())
+    );
+  });
+}
+
+async function _uploadComProgress(file, produtoId, barId, txtId, wrapId) {
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const ref  = firebase.storage().ref(`produtos/vendinha/${produtoId}.${ext}`);
+  document.getElementById(wrapId).style.display = 'block';
+  return new Promise((resolve, reject) => {
+    const task = ref.put(file);
+    task.on('state_changed',
+      snap => {
+        const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+        document.getElementById(barId).style.width = pct + '%';
+        document.getElementById(txtId).textContent = `Enviando... ${pct}%`;
+      },
+      err => { document.getElementById(wrapId).style.display = 'none'; reject(err); },
+      async () => {
+        document.getElementById(wrapId).style.display = 'none';
+        document.getElementById(barId).style.width = '0%';
+        resolve(await task.snapshot.ref.getDownloadURL());
+      }
+    );
+  });
+}
+
+// ── Modal Editar Produto ──
+function abrirEditarProduto(id) {
+  const p = getProdutos().find(x => String(x.id) === String(id));
+  if (!p) return;
+  _epEditandoId = p.id;
+  _epImgPendente = null;
+  document.getElementById('ep-nome').value    = p.nome    || '';
+  document.getElementById('ep-preco').value   = p.preco   || '';
+  document.getElementById('ep-estoque').value = p.estoque || 0;
+  document.getElementById('ep-icon').value    = p.icon    || '📦';
+  document.getElementById('ep-img-url').value = p.imagem  || '';
+  if (p.imagem) {
+    document.getElementById('ep-img-preview').src = p.imagem;
+    document.getElementById('ep-img-preview-wrap').style.display = 'block';
+    document.getElementById('ep-img-upload-area').style.display  = 'none';
+  } else {
+    document.getElementById('ep-img-preview-wrap').style.display = 'none';
+    document.getElementById('ep-img-upload-area').style.display  = 'block';
+  }
+  document.getElementById('ep-modal-overlay').style.display = 'flex';
+}
+
+function fecharEditarProduto() {
+  document.getElementById('ep-modal-overlay').style.display = 'none';
+  _epEditandoId = null; _epImgPendente = null;
+}
+
+function ep_previewImagem(event) {
+  const file = event.target.files[0]; if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('⚠️ Máx 2MB.'); event.target.value = ''; return; }
+  _epImgPendente = { file, localUrl: URL.createObjectURL(file) };
+  document.getElementById('ep-img-preview').src = _epImgPendente.localUrl;
+  document.getElementById('ep-img-preview-wrap').style.display = 'block';
+  document.getElementById('ep-img-upload-area').style.display  = 'none';
+  document.getElementById('ep-img-url').value = '';
+}
+
+function ep_removerImagem() {
+  _epImgPendente = null;
+  document.getElementById('ep-img-preview').src = '';
+  document.getElementById('ep-img-preview-wrap').style.display = 'none';
+  document.getElementById('ep-img-upload-area').style.display  = 'block';
+  document.getElementById('ep-img-file').value  = '';
+  document.getElementById('ep-img-url').value   = '';
+}
+
+async function salvarEdicaoProduto() {
+  const nome    = document.getElementById('ep-nome').value.trim();
+  const preco   = parseFloat(document.getElementById('ep-preco').value);
+  const estoque = parseInt(document.getElementById('ep-estoque').value) || 0;
+  const icon    = document.getElementById('ep-icon').value.trim() || '📦';
+  if (!nome || isNaN(preco) || preco <= 0) { toast('Preencha nome e preço.'); return; }
+
+  const produtos = getProdutos();
+  const idx = produtos.findIndex(x => String(x.id) === String(_epEditandoId));
+  if (idx < 0) { toast('Produto não encontrado.'); return; }
+
+  let imagem = document.getElementById('ep-img-url').value.trim() || produtos[idx].imagem || '';
+
+  if (_epImgPendente) {
+    try {
+      imagem = await _uploadComProgress(
+        _epImgPendente.file, String(_epEditandoId),
+        'ep-img-progress-bar', 'ep-img-progress-txt', 'ep-img-progress'
+      );
+      _epImgPendente = null;
+    } catch (err) {
+      toast('❌ Erro ao enviar imagem.'); console.error(err); return;
+    }
+  }
+
+  produtos[idx] = { ...produtos[idx], nome, preco, estoque, icon, imagem };
+  set('abcl-produtos', produtos);
+  renderProdutos();
+  renderEstoque();
+  fecharEditarProduto();
+  toast(`✅ ${nome} atualizado!`);
+
+  if (typeof ProdutosSync !== 'undefined')
+    ProdutosSync.salvarNoFirebase('produtos_vendinha', getProdutos()).catch(() => {});
+}
+
+async function addProduct() {
   const nome    = document.getElementById('np-nome').value.trim();
   const preco   = parseFloat(document.getElementById('np-preco').value) || 0;
   const estoque = parseInt(document.getElementById('np-estoque').value) || 0;
-  const icon    = document.getElementById('np-icon')?.value.trim()    || '📦';
-  const imagem  = document.getElementById('np-img-url')?.value.trim() || '';
+  const icon    = document.getElementById('np-icon')?.value.trim() || '📦';
   if (!nome || preco <= 0) { toast('Preencha nome e preço.'); return; }
 
+  const produtoId = Date.now();
+  let imagem = document.getElementById('np-img-url')?.value.trim() || '';
+
+  if (_npImgPendente) {
+    try {
+      imagem = await _uploadProdutoImg(_npImgPendente.file, String(produtoId));
+      _npImgPendente = null;
+    } catch (err) {
+      toast('❌ Erro ao enviar imagem. Produto salvo sem imagem.');
+      console.error(err);
+    }
+  }
+
   const produtos = getProdutos();
-  produtos.push({ id: Date.now(), nome, preco, estoque, icon, imagem });
+  produtos.push({ id: produtoId, nome, preco, estoque, icon, imagem });
   set('abcl-produtos', produtos);
 
   ['np-nome','np-preco','np-estoque','np-icon','np-img-url'].forEach(id => {
@@ -1445,7 +1636,7 @@ function addProduct() {
 
 function deleteProduct(id) {
   if (!confirm('Remover produto?')) return;
-  const produtos = getProdutos().filter(p => p.id !== id);
+  const produtos = getProdutos().filter(p => String(p.id) !== String(id));
   set('abcl-produtos', produtos);
   renderProdutos();
   renderEstoque();
@@ -1619,7 +1810,13 @@ async function enviarVendaFirebase(sale) {
     };
 
     if (navigator.onLine) {
-      await VendasFirebase.salvarVendaFirebase(venda, MODULO_VENDINHA);
+      const docId = await VendasFirebase.salvarVendaFirebase(venda, MODULO_VENDINHA);
+      // Guardar o firestore_id na venda local para quitação futura
+      if (docId && sale.id) {
+        const sales = getSales();
+        const idx   = sales.findIndex(s => s.id === sale.id);
+        if (idx >= 0) { sales[idx].firestore_id = docId; set('abcl-sales-v2', sales); }
+      }
     } else {
       await OfflineSync.adicionarFilaSincronizacao(venda);
     }
@@ -1688,5 +1885,56 @@ if (typeof toggleTheme === 'undefined') {
 }
 </script>
 <button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
+
+<!-- Modal Editar Produto -->
+<div id="ep-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:14px;width:min(400px,92vw);padding:1.5rem;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+    <h3 style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin:0 0 1.25rem;">✏️ Editar Produto</h3>
+
+    <div style="margin-bottom:.8rem;">
+      <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Nome</label>
+      <input type="text" id="ep-nome" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:.6rem;margin-bottom:.8rem;">
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Preço (R$)</label>
+        <input type="number" id="ep-preco" step="0.5" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Estoque</label>
+        <input type="number" id="ep-estoque" min="0" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Emoji</label>
+        <input type="text" id="ep-icon" maxlength="2" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .4rem;font-size:1.2rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;text-align:center;" />
+      </div>
+    </div>
+
+    <!-- Imagem -->
+    <div style="margin-bottom:1rem;">
+      <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Imagem</label>
+      <div id="ep-img-preview-wrap" style="display:none;position:relative;width:64px;margin-bottom:.5rem;">
+        <img id="ep-img-preview" src="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--borda);" />
+        <button onclick="ep_removerImagem()" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:.65rem;cursor:pointer;">✕</button>
+      </div>
+      <div id="ep-img-upload-area" style="border:2px dashed var(--borda);border-radius:8px;padding:.85rem;text-align:center;cursor:pointer;font-size:.78rem;color:var(--suave);" onclick="document.getElementById('ep-img-file').click()">
+        📷 Clique para trocar a imagem
+      </div>
+      <input type="file" id="ep-img-file" accept="image/*" style="display:none;" onchange="ep_previewImagem(event)" />
+      <input type="hidden" id="ep-img-url" />
+      <div id="ep-img-progress" style="display:none;margin-top:.4rem;">
+        <div style="background:rgba(255,255,255,.1);border-radius:99px;height:5px;overflow:hidden;">
+          <div id="ep-img-progress-bar" style="background:var(--verde);height:100%;width:0%;transition:width .3s;"></div>
+        </div>
+        <div id="ep-img-progress-txt" style="font-size:.7rem;color:var(--suave);margin-top:.2rem;text-align:center;">Enviando...</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.6rem;">
+      <button onclick="fecharEditarProduto()" style="background:var(--card2);color:var(--suave);border:1px solid var(--borda);border-radius:8px;padding:.85rem 1.25rem;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;">Cancelar</button>
+      <button onclick="salvarEdicaoProduto()" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:.85rem;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
