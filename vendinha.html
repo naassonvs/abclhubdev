@@ -35,20 +35,6 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <!-- QR Code gerado localmente — sem internet -->
   <script>
-  // qrcode-generator (MIT) — embarcado para funcionar offline
-  var qrcode=function(){var a=function(b,c){var d=[];var e={};var f,g,h,i;var j=1,k=0,l=0;var m=[];var n=[];var o=[];var p=0;var q=function(a){if(a){j=a}};var r=function(a){if(a){k=a}};var s=function(a){if(a!==undefined){l=a}};var t=function(a,b,c){var d=typeof a!="number"?parseInt(a):a;var e=typeof b!="number"?parseInt(b):b;if(c){m.push([d,e])}else{if(d<0||e<0||d>=g.length||e>=g.length){return}g[d][e]=true}};var u=function(){var a=0;var b=0;for(var c=0;c<8;c++){var d=j>>c&1;a+=d*Math.pow(2,c)}for(var c=0;c<8;c++){var d=k>>c&1;b+=d*Math.pow(2,c)}return[a,b]};var v=function(a){var b=0;while(a>0){a>>=1;b++}return b};var w=function(a,b){var c=a^b;var d=0;while(c>0){d+=c&1;c>>=1}return d};var x=function(){var a=[];var b=function(a,b,c){var d=c.split("").map(function(a){return parseInt(a,2)});for(var e=0;e<d.length;e++){a[a.length]=d[e]}};var c=function(a,b){var c=[];for(var d=0;d<a.length;d++){c[d]=a[d]}b=b.slice(8);if(a.length<b.length){return null}for(var e=0;e<a.length;e++){if(a[e]!==undefined&&b[e]!==undefined){c[e]=a[e]^b[e]}}return c};var d=function(a){var b=new Array(7).fill(0);b=a.reduce(function(a,b){return c(a,[...a.map(function(){return 0}),b])},b);return b};return{encode:function(a){var b="";for(var c=0;c<a.length;c++){b+=String.fromCharCode(a[c])}return b}}};var y=function(a,b,c){var d,e;if(c){d=a;e=b}else{d=b;e=a}for(var f=0;f<5;f++){g[d][e+f]=true}for(var f=6;f<11;f++){g[d][e+f]=false}for(var f=11;f<14;f++){g[d][e+f]=true}for(var f=0;f<5;f++){g[d+f][e]=true}for(var f=6;f<11;f++){g[d+f][e]=false}for(var f=11;f<14;f++){g[d+f][e]=true}};var z=function(){};var A=function(){};var B=function(){};var C=function(){};var D=function(){};var E=function(){};var F=function(a){return parseInt(a/16)*16+parseInt(a%16)};var G=function(a){var b=0;for(var c=0;c<a.length;c++){b=b*256+a.charCodeAt(c)}return b};var H=function(a,b){var c=a.length-b;var d=a.substring(0,c);return[d,a.substring(c)]};var I=function(a,b,c,d){var e=function(){var e=[];var f=0;var g=true;var h=function(a,b){if(a<0||a>=c||b<0||b>=c)return;if(d[a][b]!==null)return;e.push([a,b])};while(f<c*c){var i=e.shift();if(i===undefined)break;f++;var j=i[0];var k=i[1];d[j][k]=g?a%2==0&&b%2==0||a%2==1&&b%2==1:a/2%2==0&&b/2%2==0||a%2==0&&a/2%2==1&&b%2==1||a%2==1&&a/2%2==1&&b%2==0}};return e};var _=function(a,b){var c=[];for(var d=0;d<a;d++){c[d]=new Array(b).fill(null)}return c};var $=function(){var a=0;for(var b=0;b<m.length;b++){a+=m[b][0]*(g.length)+m[b][1]}return a};g=null;h=null;i=null;f=[];return{addData:function(a,b){d.push([a,b?b:"Byte"])},make:function(){if(j<1||j>40){throw new Error("QR Code: bad version")}var a=4*j+17;g=_(a,a);h=_(a,a);i=_(a,a);for(var b=0;b<a;b++){for(var c=0;c<a;c++){g[b][c]=false;h[b][c]=false;i[b][c]=false}}for(var e=0;e<d.length;e++){var f=d[e];var n=f[0];var o=f[1]}},isDark:function(a,b){if(a<0||b<0||a>=g.length||b>=g.length){throw new Error("out of range:"+a+","+b)}return g[a][b]},getModuleCount:function(){return g?g.length:0},make:function(){},isDark:function(a,b){return false},getModuleCount:function(){return 0}}};return{createCanvas:function(a,b){var c=a;var d=b;var e=function(){};return{qr:qrcode(c,d),make:function(){this.qr.make()},isDark:function(a,b){return this.qr.isDark(a,b)},getModuleCount:function(){return this.qr.getModuleCount()}}},createSvgTag:function(){return""},createImgTag:function(){return""},createDataURL:function(){return""},createTableTag:function(){return""},createASCII:function(){return""},stringToBytesFuncs:{},stringToBytes:function(){},errorCorrectionLevel:{},mode:{},MaskPattern:{}}}();
-  // Lib completa QRCode.js (versão simplificada canvas)
-  var QRCodeLib=(function(){var a=function(a){this._el=a;this._htOption={width:220,height:220,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:2}};a.prototype.makeCode=function(a){this._oQRCode=new b(a,this._htOption);this._drawSVG(this._el,a)};a.prototype._drawSVG=function(a,c){var d=this;var modules=this._makeQR(c);var len=modules.length;var size=this._htOption.width;var s=size/len;var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">';svg+='<rect width="'+size+'" height="'+size+'" fill="'+this._htOption.colorLight+'"/>';for(var r=0;r<len;r++){for(var c2=0;c2<len;c2++){if(modules[r][c2]){svg+='<rect x="'+(c2*s).toFixed(2)+'" y="'+(r*s).toFixed(2)+'" width="'+(s+0.5).toFixed(2)+'" height="'+(s+0.5).toFixed(2)+'" fill="'+this._htOption.colorDark+'"/>'}}}svg+='</svg>';a.innerHTML=svg};a.prototype._makeQR=function(a){var t=this._htOption.typeNumber;var e=this._htOption.correctLevel;return makeQRCode(a,t,e)};return a})();
-
-  // QR Code puro — implementação completa embarcada
-  function makeQRCode(text, typeNumber, errorCorrectionLevel) {
-    // Implementação completa do QR Code em JS puro
-    var qr = QRErrorCorrectionLevel ? new QRCodeModel(typeNumber, QRErrorCorrectionLevel[errorCorrectionLevel]) : null;
-    // fallback: usa canvas via API de dados
-    return null;
-  }
-
-  // ─── QR Code offline: usa canvas 2D nativo ─────────────────
   // Biblioteca QR compacta baseada em qrcodejs
   !function(){function a(a,b){this.typeNumber=a,this.errorCorrectionLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function b(a,b){this.mode=a,this.data=b}function c(a){this.buffer=[],this.length=0,this.put=function(a,b){for(var c=0;c<b;c++)this.putBit((a>>>(b-c-1)&1)==1)},this.getLengthInBits=function(){return this.length},this.putBit=function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>(this.length%8)),this.length++}}function d(a){var b=0,c=0,d=0,e=a;for(d=0;d<e.length;d++)c=e.charCodeAt(d),c<128?b+=1:c<2048?b+=2:b+=3;return b}a.PAD0=236,a.PAD1=17,a.prototype={addData:function(a){var c=new b(4,a);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(a<0||this.moduleCount<=a||b<0||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(b,c){this.moduleCount=4*this.typeNumber+17,this.modules=function(a){for(var b=[],c=0;c<a;c++){b.push([]);for(var d=0;d<a;d++)b[c].push(null)}return b}(this.moduleCount),this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(b,c),this.typeNumber>=7&&this.setupTypeNumber(b),null==this.dataCache&&(this.dataCache=a.createData(this.typeNumber,this.errorCorrectionLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;c<=7;c++)if(!(a+c<=-1||this.moduleCount<=a+c))for(var d=-1;d<=7;d++)a+c>=0&&a+c<this.moduleCount&&b+d>=0&&b+d<this.moduleCount&&(this.modules[a+c][b+d]=0<=c&&c<=6&&(0==d||6==d)||0<=d&&d<=6&&(0==c||6==c)||2<=c&&c<=4&&2<=d&&d<=4)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;c<8;c++){this.makeImpl(!0,c);var d=QRUtil.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=QRUtil.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var f=-2;f<=2;f++)for(var g=-2;g<=2;g++)this.modules[d+f][e+g]=-2==f||2==f||-2==g||2==g||0==f&&0==g}},setupTypeNumber:function(a){for(var b=QRUtil.getBCHTypeNumber(this.typeNumber),c=0;c<18;c++){var d=!a&&(b>>c&1)==1;this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;c<18;c++){var d=!a&&(b>>c&1)==1;this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectionLevel.bit<<3|b,d=QRUtil.getBCHTypeInfo(c),e=0;e<15;e++){var f=!a&&(d>>e&1)==1;e<6?this.modules[e][8]=f:e<8?this.modules[e+1][8]=f:this.modules[this.moduleCount-15+e][8]=f}for(var e=0;e<15;e++){var f=!a&&(d>>e&1)==1;e<8?this.modules[8][this.moduleCount-e-1]=f:e<9?this.modules[8][15-e-1+1]=f:this.modules[8][15-e-1]=f}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,f=0,g=this.moduleCount-1;g>0;g-=2)for(6==g&&g--;;){for(var h=0;h<2;h++)if(null==this.modules[d][g-h]){var i=!1;f<a.length&&(i=(a[Math.floor(f/8)]>>>(7-f%8)&1)==1),QRUtil.getMask(b,d,g-h)&&(i=!i),this.modules[d][g-h]=i,f++}if(d+=c,d<0||this.moduleCount<=d){d-=c,c=-c;break}}},a.PAD0=236,a.PAD1=17,a.createData=function(b,c,d){for(var e=RSBlock.getRSBlocks(b,c),f=new c2,g=0;g<d.length;g++){var h=d[g];f.put(h.mode,4),f.put(h.data.length,QRUtil.getLengthInBits(h.mode,b));for(var i=0;i<h.data.length;i++)f.put(h.data.charCodeAt(i),8)}for(var j=0,g=0;g<e.length;g++)j+=e[g].dataCount;if(f.getLengthInBits()>8*j)throw new Error("code length overflow. ("+f.getLengthInBits()+">"+8*j+")");for(f.getLengthInBits()+4<=8*j&&f.put(0,4);f.getLengthInBits()%8!=0;)f.putBit(!1);for(;;){if(f.getLengthInBits()>=8*j)break;if(f.put(a.PAD0,8),f.getLengthInBits()>=8*j)break;f.put(a.PAD1,8)}return a.createBytes(f,e)},a.createBytes=function(a,b){for(var d=0,e=0,f=0,g=new Array(b.length),h=new Array(b.length),i=0;i<b.length;i++){var j=b[i].dataCount,k=b[i].totalCount-j;e=Math.max(e,j),f=Math.max(f,k),g[i]=new Array(j);for(var l=0;l<g[i].length;l++)g[i][l]=255&a.buffer[d++];h[i]=new Array(k);for(var l=0;l<h[i].length;l++)h[i][l]=255&a.buffer[d++]}for(var m=new Array(b.reduce(function(a,b){return a+b.totalCount},0)),n=0,i=0;i<e;i++)for(var o=0;o<b.length;o++)i<g[o].length&&(m[n++]=g[o][i]);for(var i=0;i<f;i++)for(var o=0;o<b.length;o++)i<h[o].length&&(m[n++]=h[o][i]);return m};var e=function(){return{glog:function(a){if(a<1)throw new Error("glog("+a+")");return LOG_TABLE[a]},gexp:function(a){for(;a<0;)a+=255;for(;a>=256;)a-=255;return EXP_TABLE[a]},getPatternPosition:function(a){return PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case 0:return(b+c)%2==0;case 1:return b%2==0;case 2:return c%3==0;case 3:return(b+c)%3==0;case 4:return(Math.floor(b/2)+Math.floor(c/3))%2==0;case 5:return b*c%2+b*c%3==0;case 6:return(b*c%2+b*c%3)%2==0;case 7:return(b*c%3+(b+c)%2)%2==0;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new c2([1],0),d=0;d<a;d++)b=b.multiply(new c2([1,e.gexp(d)],0));return b},getLengthInBits:function(a,b){if(1<=b&&b<10)switch(a){case 1:return 10;case 2:return 9;case 4:return 8;case 8:return 8;default:throw new Error("mode:"+a)}else if(b<27)switch(a){case 1:return 12;case 2:return 11;case 4:return 10;case 8:return 16;default:throw new Error("mode:"+a)}else{if(!(b<41))throw new Error("type:"+b);switch(a){case 1:return 14;case 2:return 13;case 4:return 12;case 8:return 16;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;d<b;d++)for(var e=0;e<b;e++){for(var f=0,g=-1;g<=1;g++)if(!(d+g<0||b<=d+g))for(var h=-1;h<=1;h++)e+h<0||b<=e+h||0==g&&0==h||a.isDark(d,g+d-d)!=a.isDark(d,e)||(f++);f>5&&(c+=3+f-5)}for(var d=0;d<b-1;d++)for(var e=0;e<b-1;e++){var i=0;a.isDark(d,e)&&i++,a.isDark(d+1,e)&&i++,a.isDark(d,e+1)&&i++,a.isDark(d+1,e+1)&&i++,(0==i||4==i)&&(c+=3)}for(var d=0;d<b;d++)for(var e=0;e<b-6;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;e<b;e++)for(var d=0;d<b-6;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var j=0,e=0;e<b;e++)for(var d=0;d<b;d++)a.isDark(d,e)&&j++;var k=Math.abs(100*j/b/b-50)/5;return c+=10*k,c}}}();window.QRUtil=e;var f=function(a,b){this.totalCount=a,this.dataCount=b};f.getRSBlocks=function(a,b){var c=f.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectionLevel:"+b);for(var d=c.length/3,e=[],g=0;g<d;g++)for(var h=c[3*g+0],i=c[3*g+1],j=c[3*g+2],k=0;k<h;k++)e.push(new f(i,j));return e},f.getRsBlockTable=function(a,b){switch(b){case 1:return RS_BLOCK_TABLE[(a-1)*4+0];case 0:return RS_BLOCK_TABLE[(a-1)*4+1];case 3:return RS_BLOCK_TABLE[(a-1)*4+2];case 2:return RS_BLOCK_TABLE[(a-1)*4+3]}};var c2=function(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);var c=0;for(c=0;c<a.length;c++)if(0!=a[c])break;this.num=new Array(a.length-c+b);for(var d=0;d<this.num.length;d++)this.num[d]=0;for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]};c2.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=e.gexp(e.glog(this.get(c))+e.glog(a.get(d)));return new c2(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=e.glog(this.get(0))-e.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=e.gexp(e.glog(a.get(d))+b);return new c2(c,0).mod(a)}};window.QRCodeModel=a;window.RSBlock=f;var EXP_TABLE=new Array(256),LOG_TABLE=new Array(256);for(var i=0;i<8;i++)EXP_TABLE[i]=1<<i;for(var i=8;i<256;i++)EXP_TABLE[i]=EXP_TABLE[i-4]^EXP_TABLE[i-5]^EXP_TABLE[i-6]^EXP_TABLE[i-8];for(var i=0;i<255;i++)LOG_TABLE[EXP_TABLE[i]]=i;var PATTERN_POSITION_TABLE=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]];var RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]];
   window.QRCodeOffline={generate:function(text,container,size){try{var typeNum=0;for(var t=1;t<=40;t++){var rs=RSBlock.getRSBlocks(t,1);var cap=rs.reduce(function(a,b){return a+b.dataCount},0)*8-4-getLenBits(t);if(cap>=text.length*8){typeNum=t;break}}if(!typeNum)typeNum=10;var qr=new QRCodeModel(typeNum,1);qr.addData(text);qr.make();var sz=size||220;var modules=qr.modules;var len=modules.length;var cellSize=sz/len;var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+sz+'" height="'+sz+'" viewBox="0 0 '+sz+' '+sz+'">';svg+='<rect width="'+sz+'" height="'+sz+'" fill="#ffffff"/>';for(var r=0;r<len;r++)for(var c=0;c<len;c++)if(modules[r][c]){svg+='<rect x="'+(c*cellSize).toFixed(2)+'" y="'+(r*cellSize).toFixed(2)+'" width="'+(cellSize+0.1).toFixed(2)+'" height="'+(cellSize+0.1).toFixed(2)+'" fill="#000000"/>'}svg+='</svg>';container.innerHTML=svg}catch(e){container.innerHTML='<p style="color:red;font-size:.7rem;padding:.5rem;">Erro QR: '+e.message+'</p>'}};function getLenBits(t){return t<10?8:16}}};
@@ -135,7 +121,14 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     }
 
     /* Coluna esquerda: produtos + histórico */
-    .col-left { padding: 1.25rem; overflow-y: auto; }
+    .col-left { padding: 1.25rem; overflow-y: auto; scrollbar-width: none; }
+    .col-left::-webkit-scrollbar { display: none; }
+
+    /* Esconder setinhas de inputs number */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; }
+
 
     /* Tabs de visualização */
     .view-tabs {
@@ -195,6 +188,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       display: flex; flex-direction: column;
       height: calc(100vh - 120px);
       position: sticky; top: 120px;
+      overflow: hidden;
     }
 
     .pedido-header {
@@ -237,9 +231,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
     /* Itens do pedido */
     .pedido-itens {
-      flex: 1; overflow-y: auto;
-      padding: 1rem 1.25rem;
+      flex: 1; overflow-y: auto; padding: 1rem 1.25rem;
+      scrollbar-width: none;
     }
+    .pedido-itens::-webkit-scrollbar { display: none; }
 
     .pedido-vazio { font-size: .82rem; color: var(--suave); text-align: center; padding: 2rem 0; }
 
@@ -440,7 +435,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       </div>
     </div>
     <div style="display:flex;gap:.5rem;align-items:center;">
-      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleTheme()" title="Alternar tema">☀️</button>
       <button class="btn btn-ghost btn-sm" onclick="window.open('admin.html','_blank')">⚙ Admin</button>
       <button class="btn btn-ghost btn-sm" onclick="vLogout()">Sair</button>
     </div>
@@ -469,7 +464,8 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         <button class="view-tab active" onclick="switchView('caixa',this)">🛒 Caixa</button>
         <button class="view-tab" onclick="switchView('historico',this)">📋 Histórico</button>
         <button class="view-tab" onclick="switchView('devendo',this)">⚠️ Devendo</button>
-        <button class="view-tab" onclick="switchView('estoque',this)">⚙️ Estoque & Def.</button>
+        <button class="view-tab" onclick="switchView('estoque',this)">📦 Estoque</button>
+        <button class="view-tab" onclick="switchView('config',this)">⚙️ Definições</button>
         <button class="view-tab" onclick="switchView('resumo',this)">📊 Resumo</button>
       </div>
 
@@ -542,14 +538,14 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         <div id="devendo-list"></div>
       </div>
 
-      <!-- Estoque & Definições -->
+      <!-- ── PAINEL: ESTOQUE ── -->
       <div class="view-panel" id="vp-estoque">
         <div class="section-h">
           <span>Gerenciar estoque</span>
           <button class="btn btn-solid btn-sm" onclick="saveEstoque()">💾 Salvar</button>
         </div>
         <div id="estoque-list"></div>
-        <div style="margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--borda);">
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
           <div class="section-h"><span>Adicionar produto</span></div>
           <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:.6rem;align-items:end;">
             <div class="field" style="margin:0"><label>Nome</label><input type="text" id="np-nome" placeholder="Produto" /></div>
@@ -571,29 +567,37 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
           </div>
           <button class="btn btn-solid btn-sm" onclick="addProduct()" style="margin-top:.5rem;">+ Adicionar</button>
         </div>
+      </div>
 
-        <!-- Definições -->
-        <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
-          <div class="section-h" style="margin-bottom:1rem;"><span>⚙️ Definições da Vendinha</span></div>
+      <!-- ── PAINEL: DEFINIÇÕES + PAGAMENTOS ── -->
+      <div class="view-panel" id="vp-config" style="display:none;">
 
-          <div class="field" style="margin-bottom:.75rem;">
-            <label>Chave PIX</label>
-            <input type="text" id="def-pix-chave" placeholder="CPF, telefone, e-mail ou chave aleatória" />
-            <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Usada para gerar o QR Code no pagamento PIX</div>
+        <div class="section-h" style="margin-bottom:1.25rem;"><span>⚙️ Definições da Vendinha</span></div>
+        <div class="field" style="margin-bottom:.75rem;">
+          <label>Chave PIX</label>
+          <input type="text" id="def-pix-chave" placeholder="CPF, telefone, e-mail ou chave aleatória" />
+          <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Usada para gerar o QR Code no pagamento PIX</div>
+        </div>
+        <div class="field" style="margin-bottom:.75rem;">
+          <label>Nome do recebedor (PIX)</label>
+          <input type="text" id="def-pix-nome" placeholder="Ex: Mocidade Casa de Oração" />
+        </div>
+        <div class="field" style="margin-bottom:.75rem;">
+          <label>Cidade (PIX)</label>
+          <input type="text" id="def-pix-cidade" placeholder="Ex: CONSELHEIRO LAFAIETE" />
+          <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Necessário para o payload PIX padrão Banco Central</div>
+        </div>
+        <button class="btn btn-solid btn-sm" onclick="saveDefinicoes()">💾 Salvar Definições</button>
+
+        <div style="margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
+          <div class="section-h" style="margin-bottom:1rem;">
+            <span>💳 Formas de Pagamento</span>
+            <button class="btn btn-solid btn-sm" onclick="abrirModalNovoPagamento()">+ Nova</button>
           </div>
-
-          <div class="field" style="margin-bottom:.75rem;">
-            <label>Nome do recebedor (PIX)</label>
-            <input type="text" id="def-pix-nome" placeholder="Ex: Mocidade Casa de Oração" />
-          </div>
-
-          <div class="field" style="margin-bottom:.75rem;">
-            <label>Cidade (PIX)</label>
-            <input type="text" id="def-pix-cidade" placeholder="Ex: CONSELHEIRO LAFAIETE" />
-            <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Necessário para o payload PIX padrão Banco Central</div>
-          </div>
-
-          <button class="btn btn-solid btn-sm" onclick="saveDefinicoes()" style="margin-top:.25rem;">💾 Salvar Definições</button>
+          <p style="font-size:.78rem;color:var(--suave);margin-bottom:1rem;line-height:1.6;">
+            Gerencie as formas de pagamento disponíveis no caixa. A cor é usada no botão ativo.
+          </p>
+          <div id="pag-lista"></div>
         </div>
       </div>
 
@@ -621,7 +625,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             oninput="filtrarPessoas(this.value)" onfocus="filtrarPessoas(this.value)" />
           <div id="dropdown-pessoas" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--borda);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
         </div>
-        <div id="pessoa-selecionada" style="display:none;margin-top:.4rem;padding:.4rem .75rem;background:rgba(64,145,108,.15);border:1px solid var(--borda);border-radius:6px;font-size:.8rem;display:flex;align-items:center;justify-content:space-between;">
+        <div id="pessoa-selecionada" style="display:none;margin-top:.4rem;padding:.4rem .75rem;background:rgba(64,145,108,.15);border:1px solid var(--borda);border-radius:6px;font-size:.8rem;align-items:center;justify-content:space-between;">
           <span id="pessoa-selecionada-nome" style="color:var(--verde-cl);font-weight:600;"></span>
           <button onclick="limparPessoa()" style="background:none;border:none;color:var(--suave);cursor:pointer;font-size:.9rem;padding:0 .25rem;">✕</button>
         </div>
@@ -648,13 +652,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         <input type="number" id="oferta" placeholder="Oferta (R$)" min="0" step="0.5" />
       </div>
 
-      <div class="pagamento-row" style="flex-wrap:wrap;">
-        <button class="pag-btn pix active" id="pb-pix" onclick="setPagamento('PIX',this)">📲 PIX</button>
-        <button class="pag-btn dinheiro" id="pb-din" onclick="setPagamento('Dinheiro',this)">💵 Dinheiro</button>
-        <button class="pag-btn credito" id="pb-cred" onclick="setPagamento('Crédito',this)">💳 Crédito</button>
-        <button class="pag-btn debito" id="pb-deb" onclick="setPagamento('Débito',this)">💳 Débito</button>
-        <button class="pag-btn fiado" id="pb-fia" onclick="setPagamento('Fiado',this)">📒 Fiado</button>
-      </div>
+      <div class="pagamento-row" id="pagamento-row" style="flex-wrap:wrap;"></div>
 
 
 
@@ -803,6 +801,7 @@ function initApp() {
   renderEstoque();
   renderResumo();
   loadDefinicoes();
+  renderBotoesPagamento();
 }
 
 // ══════════════════════════════════════════════════
@@ -920,6 +919,14 @@ function addToCart(id) {
 // ══════════════════════════════════════════════════
 // CART
 // ══════════════════════════════════════════════════
+function ajustarCampo(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const val = parseFloat(el.value) || 0;
+  el.value = Math.max(0, val + delta).toFixed(2).replace(/\.00$/, '');
+  renderCart();
+}
+
 function renderCart() {
   const desconto = parseFloat(document.getElementById('desconto')?.value) || 0;
   const subtotal = cart.reduce((s, i) => s + i.preco * i.qtd, 0);
@@ -1071,6 +1078,16 @@ function buildPixPayload(chave, nome, cidade, valor) {
 function getDefinicoes() {
   return get('abcl-definicoes') || { pixChave: '', pixNome: 'ABCL', pixCidade: 'CONSELHEIRO LAFAIETE' };
 }
+function carregarDefinicoes() {
+  const cfg = JSON.parse(localStorage.getItem('abcl-cfg-vendinha') || '{}');
+  const el1 = document.getElementById('def-pix-chave');
+  const el2 = document.getElementById('def-pix-nome');
+  const el3 = document.getElementById('def-pix-cidade');
+  if (el1) el1.value = cfg.pix_chave  || localStorage.getItem('abcl-pix-chave')  || '';
+  if (el2) el2.value = cfg.pix_nome   || localStorage.getItem('abcl-pix-nome')   || '';
+  if (el3) el3.value = cfg.pix_cidade || localStorage.getItem('abcl-pix-cidade') || '';
+}
+
 function saveDefinicoes() {
   set('abcl-definicoes', {
     pixChave:  document.getElementById('def-pix-chave').value.trim(),
@@ -1139,10 +1156,133 @@ function getQRTypeNumber(text) {
   return 10;
 }
 
-function setPagamento(p, btn) {
-  pagamento = p;
-  document.querySelectorAll('.pag-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+
+// ══════════════════════════════════════════════════════════════════
+// SISTEMA DE PAGAMENTOS DINÂMICO
+// ══════════════════════════════════════════════════════════════════
+const PAGAMENTOS_DEFAULT = [
+  { id: 'pix',      nome: 'PIX',      emoji: '📲', cor: '#40916C' },
+  { id: 'dinheiro', nome: 'Dinheiro', emoji: '💵', cor: '#16a34a' },
+  { id: 'credito',  nome: 'Crédito',  emoji: '💳', cor: '#3B82F6' },
+  { id: 'debito',   nome: 'Débito',   emoji: '💳', cor: '#8b5cf6' },
+  { id: 'fiado',    nome: 'Fiado',    emoji: '📒', cor: '#F59E0B' },
+];
+
+function getPagamentos() {
+  try {
+    const s = localStorage.getItem('abcl-pagamentos');
+    return s ? JSON.parse(s) : PAGAMENTOS_DEFAULT;
+  } catch { return PAGAMENTOS_DEFAULT; }
+}
+
+function savePagamentos(lista) {
+  localStorage.setItem('abcl-pagamentos', JSON.stringify(lista));
+  renderBotoesPagamento();
+  renderListaPagamentos();
+}
+
+function renderBotoesPagamento() {
+  const row = document.getElementById('pagamento-row');
+  if (!row) return;
+  const lista = getPagamentos();
+  row.innerHTML = lista.map((p, i) => {
+    const isActive = p.nome === pagamento;
+    const style = isActive
+      ? `background:${p.cor};border-color:${p.cor};color:${p.id === 'fiado' ? '#000' : '#fff'};`
+      : '';
+    return `<button class="pag-btn${isActive ? ' active' : ''}" id="pb-${p.id}"
+      style="${style}"
+      onclick="setPagamento('${p.nome}',this,'${p.cor}','${p.id === 'fiado' ? '#000' : '#fff'}')"
+    >${p.emoji} ${p.nome}</button>`;
+  }).join('');
+}
+
+function renderListaPagamentos() {
+  const el = document.getElementById('pag-lista');
+  if (!el) return;
+  const lista = getPagamentos();
+  if (lista.length === 0) {
+    el.innerHTML = '<p style="color:var(--suave);font-size:.82rem;">Nenhuma forma cadastrada.</p>';
+    return;
+  }
+  el.innerHTML = lista.map((p, i) => `
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .75rem;background:var(--card2);border-radius:8px;margin-bottom:.5rem;">
+      <span style="font-size:1.3rem;">${p.emoji}</span>
+      <span style="flex:1;font-weight:600;">${p.nome}</span>
+      <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${p.cor};border:1px solid rgba(255,255,255,.15);"></span>
+      <button class="btn btn-ghost btn-sm" onclick="editarPagamento(${i})" style="padding:.25rem .5rem;">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="deletarPagamento(${i})" style="padding:.25rem .5rem;">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── Modal novo/editar pagamento ──
+let _editPagIdx = null;
+
+function abrirModalNovoPagamento(idx) {
+  _editPagIdx = idx !== undefined ? idx : null;
+  const lista  = getPagamentos();
+  const p      = _editPagIdx !== null ? lista[_editPagIdx] : null;
+  document.getElementById('mpag-nome').value  = p ? p.nome  : '';
+  document.getElementById('mpag-emoji').value = p ? p.emoji : '';
+  document.getElementById('mpag-cor').value   = p ? p.cor   : '#40916C';
+  document.getElementById('mpag-modal').style.display = 'flex';
+}
+
+function editarPagamento(idx) { abrirModalNovoPagamento(idx); }
+
+function fecharModalPagamento() {
+  document.getElementById('mpag-modal').style.display = 'none';
+  _editPagIdx = null;
+}
+
+function salvarModalPagamento() {
+  const nome  = document.getElementById('mpag-nome').value.trim();
+  const emoji = document.getElementById('mpag-emoji').value.trim() || '💳';
+  const cor   = document.getElementById('mpag-cor').value;
+  if (!nome) { toast('Digite o nome da forma de pagamento.'); return; }
+
+  const lista = getPagamentos();
+  const id    = nome.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (_editPagIdx !== null) {
+    lista[_editPagIdx] = { ...lista[_editPagIdx], nome, emoji, cor };
+  } else {
+    if (lista.find(p => p.nome.toLowerCase() === nome.toLowerCase())) {
+      toast('Já existe uma forma com esse nome.'); return;
+    }
+    lista.push({ id, nome, emoji, cor });
+  }
+  savePagamentos(lista);
+  fecharModalPagamento();
+  toast(`✅ "${nome}" ${_editPagIdx !== null ? 'atualizado' : 'adicionado'}!`);
+}
+
+function deletarPagamento(idx) {
+  const lista = getPagamentos();
+  if (lista.length <= 1) { toast('⚠️ Mantenha ao menos uma forma de pagamento.'); return; }
+  if (!confirm(`Remover "${lista[idx].nome}"?`)) return;
+  lista.splice(idx, 1);
+  // Se a forma ativa foi removida, selecionar a primeira
+  if (!lista.find(p => p.nome === pagamento)) pagamento = lista[0].nome;
+  savePagamentos(lista); // já chama renderBotoesPagamento e renderListaPagamentos
+  toast('🗑️ Forma removida.');
+}
+
+function setPagamento(forma, btn, cor, textoCor) {
+  pagamento = forma;
+  document.querySelectorAll('.pag-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = b.style.borderColor = b.style.color = '';
+  });
+  if (btn) {
+    btn.classList.add('active');
+    if (cor) {
+      btn.style.background  = cor;
+      btn.style.borderColor = cor;
+      btn.style.color       = textoCor || '#fff';
+    }
+  }
 }
 
 function setPeriodo(p, btn) {
@@ -1450,6 +1590,7 @@ function saveEstoque() {
   set('abcl-produtos', produtos);
   renderProdutos();
   renderEstoque();
+  renderBotoesPagamento();
   toast('Estoque atualizado!');
 
   // Sync background
@@ -1712,10 +1853,16 @@ function exportCSV() {
 // UI UTILS
 // ══════════════════════════════════════════════════
 function switchView(name, btn) {
-  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('vp-' + name)?.classList.add('active');
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
+  ['caixa','historico','devendo','estoque','config','resumo'].forEach(v => {
+    const el = document.getElementById('vp-' + v);
+    if (el) el.style.display = v === name ? 'block' : 'none';
+  });
+  if (name === 'estoque') { renderEstoque(); renderProdutos(); }
+  if (name === 'resumo')  renderResumo();
+  if (name === 'devendo') renderDevendo();
+  if (name === 'config')  { carregarDefinicoes(); renderListaPagamentos(); }
 }
 
 function toast(msg) {
@@ -1773,8 +1920,8 @@ let formaPgtoAtual = 'PIX'; // espelha `pagamento`
 
 // Patch setPagamento para manter formaPgtoAtual sincronizado
 const _setPagamentoOrig = setPagamento;
-window.setPagamento = function(p, btn) {
-  _setPagamentoOrig(p, btn);
+window.setPagamento = function(p, btn, cor, textoCor) {
+  _setPagamentoOrig(p, btn, cor, textoCor);
   formaPgtoAtual = p;
 };
 
@@ -1884,7 +2031,7 @@ if (typeof toggleTheme === 'undefined') {
   };
 }
 </script>
-<button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
+
 
 <!-- Modal Editar Produto -->
 <div id="ep-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:center;justify-content:center;">
@@ -1933,6 +2080,31 @@ if (typeof toggleTheme === 'undefined') {
     <div style="display:flex;gap:.6rem;">
       <button onclick="fecharEditarProduto()" style="background:var(--card2);color:var(--suave);border:1px solid var(--borda);border-radius:8px;padding:.85rem 1.25rem;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;">Cancelar</button>
       <button onclick="salvarEdicaoProduto()" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:.85rem;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pagamento -->
+<div id="mpag-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:14px;width:min(380px,92vw);padding:1.5rem;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+    <h3 style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin:0 0 1.25rem;">💳 Forma de Pagamento</h3>
+    <div style="margin-bottom:.85rem;">
+      <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Nome *</label>
+      <input type="text" id="mpag-nome" placeholder="Ex: Pix, Dinheiro, Fiado..." style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem;">
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Emoji</label>
+        <input type="text" id="mpag-emoji" placeholder="💳" maxlength="2" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .5rem;font-size:1.5rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;text-align:center;box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Cor do botão</label>
+        <input type="color" id="mpag-cor" value="#40916C" style="width:100%;height:42px;border:1px solid var(--borda);border-radius:8px;cursor:pointer;background:var(--card2);padding:.2rem;" />
+      </div>
+    </div>
+    <div style="display:flex;gap:.6rem;">
+      <button onclick="fecharModalPagamento()" style="background:var(--card2);color:var(--suave);border:1px solid var(--borda);border-radius:8px;padding:.85rem 1.25rem;font-size:.82rem;cursor:pointer;font-family:'Inter',sans-serif;">Cancelar</button>
+      <button onclick="salvarModalPagamento()" style="flex:1;background:var(--verde);color:#fff;border:none;border-radius:8px;padding:.85rem;font-size:.88rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">💾 Salvar</button>
     </div>
   </div>
 </div>
