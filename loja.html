@@ -21,6 +21,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 <!-- Módulos ABCL -->
 <script src="offline-sync.js"></script>
+<script src="produtos-sync.js"></script>
 <script src="vendas-firebase.js"></script>
 
   <meta charset="UTF-8" />
@@ -365,7 +366,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     </div>
     <div class="cm-field">
       <label>WhatsApp com DDD</label>
-      <input type="tel" id="cm-tel" placeholder="Ex: 31 9 9907 2784" autocomplete="tel" />
+      <input type="tel" id="cm-tel" placeholder="Ex: 31 9 8826 2599" autocomplete="tel" />
     </div>
     <p id="cm-erro" class="cm-erro">Por favor, informe seu nome.</p>
     <div class="cm-actions">
@@ -496,7 +497,7 @@ function renderProdutos() {
     const imgs = p.imagens && p.imagens.length ? p.imagens : (p.imagem ? [p.imagem] : []);
     const thumb = imgs[0] || '';
     return `
-    <div class="produto-card ${esg?'esgotado':''}" onclick="abrirProdModal(${p.id})">
+    <div class="produto-card ${esg?'esgotado':''}" onclick="abrirProdModal('${p.id}')">
       <div class="produto-img-wrap">
         ${thumb
           ? `<img src="${thumb}" alt="${p.nome}" loading="lazy" />`
@@ -510,7 +511,7 @@ function renderProdutos() {
         <div class="produto-desc">${p.desc.slice(0,90)}${p.desc.length>90?'...':''}</div>
         <div class="produto-preco-row">
           <div class="produto-preco">R$ ${p.preco.toFixed(2).replace('.',',')}</div>
-          <button class="produto-btn" onclick="event.stopPropagation();abrirProdModal(${p.id})">Ver</button>
+          <button class="produto-btn" onclick="event.stopPropagation();abrirProdModal('${p.id}')">Ver</button>
         </div>
         ${p.tamanhos?.length ? `<div class="variacoes">${p.tamanhos.slice(0,5).map(t=>`<span class="var-chip">${t}</span>`).join('')}</div>` : ''}
       </div>
@@ -601,7 +602,7 @@ function filtrar(cat, btn) {
 
 // ── Modal produto ──
 function abrirProdModal(id) {
-  const p = getProdutos().find(x=>x.id===id);
+  const p = getProdutos().find(x=>String(x.id)===String(id));
   if (!p) return;
   produtoAtual = p;
   varSelTamanho = ''; varSelCor = ''; varSelGenero = '';
@@ -826,7 +827,7 @@ async function confirmarCheckout() {
   }
 
   // ── Abre WhatsApp depois do Firebase (não bloqueia mais o prompt) ──
-  const whats = '5531999072784';
+  const whats = '5531988262599';
   window.open(`https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener');
 
   sacola = [];
@@ -846,7 +847,24 @@ function toast(msg) {
 }
 
 renderFiltros();
-renderProdutos();
+// Carregar produtos direto do Firestore (fonte de verdade)
+(async function() {
+  try {
+    if (typeof firebase !== 'undefined' && firebase.apps.length) {
+      const snap = await firebase.firestore().collection('produtos_loja').get();
+      if (!snap.empty) {
+        const produtos = snap.docs.map(d => {
+          const p = d.data();
+          const imgs = (p.imagens || []).filter(u => u && u.startsWith('http'));
+          const img  = imgs[0] || (p.imagem && p.imagem.startsWith('http') ? p.imagem : '') || '';
+          return { ...p, id: d.id, imagens: imgs, imagem: img, imagem_url: img };
+        });
+        localStorage.setItem('abcl-loja-produtos', JSON.stringify(produtos));
+      }
+    }
+  } catch(e) { console.warn('[Loja] Firebase direto:', e.message); }
+  renderProdutos();
+})();
 </script>
 </body>
 </html>

@@ -47,7 +47,21 @@
   // ────────────────────────────────────────────────────────────────────────────
   // 2. SALVAR NO FIREBASE (background, não bloqueia a UI)
   // ────────────────────────────────────────────────────────────────────────────
+  const _debounceTimers = {};
   async function salvarNoFirebase(colecao, produtos) {
+    // Atualizar timestamp LOCAL imediatamente — garante que localStorage
+    // ganha do Firebase na próxima comparação, mesmo se a página fechar antes do sync
+    const lsKey = colecao === 'produtos_vendinha' ? 'abcl-produtos'
+                : colecao === 'produtos_livraria' ? 'abcl-livraria-livros'
+                : colecao === 'produtos_loja'     ? 'abcl-loja-produtos'
+                : null;
+    if (lsKey) localStorage.setItem(lsKey + '_ts', String(Date.now()));
+
+    // Debounce: cancelar escrita anterior pendente para a mesma coleção
+    if (_debounceTimers[colecao]) clearTimeout(_debounceTimers[colecao]);
+    await new Promise(resolve => {
+      _debounceTimers[colecao] = setTimeout(resolve, 800);
+    });
     if (!navigator.onLine) {
       _enfileirarSync(colecao, produtos);
       return;
@@ -122,6 +136,31 @@
   // UTILS INTERNOS
   // ────────────────────────────────────────────────────────────────────────────
   function _normalizarProduto(p, colecao) {
+    if (colecao === 'produtos_loja') {
+      const img = p.imagem_url || p.imagem || '';
+      // Preservar _todos_ os campos originais e só sobrescrever o que precisar normalizar
+      const base = { ...p };
+      delete base._fbId;
+      return {
+        ...base,
+        id:         p._fbId || p.id,
+        nome:       p.nome       || '',
+        categoria:  p.categoria  || '',
+        desc:       p.desc       || '',
+        preco:      p.preco      || 0,
+        custo:      p.custo      || 0,
+        estoque:    p.estoque    || 0,
+        estoque_minimo: p.estoque_minimo || 3,
+        tamanhos:   p.tamanhos   || [],
+        cores:      p.cores      || [],
+        genero:     p.genero     || [],
+        imagem:     img,
+        imagem_url: img,
+        ativo:      p.ativo !== false,
+        novo:       p.novo       || false,
+        variacaoEstoque: p.variacaoEstoque || {},
+      };
+    }
     if (colecao === 'produtos_vendinha') {
       return {
         id:      p._fbId || p.id,

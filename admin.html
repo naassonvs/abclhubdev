@@ -12,6 +12,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
   <script>
   const firebaseConfig = {
     apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
@@ -26,6 +27,7 @@
   <!-- Módulos ABCL -->
   <script src="offline-sync.js"></script>
   <script src="vendas-firebase.js"></script>
+  <script src="produtos-sync.js"></script>
 
   <style>
     :root {
@@ -2654,12 +2656,79 @@ function getLojaProdutos() {
   return LOJA_PRODUTOS_DEFAULT;
 }
 
+async function sincronizarProdutosLoja() {
+  // Leitura direta do Firestore — sem escrever de volta (evita ciclo de corrupção)
+  try {
+    if (typeof firebase === 'undefined') return;
+    const snap = await firebase.firestore().collection('produtos_loja').get();
+    if (snap.empty) return;
+
+    const produtos = snap.docs.map(d => {
+      const p = d.data();
+      const img = p.imagem_url || p.imagem || '';
+      return {
+        ...p,
+        id:          d.id,
+        nome:        p.nome        || '',
+        categoria:   p.categoria   || '',
+        desc:        p.desc        || p.descricao || '',
+        preco:       p.preco       || 0,
+        custo:       p.custo       || 0,
+        estoque:     p.estoque     || 0,
+        tamanhos:    p.tamanhos    || [],
+        cores:       p.cores       || [],
+        genero:      p.genero      || [],
+        imagens:     p.imagens && p.imagens.length ? p.imagens : (img ? [img] : []),
+        imagem:      img,
+        imagem_url:  img,
+        ativo:       p.ativo !== false,
+        novo:        p.novo        || false,
+        variacaoEstoque: p.variacaoEstoque || {},
+      };
+    });
+
+    // Salvar no localStorage SEM chamar _syncLoja
+    localStorage.setItem('abcl-loja-produtos', JSON.stringify(produtos));
+    localStorage.setItem('abcl-loja-produtos_ts', String(Date.now()));
+
+    renderProdutosAdmin();
+    renderLojaStats();
+    console.log('[Admin] Loja: ' + produtos.length + ' produtos carregados do Firebase');
+  } catch(e) {
+    console.warn('[Admin] sincronizarProdutosLoja:', e.message);
+  }
+}
+
+function _syncLoja() {
+  // Salva direto no Firestore sem passar pelo produtos-sync (evita ciclo)
+  if (typeof firebase === 'undefined') return;
+  const lista = getLojaProdutos();
+  const db = firebase.firestore();
+  const batch = db.batch();
+  lista.forEach(p => {
+    const id = String(p.id);
+    const dados = { ...p };
+    delete dados.id;
+    // Remover base64 do Firestore — só salvar URLs https://
+    if (dados.imagem && dados.imagem.startsWith('data:')) dados.imagem = '';
+    if (dados.imagem_url && dados.imagem_url.startsWith('data:')) dados.imagem_url = '';
+    if (dados.capa && dados.capa.startsWith('data:')) dados.capa = '';
+    if (dados.imagens) dados.imagens = dados.imagens.filter(u => u && u.startsWith('http'));
+    dados.atualizado_em = firebase.firestore.FieldValue.serverTimestamp();
+    batch.set(db.collection('produtos_loja').doc(id), dados, { merge: true });
+  });
+  batch.commit()
+    .then(() => console.log('[Admin] Loja: ' + lista.length + ' produtos salvos no Firebase'))
+    .catch(e => console.warn('[Admin] _syncLoja erro:', e.message));
+}
+
 function initGestaoloja() {
   renderLojaStats();
   renderProdutosAdmin();
   renderCategoriasAdmin();
   carregarCfgLoja();
   carregarPedidosLoja();
+  sincronizarProdutosLoja();
 }
 
 async function carregarPedidosLoja() {
@@ -2781,10 +2850,10 @@ function renderProdutosAdmin() {
         <span style="font-size:.65rem;padding:.2rem .5rem;border-radius:99px;border:1px solid;${p.ativo?'background:rgba(64,145,108,.15);color:var(--verde-claro);border-color:rgba(64,145,108,.3);':'background:rgba(255,255,255,.04);color:var(--suave);border-color:var(--borda);'}">
           ${p.ativo?'● Ativo':'○ Inativo'}
         </span>
-        <button class="btn btn-ghost btn-sm" onclick="toggleAtivoProdLoja(${p.id})">${p.ativo?'⏸️':'▶️'}</button>
-        <button class="btn btn-ghost btn-sm" onclick="duplicarProdLoja(${p.id})">📄</button>
-        <button class="btn btn-ghost btn-sm" onclick="editarProdLoja(${p.id})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="removerProdLoja(${p.id})">✕</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAtivoProdLoja('${p.id}')">${p.ativo?'⏸️':'▶️'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="duplicarProdLoja('${p.id}')">📄</button>
+        <button class="btn btn-ghost btn-sm" onclick="editarProdLoja('${p.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="removerProdLoja('${p.id}')">✕</button>
       </div>
     </div>`).join('') || '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum produto.</p>';
 }
@@ -2931,7 +3000,7 @@ function salvarProdLoja() {
   };
 
   const lista = getLojaProdutos();
-  const idx   = lista.findIndex(p=>p.id===_editProdLojaId);
+  const idx   = lista.findIndex(p=>String(p.id)===String(_editProdLojaId));
   if (idx>=0) lista[idx]=prod; else lista.push(prod);
   if (!trySet('abcl-loja-produtos', lista)) return;
 
@@ -2939,33 +3008,38 @@ function salvarProdLoja() {
   renderProdutosAdmin();
   renderLojaStats();
   toast(_editProdLojaId ? '✅ Produto atualizado!' : '✅ Produto adicionado!');
+  _syncLoja();
 }
 
 function removerProdLoja(id) {
   if (!confirm('Remover este produto da loja?')) return;
-  set('abcl-loja-produtos', getLojaProdutos().filter(p=>p.id!==id));
+  set('abcl-loja-produtos', getLojaProdutos().filter(p=>String(p.id)!==String(id)));
   renderProdutosAdmin(); renderLojaStats();
   toast('🗑 Produto removido.');
+  ProdutosSync.deletarNoFirebase('produtos_loja', String(id)).catch(() => {});
+  _syncLoja();
 }
 
 function duplicarProdLoja(id) {
-  const base = getLojaProdutos().find(p => p.id === id);
+  const base = getLojaProdutos().find(p => String(p.id) === String(id));
   if (!base) return;
   const copia = { ...base, id: Date.now(), nome: `${base.nome} (Cópia)`, variacaoEstoque: { ...(base.variacaoEstoque || {}) } };
   const lista = [...getLojaProdutos(), copia];
   if (!trySet('abcl-loja-produtos', lista)) return;
   renderProdutosAdmin(); renderLojaStats();
   toast('✅ Produto duplicado!');
+  _syncLoja();
 }
 
 function toggleAtivoProdLoja(id) {
   const lista = getLojaProdutos();
-  const idx = lista.findIndex(p => p.id === id);
+  const idx = lista.findIndex(p => String(p.id) === String(id));
   if (idx < 0) return;
   lista[idx].ativo = !(lista[idx].ativo !== false);
   if (!trySet('abcl-loja-produtos', lista)) return;
   renderProdutosAdmin(); renderLojaStats();
   toast(lista[idx].ativo ? '✅ Produto ativado.' : '⚫ Produto desativado.');
+  _syncLoja();
 }
 
 // Array interno que guarda as imagens do produto em edição (suporta base64 e URLs)
@@ -3018,34 +3092,29 @@ function lerImgProdLoja(input) {
   if (!files.length) return;
   let processadas = 0;
 
-  files.forEach(file => {
+  const prodId = _editProdLojaId || ('novo_' + Date.now());
+  toast('⏳ Enviando imagem(ns) para o Storage...');
+
+  files.forEach(async file => {
     if (!file.type.startsWith('image/')) { toast('⚠️ Selecione apenas arquivos de imagem.'); return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const maxLado = 1200;
-        const scale = Math.min(1, maxLado / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        let quality = 0.85;
-        let dataUrl = canvas.toDataURL('image/jpeg', quality);
-        while (dataUrl.length > 450000 && quality > 0.45) { quality -= 0.1; dataUrl = canvas.toDataURL('image/jpeg', quality); }
-        _prodImagens.push(dataUrl);
-        processadas++;
-        if (processadas === files.length) {
-          sincronizarCampoUrls();
-          renderProdImagensPreviews();
-          toast(`🖼️ ${files.length} imagem(ns) adicionada(s).`);
-        }
-      };
-      img.onerror = () => toast('⚠️ Não foi possível ler uma imagem.');
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 3 * 1024 * 1024) { toast('⚠️ Imagem muito grande (máx 3MB).'); return; }
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = `produtos/loja/${prodId}_${Date.now()}.${ext}`;
+      const ref = firebase.storage().ref(path);
+      const task = await ref.put(file);
+      const url  = await task.ref.getDownloadURL();
+      _prodImagens.push(url);
+      processadas++;
+      if (processadas === files.length) {
+        sincronizarCampoUrls();
+        renderProdImagensPreviews();
+        toast(`🖼️ ${files.length} imagem(ns) enviada(s) com sucesso!`);
+      }
+    } catch(err) {
+      toast('❌ Erro ao enviar imagem: ' + err.message);
+      console.error('[Admin] upload imagem loja:', err);
+    }
   });
 }
 
