@@ -20,12 +20,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </script>
 
 <!-- Módulos ABCL -->
-<script src="offline-sync.js"></script>
+<script src="js/offline-sync.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script src="vendas-firebase.js"></script>
-<script src="produtos-sync.js"></script>
-<script src="acampantes-sync.js"></script>
-<script src="firebase-auth-patch.js"></script>
+<script src="js/vendas-firebase.js"></script>
+<script src="js/produtos-sync.js"></script>
+<script src="js/acampantes-sync.js"></script>
+<script src="js/firebase-auth-patch.js"></script>
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -761,6 +761,107 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 <script>
 // ══════════════════════════════════════════════════
+// IMG CACHE — IndexedDB offline image cache
+// Versão 1.0 — abclhub
+// ══════════════════════════════════════════════════
+const ImgCache = (() => {
+  const DB_NAME    = 'abcl-imgcache';
+  const DB_VERSION = 1;
+  const STORE      = 'images';
+  let _db = null;
+
+  function openDB() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = e => {
+        e.target.result.createObjectStore(STORE, { keyPath: 'url' });
+      };
+      req.onsuccess = e => { _db = e.target.result; res(_db); };
+      req.onerror   = e => rej(e.target.error);
+    });
+  }
+
+  async function get(url) {
+    const db    = await openDB();
+    return new Promise((res, rej) => {
+      const tx  = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(url);
+      req.onsuccess = e => res(e.target.result?.data || null);
+      req.onerror   = () => res(null);
+    });
+  }
+
+  async function set(url, base64) {
+    try {
+      const db  = await openDB();
+      const tx  = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({ url, data: base64 });
+    } catch(e) { /* silencioso */ }
+  }
+
+  async function urlToBase64(url) {
+    const res  = await fetch(url, { cache: 'force-cache' });
+    const blob = await res.blob();
+    return new Promise((res, rej) => {
+      const reader    = new FileReader();
+      reader.onload   = e => res(e.target.result);
+      reader.onerror  = rej;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // API principal — chame para cada <img> do sistema
+  // Uso: ImgCache.load(imgElement, urlOriginal, fallbackEmoji)
+  async function load(img, url, fallback) {
+    if (!url) { img.parentElement && (img.parentElement.innerHTML = fallback || '📦'); return; }
+
+    // 1. Tenta carregar normalmente (online)
+    img.onerror = async () => {
+      // 2. Falhou — busca no cache IndexedDB
+      const cached = await get(url);
+      if (cached) {
+        img.onerror = null;
+        img.src     = cached;
+      } else {
+        // 3. Sem cache — exibe fallback emoji
+        if (img.parentElement) img.parentElement.innerHTML = fallback || '📦';
+      }
+    };
+
+    img.onload = async () => {
+      // Online e carregou — salva no cache se ainda não tem
+      try {
+        const cached = await get(url);
+        if (!cached) {
+          const b64 = await urlToBase64(url);
+          await set(url, b64);
+        }
+      } catch(e) { /* rede pode cair no meio — ignora */ }
+    };
+
+    img.src = url;
+  }
+
+  // Pré-carrega um array de URLs em background (chame após initApp)
+  async function preload(urls) {
+    for (const url of urls) {
+      if (!url) continue;
+      const cached = await get(url);
+      if (!cached) {
+        try {
+          const b64 = await urlToBase64(url);
+          await set(url, b64);
+        } catch(e) { /* offline ou erro — pula */ }
+      }
+    }
+  }
+
+  return { load, preload, get, set };
+})();
+
+
+// ══════════════════════════════════════════════════
 // AJUSTE DINÂMICO DE ALTURA DO LAYOUT
 // ══════════════════════════════════════════════════
 function ajustarAlturaLayout() {
@@ -784,6 +885,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('l-username').textContent = u;
   if (typeof FirebaseAuthPatch !== 'undefined') FirebaseAuthPatch.loginFirebaseLocal();
   initApp();
+  setTimeout(preloadLivroImgs, 2000);
 });
 
 // ══════════════════════════════════════════════════
@@ -983,7 +1085,7 @@ function renderLivros() {
       title="${l.titulo}">
       <div class="livro-capa" id="capa-wrap-${l.id}">
         ${l.capa
-          ? `<img src="${l.capa}" alt="${l.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='📖'" />`
+          ? `<img data-src="${l.capa}" data-fallback="📖" alt="${l.titulo}" class="imgcache" style="width:100%;height:100%;object-fit:cover;" />`
           : `<span style="font-size:2rem;">📖</span>`}
       </div>
       <div class="livro-info">
@@ -996,10 +1098,26 @@ function renderLivros() {
       </div>
     </div>`;
   }).join('');
+  processImgCache(document.getElementById('livros-grid'));
 }
 
-// ══════════════════════════════════════════════════
-// CAPAS — Google Books API
+// ── CACHE OFFLINE — processa imgs e pré-carrega ──
+function processImgCache(container) {
+  const imgs = (container || document).querySelectorAll('img.imgcache[data-src]');
+  imgs.forEach(img => {
+    const url      = img.dataset.src;
+    const fallback = img.dataset.fallback || '📖';
+    if (!url) { if (img.parentElement) img.parentElement.innerHTML = fallback; return; }
+    ImgCache.load(img, url, fallback);
+    img.classList.remove('imgcache');
+    delete img.dataset.src;
+  });
+}
+
+async function preloadLivroImgs() {
+  const urls = getLivros().map(l => l.capa).filter(Boolean);
+  if (urls.length) await ImgCache.preload(urls);
+}
 // ══════════════════════════════════════════════════
 async function buscarCapasGoogle() {
   const livros = getLivros();
@@ -1016,7 +1134,13 @@ async function buscarCapasGoogle() {
         l.capa = img.replace('http:', 'https:').replace('zoom=1','zoom=2');
         // Atualiza o wrap visualmente sem re-renderizar tudo
         const wrap = document.getElementById(`capa-wrap-${l.id}`);
-        if (wrap) wrap.innerHTML = `<img src="${l.capa}" alt="${l.titulo}" loading="lazy" onerror="this.parentElement.innerHTML='📖'" />`;
+        if (wrap) {
+          const imgEl = document.createElement('img');
+          imgEl.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+          ImgCache.load(imgEl, l.capa, '📖');
+          wrap.innerHTML = '';
+          wrap.appendChild(imgEl);
+        }
       }
     } catch(e) {}
     await new Promise(r => setTimeout(r, 120)); // throttle gentil

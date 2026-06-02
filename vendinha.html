@@ -21,12 +21,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </script>
 
 <!-- Módulos ABCL -->
-<script src="offline-sync.js"></script>
+<script src="js/offline-sync.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script src="vendas-firebase.js"></script>
-<script src="produtos-sync.js"></script>
-<script src="acampantes-sync.js"></script>
-<script src="firebase-auth-patch.js"></script>
+<script src="js/vendas-firebase.js"></script>
+<script src="js/produtos-sync.js"></script>
+<script src="js/acampantes-sync.js"></script>
+<script src="js/firebase-auth-patch.js"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL Vendinha</title>
@@ -358,7 +358,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
     /* Devendo */
     .devendo-card {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; flex-direction: column; gap: .4rem;
       background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2);
       border-radius: 6px; padding: .65rem .9rem; margin-bottom: .5rem;
     }
@@ -401,12 +401,97 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
     /* Responsivo */
     @media (max-width: 768px) {
-      .main-grid { grid-template-columns: 1fr; }
-      .col-right { height: auto; position: static; border-left: none; border-top: 1px solid var(--borda); }
-      .stats-bar { grid-template-columns: 1fr 1fr; }
+      /* Em mobile: oculta o layout de colunas e usa sistema de abas */
+      .main-grid {
+        display: block;
+        min-height: unset;
+      }
+
+      /* Cada coluna vira uma "página" que mostra/oculta */
+      .col-left  { display: block; padding: .75rem; padding-bottom: 90px; }
+      .col-right {
+        display: none; /* oculto por padrão — aparece via JS */
+        position: fixed;
+        inset: 0;
+        top: 0;
+        height: 100dvh;
+        z-index: 100;
+        border-left: none;
+        border-top: none;
+        overflow-y: auto;
+        padding-bottom: 80px;
+      }
+
+      /* Quando carrinho está ativo em mobile */
+      .col-right.mobile-visible { display: flex; }
+
+      /* Barra de abas fixada no rodapé */
+      .mobile-tab-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: var(--card);
+        border-top: 1px solid var(--borda);
+        z-index: 200;
+        height: 60px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,.4);
+      }
+
+      .mobile-tab-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: none;
+        border: none;
+        color: var(--suave);
+        font-family: 'Inter', sans-serif;
+        font-size: .6rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: color .15s;
+        position: relative;
+      }
+
+      .mobile-tab-btn.active { color: var(--verde-cl); }
+
+      .mobile-tab-btn svg {
+        width: 22px; height: 22px;
+        stroke: currentColor; fill: none;
+        stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+      }
+
+      /* Badge de quantidade no ícone do carrinho */
+      .cart-badge {
+        position: absolute;
+        top: 6px; right: calc(50% - 18px);
+        background: var(--verde);
+        color: #fff;
+        font-size: .55rem;
+        font-weight: 700;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 4px;
+        line-height: 1;
+      }
+
+      /* Ajustes internos do carrinho em mobile */
+      .pedido-header { padding: 1rem; padding-top: calc(env(safe-area-inset-top) + 1rem); }
+      .pedido-itens  { flex: 1; min-height: 200px; }
+      .stats-bar     { grid-template-columns: 1fr 1fr; }
       .stat-cell:nth-child(2) { border-right: none; }
       .stat-cell:nth-child(3) { border-top: 1px solid var(--borda); }
       .stat-cell:nth-child(4) { border-top: 1px solid var(--borda); border-right: none; }
+      .produtos-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+    }
+
+    /* Desktop: esconde a tab bar */
+    @media (min-width: 769px) {
+      .mobile-tab-bar { display: none; }
     }
 
     @keyframes fadeUp {
@@ -672,11 +757,50 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 <!-- ══ MODAL QUITAR FIADO ══ -->
 <div id="quitar-modal" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
-  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:2rem;max-width:320px;width:100%;text-align:center;">
-    <div style="font-family:'Cinzel',serif;font-size:1.05rem;color:var(--verde-cl);margin-bottom:.25rem;">✅ Quitar Fiado</div>
-    <div id="quitar-nome-label" style="font-size:.8rem;color:var(--suave);margin-bottom:.5rem;"></div>
-    <div id="quitar-val-label" style="font-family:'Cinzel',serif;font-size:1.5rem;color:var(--amarelo);margin-bottom:1.25rem;"></div>
-    <div style="font-size:.78rem;color:var(--suave);margin-bottom:.75rem;">Como o cliente vai pagar?</div>
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;width:min(400px,94vw);padding:1.5rem;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+
+    <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin-bottom:.2rem;">✅ Quitar Fiado</div>
+    <div id="quitar-nome-label" style="font-size:.8rem;color:var(--suave);margin-bottom:.75rem;"></div>
+
+    <!-- Saldo total em aberto -->
+    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.6rem .9rem;margin-bottom:1rem;">
+      <span style="font-size:.75rem;color:var(--suave);">Total em aberto</span>
+      <span id="quitar-val-label" style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--amarelo);"></span>
+    </div>
+
+    <!-- Input de valor a pagar -->
+    <div style="margin-bottom:1rem;">
+      <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.35rem;">Valor a pagar agora</label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);font-size:.9rem;color:var(--suave);">R$</span>
+        <input type="number" id="quitar-valor-parcial" min="0.01" step="0.01"
+          style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.65rem .85rem .65rem 2.5rem;font-size:1.1rem;font-weight:600;color:var(--texto);font-family:'Cinzel',serif;outline:none;box-sizing:border-box;"
+          oninput="atualizarResumoQuitar()" />
+      </div>
+      <!-- Atalhos rápidos -->
+      <div style="display:flex;gap:.4rem;margin-top:.5rem;" id="quitar-atalhos"></div>
+    </div>
+
+    <!-- Resumo: paga X / fica Y em aberto -->
+    <div id="quitar-resumo" style="display:none;background:rgba(64,145,108,.07);border:1px solid rgba(64,145,108,.2);border-radius:8px;padding:.65rem .9rem;margin-bottom:1rem;font-size:.8rem;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;">
+        <span style="color:var(--suave);">Paga agora</span>
+        <span id="quitar-resumo-paga" style="color:var(--verde-cl);font-weight:600;"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:var(--suave);">Fica em aberto</span>
+        <span id="quitar-resumo-aberto" style="color:var(--amarelo);font-weight:600;"></span>
+      </div>
+    </div>
+
+    <!-- Histórico de pagamentos parciais anteriores -->
+    <div id="quitar-historico-bloco" style="display:none;margin-bottom:1rem;">
+      <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.4rem;">Pagamentos anteriores</div>
+      <div id="quitar-historico-lista" style="display:flex;flex-direction:column;gap:.3rem;max-height:120px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Forma de pagamento -->
+    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.5rem;">Como vai pagar?</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.25rem;">
       <button onclick="confirmarQuitar('Dinheiro')"
         style="padding:.85rem;border-radius:10px;border:1px solid rgba(64,145,108,.4);background:rgba(64,145,108,.1);color:#6ee7b7;cursor:pointer;font-size:.9rem;font-weight:600;transition:background .2s;"
@@ -689,8 +813,9 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         📱 PIX
       </button>
     </div>
-    <button onclick="document.getElementById('quitar-modal').style.display='none'"
-      style="font-size:.78rem;color:var(--suave);background:none;border:none;cursor:pointer;text-decoration:underline;">Cancelar</button>
+
+    <button onclick="fecharModalQuitar()"
+      style="font-size:.78rem;color:var(--suave);background:none;border:none;cursor:pointer;text-decoration:underline;width:100%;text-align:center;">Cancelar</button>
   </div>
 </div>
 
@@ -711,9 +836,145 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   </div>
 </div>
 
+<!-- ══ BARRA DE ABAS MOBILE ══ -->
+<nav class="mobile-tab-bar" id="mobile-tab-bar">
+  <button class="mobile-tab-btn active" id="tab-btn-produtos" onclick="mobileSwitchTab('produtos')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Produtos
+  </button>
+  <button class="mobile-tab-btn" id="tab-btn-carrinho" onclick="mobileSwitchTab('carrinho')">
+    <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <span class="cart-badge" id="cart-badge" style="display:none;">0</span>
+    Carrinho
+  </button>
+  <button class="mobile-tab-btn" id="tab-btn-historico" onclick="mobileSwitchTab('historico')">
+    <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Histórico
+  </button>
+</nav>
+
 <div class="toast" id="toast"></div>
 
 <script>
+// ══════════════════════════════════════════════════
+// IMG CACHE — IndexedDB offline image cache
+// Versão 1.0 — abclhub
+// ══════════════════════════════════════════════════
+const ImgCache = (() => {
+  const DB_NAME    = 'abcl-imgcache';
+  const DB_VERSION = 1;
+  const STORE      = 'images';
+  let _db = null;
+
+  function openDB() {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = e => {
+        e.target.result.createObjectStore(STORE, { keyPath: 'url' });
+      };
+      req.onsuccess = e => { _db = e.target.result; res(_db); };
+      req.onerror   = e => rej(e.target.error);
+    });
+  }
+
+  async function get(url) {
+    const db    = await openDB();
+    return new Promise((res, rej) => {
+      const tx  = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).get(url);
+      req.onsuccess = e => res(e.target.result?.data || null);
+      req.onerror   = () => res(null);
+    });
+  }
+
+  async function set(url, base64) {
+    try {
+      const db  = await openDB();
+      const tx  = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).put({ url, data: base64 });
+    } catch(e) { /* silencioso */ }
+  }
+
+  async function urlToBase64(url) {
+    const res  = await fetch(url, { cache: 'force-cache' });
+    const blob = await res.blob();
+    return new Promise((res, rej) => {
+      const reader    = new FileReader();
+      reader.onload   = e => res(e.target.result);
+      reader.onerror  = rej;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // API principal — chame para cada <img> do sistema
+  // Uso: ImgCache.load(imgElement, urlOriginal, fallbackEmoji)
+  async function load(img, url, fallback) {
+    if (!url) { img.parentElement && (img.parentElement.innerHTML = fallback || '📦'); return; }
+
+    // 1. Tenta carregar normalmente (online)
+    img.onerror = async () => {
+      // 2. Falhou — busca no cache IndexedDB
+      const cached = await get(url);
+      if (cached) {
+        img.onerror = null;
+        img.src     = cached;
+      } else {
+        // 3. Sem cache — exibe fallback emoji
+        if (img.parentElement) img.parentElement.innerHTML = fallback || '📦';
+      }
+    };
+
+    img.onload = async () => {
+      // Online e carregou — salva no cache se ainda não tem
+      try {
+        const cached = await get(url);
+        if (!cached) {
+          const b64 = await urlToBase64(url);
+          await set(url, b64);
+        }
+      } catch(e) { /* rede pode cair no meio — ignora */ }
+    };
+
+    img.src = url;
+  }
+
+  // Pré-carrega um array de URLs em background (chame após initApp)
+  async function preload(urls) {
+    for (const url of urls) {
+      if (!url) continue;
+      const cached = await get(url);
+      if (!cached) {
+        try {
+          const b64 = await urlToBase64(url);
+          await set(url, b64);
+        } catch(e) { /* offline ou erro — pula */ }
+      }
+    }
+  }
+
+  return { load, preload, get, set };
+})();
+
+// ── PROCESSA IMAGENS COM CACHE OFFLINE ──
+function processImgCache(container) {
+  const imgs = (container || document).querySelectorAll('img.imgcache[data-src]');
+  imgs.forEach(img => {
+    const url      = img.dataset.src;
+    const fallback = img.dataset.fallback || '📦';
+    if (!url) { if (img.parentElement) img.parentElement.innerHTML = fallback; return; }
+    ImgCache.load(img, url, fallback);
+    img.classList.remove('imgcache');
+    delete img.dataset.src;
+  });
+}
+
+// Pré-carrega todas as imagens dos produtos em background
+async function preloadProdutoImgs() {
+  const urls = getProdutos().map(p => p.imagem).filter(Boolean);
+  if (urls.length) await ImgCache.preload(urls);
+}
+
 // ══════════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════════
@@ -730,6 +991,87 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('v-username').textContent = u;
   if (typeof FirebaseAuthPatch !== 'undefined') FirebaseAuthPatch.loginFirebaseLocal();
   initApp();
+  // Pré-carrega imagens para uso offline após 2s (deixa o app carregar primeiro)
+  setTimeout(preloadProdutoImgs, 2000);
+});
+
+// ══════════════════════════════════════════════════
+// MOBILE TAB SYSTEM
+// ══════════════════════════════════════════════════
+let _mobileTab = 'produtos';
+
+function isMobile() { return window.innerWidth <= 768; }
+
+function mobileSwitchTab(tab) {
+  if (!isMobile()) return;
+  _mobileTab = tab;
+
+  const colLeft  = document.querySelector('.col-left');
+  const colRight = document.querySelector('.col-right');
+  const btnProd  = document.getElementById('tab-btn-produtos');
+  const btnCart  = document.getElementById('tab-btn-carrinho');
+  const btnHist  = document.getElementById('tab-btn-historico');
+  const histPanel= document.getElementById('historico-panel'); // painel de histórico se existir
+
+  // Reset todos os botões
+  [btnProd, btnCart, btnHist].forEach(b => b && b.classList.remove('active'));
+
+  if (tab === 'produtos') {
+    colLeft.style.display  = 'block';
+    colRight.classList.remove('mobile-visible');
+    if (histPanel) histPanel.style.display = 'none';
+    btnProd.classList.add('active');
+  } else if (tab === 'carrinho') {
+    colLeft.style.display  = 'none';
+    colRight.classList.add('mobile-visible');
+    if (histPanel) histPanel.style.display = 'none';
+    btnCart.classList.add('active');
+  } else if (tab === 'historico') {
+    // Histórico fica na col-left, só mostra ela e scrolls até a seção
+    colLeft.style.display  = 'block';
+    colRight.classList.remove('mobile-visible');
+    btnHist.classList.add('active');
+    // Tenta rolar até o histórico
+    const hist = document.getElementById('hist-section') || document.querySelector('.view-tabs');
+    if (hist) setTimeout(() => hist.scrollIntoView({ behavior: 'smooth' }), 50);
+  }
+}
+
+// Atualiza badge do carrinho sempre que o cart muda
+function atualizarCartBadge() {
+  if (!isMobile()) return;
+  const badge = document.getElementById('cart-badge');
+  if (!badge) return;
+  const total = cart.reduce((s, i) => s + i.qtd, 0);
+  if (total > 0) {
+    badge.textContent = total > 99 ? '99+' : total;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Ao adicionar item em mobile, pisca badge e volta para produtos
+function _afterAddItem() {
+  atualizarCartBadge();
+  // Pulsa o botão do carrinho para chamar atenção
+  const btn = document.getElementById('tab-btn-carrinho');
+  if (btn && isMobile()) {
+    btn.style.transform = 'scale(1.2)';
+    setTimeout(() => { btn.style.transform = ''; }, 200);
+  }
+}
+
+// Garante layout correto ao redimensionar janela
+window.addEventListener('resize', () => {
+  if (!isMobile()) {
+    const colLeft  = document.querySelector('.col-left');
+    const colRight = document.querySelector('.col-right');
+    if (colLeft)  colLeft.style.display  = '';
+    if (colRight) colRight.classList.remove('mobile-visible');
+  } else {
+    mobileSwitchTab(_mobileTab);
+  }
 });
 
 // ══════════════════════════════════════════════════
@@ -890,7 +1232,7 @@ function renderProdutos() {
       ${p.estoque <= 3 && p.estoque > 0 ? `<span class="badge-estoque">últimos ${p.estoque}</span>` : ''}
       <div class="prod-icon" style="${p.imagem?'padding:0;overflow:hidden;border-radius:6px;':''}">
         ${p.imagem
-          ? `<img src="${p.imagem}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" loading="lazy" onerror="this.parentElement.innerHTML='${p.icon||'📦'}'" />`
+          ? `<img data-src="${p.imagem}" data-fallback="${p.icon||'📦'}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" class="imgcache" />`
           : (p.icon || '📦')}
       </div>
       <div class="prod-nome">${p.nome}</div>
@@ -898,6 +1240,7 @@ function renderProdutos() {
       <div class="prod-estoque">${p.estoque <= 0 ? '⛔ Esgotado' : `Estoque: ${p.estoque}`}</div>
     </div>
   `).join('');
+  processImgCache(document.getElementById('produtos-grid'));
 }
 
 function addToCart(id) {
@@ -913,6 +1256,7 @@ function addToCart(id) {
     cart.push({ ...prod, qtd: 1 });
   }
   renderCart();
+  _afterAddItem(); // pulsa badge mobile
   toast(`${prod.nome} adicionado`);
 }
 
@@ -933,6 +1277,9 @@ function renderCart() {
   const total    = Math.max(0, subtotal - desconto);
 
   document.getElementById('cart-total').textContent = `R$ ${total.toFixed(2)}`;
+
+  // Atualiza badge mobile
+  atualizarCartBadge();
 
   const el = document.getElementById('cart-items');
   if (cart.length === 0) {
@@ -1113,32 +1460,35 @@ function showQrCode(total, onConfirm) {
   }
   const payload = buildPixPayload(def.pixChave, def.pixNome, def.pixCidade, total);
   const modal   = document.getElementById('qr-modal');
-  document.getElementById('qr-valor').textContent = `R$ ${total.toFixed(2)}`;
+
+  document.getElementById('qr-valor').textContent = `R$ ${total.toFixed(2).replace('.',',')}`;
   document.getElementById('qr-chave').textContent = def.pixChave;
 
-  // Gera QR 100% offline via SVG
+  // Gera QR via API externa (mesma abordagem da Livraria)
   const qrContainer = document.getElementById('qr-img');
-  try {
-    const qr = new QRCodeModel(getQRTypeNumber(payload), 1); // EC nível M
-    qr.addData(payload);
-    qr.make();
-    const sz = 204; // espaço interno (220 - 2*8px padding)
-    const len = qr.getModuleCount();
-    const cell = sz / len;
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">`;
-    svg += `<rect width="${sz}" height="${sz}" fill="#fff"/>`;
-    for (let r = 0; r < len; r++) {
-      for (let c = 0; c < len; c++) {
-        if (qr.isDark(r, c)) {
-          svg += `<rect x="${(c*cell).toFixed(1)}" y="${(r*cell).toFixed(1)}" width="${(cell+.2).toFixed(1)}" height="${(cell+.2).toFixed(1)}" fill="#000"/>`;
-        }
-      }
+  qrContainer.innerHTML = `<div style="font-size:.7rem;color:#999;padding:1rem;text-align:center;">Carregando QR...</div>`;
+  const img = document.createElement('img');
+  img.style.cssText = 'width:204px;height:204px;border-radius:4px;display:block;';
+  img.onload  = () => { qrContainer.innerHTML = ''; qrContainer.appendChild(img); };
+  img.onerror = () => {
+    // Fallback offline: tenta biblioteca local
+    try {
+      const qr = new QRCodeModel(getQRTypeNumber(payload), 1);
+      qr.addData(payload); qr.make();
+      const sz = 204, len = qr.getModuleCount(), cell = sz / len;
+      let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">`;
+      svg += `<rect width="${sz}" height="${sz}" fill="#fff"/>`;
+      for (let r = 0; r < len; r++)
+        for (let c = 0; c < len; c++)
+          if (qr.isDark(r,c))
+            svg += `<rect x="${(c*cell).toFixed(1)}" y="${(r*cell).toFixed(1)}" width="${(cell+.2).toFixed(1)}" height="${(cell+.2).toFixed(1)}" fill="#000"/>`;
+      svg += '</svg>';
+      qrContainer.innerHTML = svg;
+    } catch(e) {
+      qrContainer.innerHTML = `<p style="font-size:.7rem;color:#999;padding:1rem;word-break:break-all;text-align:center;">${payload}</p>`;
     }
-    svg += '</svg>';
-    qrContainer.innerHTML = svg;
-  } catch(e) {
-    qrContainer.innerHTML = `<p style="color:red;font-size:.7rem;padding:1rem;text-align:center;">Erro ao gerar QR.<br>${e.message}</p>`;
-  }
+  };
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=204x204&data=${encodeURIComponent(payload)}`;
 
   modal.style.display = 'flex';
   document.getElementById('qr-confirmar').onclick = () => { modal.style.display = 'none'; onConfirm(); };
@@ -1417,23 +1767,22 @@ function renderDevendo() {
   const busca  = (document.getElementById('devendo-busca')?.value || '').toLowerCase().trim();
   const ordem  = document.getElementById('devendo-ordem')?.value || 'valor';
 
-  // Agrupar por pessoa
+  // Agrupar por pessoa — usa valor_aberto se existir, senão total
   const map = {};
   fiado.forEach(s => {
-    if (!map[s.pessoa]) map[s.pessoa] = { total: 0, ids: [], ultima: s.data };
-    map[s.pessoa].total += s.total;
+    const aberto = s.valor_aberto ?? s.total;
+    if (aberto <= 0.001) return; // ignora se já foi totalmente pago
+    if (!map[s.pessoa]) map[s.pessoa] = { aberto: 0, original: 0, ids: [], ultima: s.data, pagamentos: [] };
+    map[s.pessoa].aberto   += aberto;
+    map[s.pessoa].original += s.valor_original ?? s.total;
     map[s.pessoa].ids.push(s.id);
+    if (s.pagamentos_parciais?.length) map[s.pessoa].pagamentos.push(...s.pagamentos_parciais);
   });
 
   let entries = Object.entries(map);
-
-  // Filtrar por busca
   if (busca) entries = entries.filter(([nome]) => nome.toLowerCase().includes(busca));
-
-  // Ordenar
-  if (ordem === 'valor') entries.sort((a,b) => b[1].total - a[1].total);
+  if (ordem === 'valor') entries.sort((a,b) => b[1].aberto - a[1].aberto);
   else if (ordem === 'nome') entries.sort((a,b) => a[0].localeCompare(b[0]));
-  // 'recente' já vem na ordem de inserção
 
   const el = document.getElementById('devendo-list');
   const totalBadge = document.getElementById('devendo-total-badge');
@@ -1444,102 +1793,254 @@ function renderDevendo() {
     return;
   }
 
-  const totalFiado = entries.reduce((s,[,v]) => s + v.total, 0);
-  if (totalBadge) totalBadge.textContent = `Total: R$ ${totalFiado.toFixed(2)}`;
+  const totalAberto = entries.reduce((s,[,v]) => s + v.aberto, 0);
+  if (totalBadge) totalBadge.textContent = `Total: R$ ${totalAberto.toFixed(2)}`;
 
   el.innerHTML = `
     <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:.65rem 1rem;margin-bottom:.85rem;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:.75rem;color:var(--amarelo);">⚠ Total em aberto ${busca?'(filtrado)':''}</span>
-      <span style="font-family:'Cinzel',serif;font-size:1rem;color:var(--amarelo);">R$ ${totalFiado.toFixed(2)}</span>
+      <span style="font-family:'Cinzel',serif;font-size:1rem;color:var(--amarelo);">R$ ${totalAberto.toFixed(2)}</span>
     </div>
-    ${entries.map(([nome, { total, ids }]) => `
-      <div class="devendo-card" style="justify-content:space-between;align-items:center;gap:.75rem;">
-        <div style="flex:1;min-width:0;">
-          <div class="devendo-nome">${nome}</div>
-          <div style="font-size:.68rem;color:var(--suave);">${ids.length} venda${ids.length!==1?'s':''} em aberto</div>
+    ${entries.map(([nome, { aberto, original, ids, pagamentos }]) => {
+      const temParcial = original > aberto + 0.001;
+      const pctPago    = Math.min(100, ((original - aberto) / original) * 100);
+      const ultimoPgto = pagamentos.length
+        ? pagamentos.sort((a,b) => new Date(b.data)-new Date(a.data))[0]
+        : null;
+      return `
+      <div class="devendo-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;width:100%;">
+          <div style="flex:1;min-width:0;">
+            <div class="devendo-nome">${nome}</div>
+            <div style="font-size:.68rem;color:var(--suave);">
+              ${ids.length} venda${ids.length!==1?'s':''} em aberto
+              ${temParcial ? `· <span style="color:var(--verde-cl);">R$ ${(original-aberto).toFixed(2)} já pago</span>` : ''}
+            </div>
+            ${ultimoPgto ? `<div style="font-size:.65rem;color:var(--suave);margin-top:.1rem;">Último: ${ultimoPgto.data_fmt||'—'} · ${ultimoPgto.forma}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:.65rem;flex-shrink:0;">
+            <div class="devendo-val" style="${temParcial?'color:var(--amarelo);':''}">${aberto.toFixed(2)}</div>
+            <button onclick="quitarFiado('${nome.replace(/'/g,"\\'")}', [${ids.join(',')}])"
+              style="font-size:.7rem;padding:.3rem .65rem;border-radius:6px;border:1px solid rgba(37,211,102,.4);background:rgba(37,211,102,.1);color:#6ee7b7;cursor:pointer;white-space:nowrap;transition:background .18s;"
+              onmouseover="this.style.background='rgba(37,211,102,.25)'"
+              onmouseout="this.style.background='rgba(37,211,102,.1)'">
+              💳 Pagar
+            </button>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:.65rem;flex-shrink:0;">
-          <div class="devendo-val">R$ ${total.toFixed(2)}</div>
-          <button onclick="quitarFiado('${nome.replace(/'/g,"\\'")}', [${ids.join(',')}])"
-            style="font-size:.7rem;padding:.3rem .65rem;border-radius:6px;border:1px solid rgba(37,211,102,.4);background:rgba(37,211,102,.1);color:#6ee7b7;cursor:pointer;white-space:nowrap;transition:background .18s;"
-            onmouseover="this.style.background='rgba(37,211,102,.25)'"
-            onmouseout="this.style.background='rgba(37,211,102,.1)'">
-            ✅ Quitar
-          </button>
-        </div>
-      </div>`).join('')}
+        ${temParcial ? `
+        <div style="width:100%;margin-top:.5rem;">
+          <div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--suave);margin-bottom:.25rem;">
+            <span>Pago: R$ ${(original-aberto).toFixed(2)} de R$ ${original.toFixed(2)}</span>
+            <span>${Math.round(pctPago)}%</span>
+          </div>
+          <div style="width:100%;height:4px;background:var(--card2);border-radius:3px;overflow:hidden;">
+            <div style="width:${pctPago}%;height:100%;background:var(--verde);border-radius:3px;transition:width .4s;"></div>
+          </div>
+        </div>` : ''}
+      </div>`;
+    }).join('')}
   `;
 }
 
 // ══════════════════════════════════════════════════
-// QUITAR FIADO
+// QUITAR FIADO — COM PAGAMENTO PARCIAL
 // ══════════════════════════════════════════════════
 let _quitarCtx = null;
 
+function fecharModalQuitar() {
+  document.getElementById('quitar-modal').style.display = 'none';
+  _quitarCtx = null;
+}
+
 function quitarFiado(nome, ids) {
   const sales = getSales();
-  const total = ids.reduce((s, id) => { const v = sales.find(x => x.id === id); return s + (v ? v.total : 0); }, 0);
-  _quitarCtx = { nome, ids, total };
-  document.getElementById('quitar-nome-label').textContent = nome;
-  document.getElementById('quitar-val-label').textContent  = `R$ ${total.toFixed(2)}`;
-  document.getElementById('quitar-modal').style.display    = 'flex';
+
+  // Soma apenas o que ainda está em aberto (considera pagamentos parciais já feitos)
+  let totalAberto = 0;
+  let historicoPagamentos = [];
+
+  ids.forEach(id => {
+    const v = sales.find(x => x.id === id);
+    if (!v) return;
+    const valorOriginal  = v.valor_original ?? v.total;
+    const valorPago      = v.valor_pago     ?? 0;
+    const aberto         = valorOriginal - valorPago;
+    totalAberto += aberto;
+    // Coleta histórico de pagamentos parciais
+    if (v.pagamentos_parciais?.length) {
+      historicoPagamentos.push(...v.pagamentos_parciais.map(p => ({ ...p, venda: v.id })));
+    }
+  });
+
+  _quitarCtx = { nome, ids, totalAberto };
+
+  // Preenche modal
+  document.getElementById('quitar-nome-label').textContent     = nome;
+  document.getElementById('quitar-val-label').textContent      = `R$ ${totalAberto.toFixed(2)}`;
+  document.getElementById('quitar-valor-parcial').value        = totalAberto.toFixed(2);
+  document.getElementById('quitar-valor-parcial').max          = totalAberto.toFixed(2);
+  document.getElementById('quitar-resumo').style.display       = 'none';
+
+  // Atalhos rápidos (25%, 50%, 75%, 100%)
+  const atalhos = document.getElementById('quitar-atalhos');
+  atalhos.innerHTML = [25, 50, 75, 100].map(pct => {
+    const val = (totalAberto * pct / 100).toFixed(2);
+    return `<button onclick="document.getElementById('quitar-valor-parcial').value='${val}';atualizarResumoQuitar()"
+      style="flex:1;padding:.3rem;border-radius:5px;border:1px solid var(--borda);background:var(--card2);color:var(--suave);font-size:.68rem;cursor:pointer;"
+      onmouseover="this.style.background='rgba(64,145,108,.15)'" onmouseout="this.style.background='var(--card2)'">
+      ${pct}%
+    </button>`;
+  }).join('');
+
+  // Histórico de pagamentos anteriores
+  const blocoHist = document.getElementById('quitar-historico-bloco');
+  const listaHist = document.getElementById('quitar-historico-lista');
+  if (historicoPagamentos.length) {
+    blocoHist.style.display = 'block';
+    // Ordena do mais recente para o mais antigo
+    historicoPagamentos.sort((a, b) => new Date(b.data) - new Date(a.data));
+    listaHist.innerHTML = historicoPagamentos.map(p => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.35rem .65rem;background:var(--card2);border-radius:6px;font-size:.75rem;">
+        <span style="color:var(--suave);">${p.data_fmt || p.data?.slice(0,10) || '—'} · ${p.forma}</span>
+        <span style="color:var(--verde-cl);font-weight:600;">R$ ${Number(p.valor).toFixed(2)}</span>
+      </div>`).join('');
+  } else {
+    blocoHist.style.display = 'none';
+  }
+
+  document.getElementById('quitar-modal').style.display = 'flex';
 }
+
+function atualizarResumoQuitar() {
+  if (!_quitarCtx) return;
+  const input    = parseFloat(document.getElementById('quitar-valor-parcial').value) || 0;
+  const total    = _quitarCtx.totalAberto;
+  const aberto   = Math.max(0, total - input);
+  const resumo   = document.getElementById('quitar-resumo');
+  const eParcial = input < total - 0.001;
+
+  if (input > 0) {
+    resumo.style.display = 'flex';
+    resumo.style.flexDirection = 'column';
+    document.getElementById('quitar-resumo-paga').textContent  = `R$ ${input.toFixed(2)}`;
+    document.getElementById('quitar-resumo-aberto').textContent = eParcial
+      ? `R$ ${aberto.toFixed(2)} (parcial)`
+      : '✅ Quitado!';
+    document.getElementById('quitar-resumo-aberto').style.color = eParcial ? 'var(--amarelo)' : 'var(--verde-cl)';
+  } else {
+    resumo.style.display = 'none';
+  }
+}
+
 function confirmarQuitar(forma) {
-  document.getElementById('quitar-modal').style.display = 'none';
-  if (!_quitarCtx) return;
-  _efetivarQuitar(forma);
+  const ctx = _quitarCtx;                              // salva antes de fechar
+  const valorPagar = parseFloat(document.getElementById('quitar-valor-parcial')?.value) || ctx?.totalAberto || 0;
+  fecharModalQuitar();                                  // fecha e zera _quitarCtx
+  if (!ctx) return;
+  _quitarCtx = ctx;                                    // restaura para _efetivarQuitar
+  _efetivarQuitar(forma, valorPagar);
 }
+
 function confirmarQuitarPix() {
-  document.getElementById('quitar-modal').style.display = 'none';
-  if (!_quitarCtx) return;
-  showQrCode(_quitarCtx.total, () => _efetivarQuitar('PIX'));
+  const ctx = _quitarCtx;                              // salva antes de fechar
+  const valorPagar = parseFloat(document.getElementById('quitar-valor-parcial')?.value) || ctx?.totalAberto || 0;
+  fecharModalQuitar();                                  // fecha modal de quitar
+  if (!ctx) return;
+  _quitarCtx = ctx;                                    // restaura para callback
+  showQrCode(valorPagar, () => _efetivarQuitar('PIX', valorPagar));
 }
-async function _efetivarQuitar(forma) {
-  const { nome, ids } = _quitarCtx;
-  const agora = new Date();
+
+async function _efetivarQuitar(forma, valorPagar) {
+  const ctx = _quitarCtx;
+  if (!ctx) return;
+
+  valorPagar = valorPagar ?? ctx.totalAberto;
+  const eParcial = valorPagar < ctx.totalAberto - 0.001;
+
+  const agora          = new Date();
   const quitado_em     = agora.toISOString();
   const quitado_em_fmt = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
   const sales = getSales();
   const fbAtualizacoes = [];
 
-  ids.forEach(id => {
+  // Distribui o valor pago entre as vendas (da mais antiga para a mais nova)
+  let restantePagar = valorPagar;
+
+  ctx.ids.forEach(id => {
     const s = sales.find(x => x.id === id);
-    if (s) {
+    if (!s || restantePagar <= 0) return;
+
+    const valorOriginal = s.valor_original ?? s.total;
+    const valorPagoAte  = s.valor_pago     ?? 0;
+    const abertoNessa   = valorOriginal - valorPagoAte;
+    if (abertoNessa <= 0) return;
+
+    const pagandoAgora = Math.min(restantePagar, abertoNessa);
+    restantePagar     -= pagandoAgora;
+
+    const novoPago    = valorPagoAte + pagandoAgora;
+    const novoAberto  = valorOriginal - novoPago;
+    const ficaQuitado = novoAberto < 0.01;
+
+    // Registra pagamento parcial no array
+    if (!s.pagamentos_parciais) s.pagamentos_parciais = [];
+    s.pagamentos_parciais.push({
+      valor:    pagandoAgora,
+      forma,
+      data:     quitado_em,
+      data_fmt: quitado_em_fmt,
+    });
+
+    s.valor_original = valorOriginal;
+    s.valor_pago     = novoPago;
+    s.valor_aberto   = novoAberto;
+
+    if (ficaQuitado) {
       s.quitado        = true;
       s.pago           = true;
       s.forma_quitacao = forma;
       s.quitado_em     = quitado_em;
       s.quitado_em_fmt = quitado_em_fmt;
-      // Guardar forma original se ainda não foi guardada
       if (!s.forma_original) s.forma_original = s.pagamento;
-      if (s.firestore_id) fbAtualizacoes.push(s.firestore_id);
     }
+
+    if (s.firestore_id) fbAtualizacoes.push({ docId: s.firestore_id, data: s });
   });
 
   set('abcl-sales-v2', sales);
   renderDevendo(); renderStats(); renderHistorico(); renderResumo();
-  toast(`✅ Fiado de ${nome} quitado via ${forma}!`);
+
+  const msg = eParcial
+    ? `💛 R$ ${valorPagar.toFixed(2)} de ${ctx.nome} recebido via ${forma}. Saldo restante registrado.`
+    : `✅ Fiado de ${ctx.nome} quitado via ${forma}!`;
+  toast(msg);
   _quitarCtx = null;
 
-  // Atualizar no Firebase (best-effort)
+  // Atualizar Firebase
   if (fbAtualizacoes.length && typeof firebase !== 'undefined') {
     try {
-      const db  = firebase.firestore();
+      const db    = firebase.firestore();
       const batch = db.batch();
-      fbAtualizacoes.forEach(docId => {
+      fbAtualizacoes.forEach(({ docId, data }) => {
         batch.update(db.collection('vendas').doc(docId), {
-          status:          'confirmada',
-          forma_quitacao:  forma,
-          quitado_em:      firebase.firestore.FieldValue.serverTimestamp(),
-          quitado_em_fmt:  quitado_em_fmt,
-          forma_original:  'Fiado',
+          valor_original:     data.valor_original,
+          valor_pago:         data.valor_pago,
+          valor_aberto:       data.valor_aberto,
+          pagamentos_parciais: data.pagamentos_parciais,
+          ...(data.quitado ? {
+            quitado:         true,
+            forma_quitacao:  forma,
+            quitado_em:      firebase.firestore.FieldValue.serverTimestamp(),
+            quitado_em_fmt:  data.quitado_em_fmt,
+            forma_original:  'Fiado',
+          } : {}),
         });
       });
       await batch.commit();
-      console.log(`[Vendinha] ✅ ${fbAtualizacoes.length} venda(s) fiado quitada(s) no Firebase`);
     } catch (err) {
-      console.warn('[Vendinha] Quitação Firebase (non-critical):', err.message);
+      console.warn('[Vendinha] Quitação parcial Firebase:', err.message);
     }
   }
 }
@@ -1553,7 +2054,7 @@ function renderEstoque() {
     <div class="estoque-row">
       <div class="estoque-icon" style="${p.imagem?'padding:0;overflow:hidden;width:40px;height:40px;border-radius:7px;flex-shrink:0;':''}">
         ${p.imagem
-          ? `<img src="${p.imagem}" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />`
+          ? `<img data-src="${p.imagem}" data-fallback="📦" alt="${p.nome}" style="width:100%;height:100%;object-fit:cover;" class="imgcache" />`
           : (p.icon || '📦')}
       </div>
       <div class="estoque-info">
