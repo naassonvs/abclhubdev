@@ -1032,7 +1032,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 <div class="toast" id="toast"></div>
 
 <script>
-console.log('%c[ABCL] vendinha build: credito-fix-11 ✅', 'color:#40916C;font-weight:bold');
+console.log('%c[ABCL] vendinha build: credito-fix-12 ✅', 'color:#40916C;font-weight:bold');
 // ══════════════════════════════════════════════════
 // IMG CACHE — IndexedDB offline image cache
 // Versão 1.0 — abclhub
@@ -2909,11 +2909,16 @@ function renderEstoque() {
 }
 
 function adjustEstoque(id, delta) {
+  const produtos = getProdutos();
+  const p = produtos.find(x => String(x.id) === String(id));
+  if (!p) return;
+  p.estoque = Math.max(0, (parseInt(p.estoque) || 0) + delta);
+  set('abcl-produtos', produtos);                 // persiste na hora
   const el = document.getElementById(`est-${id}`);
-  if (!el) return;
-  const atual = parseInt(el.textContent) || 0;
-  const novo  = Math.max(0, atual + delta);
-  el.textContent = novo;
+  if (el) el.textContent = p.estoque;
+  renderProdutos();
+  if (typeof ProdutosSync !== 'undefined')        // e sincroniza (debounce interno agrupa cliques)
+    ProdutosSync.salvarNoFirebase('produtos_vendinha', produtos).catch(() => {});
 }
 
 function saveEstoque() {
@@ -2926,6 +2931,8 @@ function saveEstoque() {
   renderProdutos();
   renderEstoque();
   renderBotoesPagamento();
+  if (typeof ProdutosSync !== 'undefined')        // faltava sincronizar o ajuste manual de estoque
+    ProdutosSync.salvarNoFirebase('produtos_vendinha', produtos).catch(() => {});
   toast('Estoque atualizado!');
 
   // Sync background
