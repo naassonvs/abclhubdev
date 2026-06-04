@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ABCL — Regras do Firestore (escopo: vendinha + livraria + autenticação)
+//
+// Realidade do projeto: o PDV autentica de forma ANÔNIMA (firebase-auth-patch.js).
+// Isso significa que "exigir autenticação" é uma barreira FRACA — qualquer pessoa
+// consegue criar uma sessão anônima. A proteção real, hoje, é:
+//   1) manter a URL do projeto privada;
+//   2) PROIBIR exclusões e leituras em massa de dados sensíveis (feito abaixo);
+//   3) (recomendado p/ depois do acampamento) trocar o login anônimo por contas
+//      reais com perfil, e então usar isAdmin()/isOperador() de verdade.
+//
+// Como publicar: Firebase Console → Firestore → Regras → cole isto → Publicar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() { return request.auth != null; }
+
+    // Perfil do usuário (usado pelo Admin). Anônimo NÃO tem doc em /usuarios.
+    function ehAdmin() {
+      return autenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil_tipo == 'admin';
+    }
+
+    // VENDAS — o caixa cria e atualiza (quitar fiado/editar). Excluir: só admin.
+    match /vendas/{id} {
+      allow read, create, update: if autenticado();
+      allow delete: if ehAdmin();   // impede que uma sessão anônima apague vendas
+    }
+
+    // CATÁLOGO/ESTOQUE — espelhado pelo aparelho do caixa (sessão anônima).
+    match /produtos_vendinha/{id} { allow read: if true; allow write: if autenticado(); }
+    match /produtos_livraria/{id} { allow read: if true; allow write: if autenticado(); }
+
+    // RESUMO FINANCEIRO — leitura autenticada; escrita só admin (recálculo no financeiro).
+    match /financeiro/{id} {
+      allow read:  if autenticado();
+      allow write: if ehAdmin();
+    }
+
+    // INSCRIÇÕES — o PDV lê para listar acampantes. Criar é público (formulário).
+    // Atualizar/excluir: só admin. (Inscrições serão concluídas após o acampamento.)
+    match /inscricoes/{id} {
+      allow read:   if autenticado();
+      allow create: if true;
+      allow update, delete: if ehAdmin();
+    }
+
+    // USUÁRIOS — cada um lê/escreve o próprio; admin gerencia. Sem listagem aberta.
+    match /usuarios/{uid} {
+      allow read, write: if autenticado() && (request.auth.uid == uid || ehAdmin());
+    }
+
+    // Conteúdos públicos do site (cânticos, configs, links): leitura livre, escrita admin.
+    match /canticos/{id}  { allow read: if true; allow write: if ehAdmin(); }
+    match /hinos/{id}     { allow read: if true; allow write: if ehAdmin(); }
+    match /configs/{id}   { allow read: if true; allow write: if ehAdmin(); }
+    match /hub_links/{id} { allow read: if true; allow write: if ehAdmin(); }
+
+    // Negação por padrão para qualquer outra coleção.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

@@ -26,6 +26,13 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 <script src="js/produtos-sync.js"></script>
 <script src="js/acampantes-sync.js"></script>
 <script src="js/firebase-auth-patch.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -783,77 +790,84 @@ const ImgCache = (() => {
   }
 
   async function get(url) {
-    const db    = await openDB();
-    return new Promise((res, rej) => {
-      const tx  = db.transaction(STORE, 'readonly');
-      const req = tx.objectStore(STORE).get(url);
-      req.onsuccess = e => res(e.target.result?.data || null);
-      req.onerror   = () => res(null);
-    });
+    try {
+      const db = await openDB();
+      return new Promise(res => {
+        const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(url);
+        req.onsuccess = e => res(e.target.result?.data || null);
+        req.onerror   = () => res(null);
+      });
+    } catch(e) { return null; }
   }
 
   async function set(url, base64) {
     try {
-      const db  = await openDB();
-      const tx  = db.transaction(STORE, 'readwrite');
+      const db = await openDB();
+      const tx = db.transaction(STORE, 'readwrite');
       tx.objectStore(STORE).put({ url, data: base64 });
     } catch(e) { /* silencioso */ }
   }
 
-  async function urlToBase64(url) {
-    const res  = await fetch(url, { cache: 'force-cache' });
-    const blob = await res.blob();
-    return new Promise((res, rej) => {
-      const reader    = new FileReader();
-      reader.onload   = e => res(e.target.result);
-      reader.onerror  = rej;
-      reader.readAsDataURL(blob);
-    });
+  // Converte img já carregada em base64 via canvas (sem fetch, sem CORS)
+  function imgToBase64(imgEl) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width  = imgEl.naturalWidth  || 300;
+      canvas.height = imgEl.naturalHeight || 300;
+      canvas.getContext('2d').drawImage(imgEl, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.82);
+    } catch(e) {
+      // Canvas tainted — Firebase Storage sem CORS configurado
+      // Imagem exibe normalmente, só não vai para o cache
+      return null;
+    }
   }
 
-  // API principal — chame para cada <img> do sistema
-  // Uso: ImgCache.load(imgElement, urlOriginal, fallbackEmoji)
+  // API principal
   async function load(img, url, fallback) {
-    if (!url) { img.parentElement && (img.parentElement.innerHTML = fallback || '📦'); return; }
+    if (!url) { if (img.parentElement) img.parentElement.innerHTML = fallback || '📦'; return; }
 
-    // 1. Tenta carregar normalmente (online)
-    img.onerror = async () => {
-      // 2. Falhou — busca no cache IndexedDB
-      const cached = await get(url);
-      if (cached) {
-        img.onerror = null;
-        img.src     = cached;
-      } else {
-        // 3. Sem cache — exibe fallback emoji
-        if (img.parentElement) img.parentElement.innerHTML = fallback || '📦';
-      }
+    // 1. Já tem no cache? Exibe direto (funciona offline)
+    const cached = await get(url);
+    if (cached) {
+      img.onerror = null;
+      img.src = cached;
+      return;
+    }
+
+    // 2. Sem cache — carrega normalmente (SEM crossOrigin para não bloquear Firebase Storage)
+    img.onerror = () => {
+      // Falhou (offline sem cache) — exibe emoji fallback
+      if (img.parentElement) img.parentElement.innerHTML = fallback || '📦';
     };
 
     img.onload = async () => {
-      // Online e carregou — salva no cache se ainda não tem
-      try {
-        const cached = await get(url);
-        if (!cached) {
-          const b64 = await urlToBase64(url);
-          await set(url, b64);
-        }
-      } catch(e) { /* rede pode cair no meio — ignora */ }
+      // Carregou com sucesso — tenta salvar no cache via canvas
+      // Se Firebase não tiver CORS configurado, canvas falha silenciosamente
+      const b64 = imgToBase64(img);
+      if (b64) await set(url, b64);
     };
 
-    img.src = url;
+    img.src = url; // Sem crossOrigin — imagem carrega normalmente
   }
 
-  // Pré-carrega um array de URLs em background (chame após initApp)
+  // Pré-carrega URLs em background
   async function preload(urls) {
     for (const url of urls) {
       if (!url) continue;
       const cached = await get(url);
-      if (!cached) {
-        try {
-          const b64 = await urlToBase64(url);
-          await set(url, b64);
-        } catch(e) { /* offline ou erro — pula */ }
-      }
+      if (cached) continue;
+      await new Promise(resolve => {
+        const tmp = new Image();
+        // SEM crossOrigin — apenas tenta cachear via canvas se possível
+        tmp.onload = async () => {
+          const b64 = imgToBase64(tmp);
+          if (b64) await set(url, b64);
+          resolve();
+        };
+        tmp.onerror = resolve;
+        tmp.src = url;
+      });
     }
   }
 
@@ -881,8 +895,20 @@ window.addEventListener('resize', ajustarAlturaLayout);
 function lLogin() {}
 function lSair() { window.location.href = 'admin.html'; }
 window.addEventListener('DOMContentLoaded', () => {
-  const u = sessionStorage.getItem('abcl-livraria-auth') || sessionStorage.getItem('abcl-auth') || 'Caixa';
-  document.getElementById('l-username').textContent = u;
+  // Operador identificado pelo login do Admin (Firebase Auth: Google ou e-mail).
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().onAuthStateChanged((user) => {
+      const el = document.getElementById('l-username');
+      if (user && !user.isAnonymous) {
+        const nome = user.displayName || user.email || 'Operador';
+        localStorage.setItem('abcl-livraria-auth', nome);
+        sessionStorage.setItem('abcl-livraria-auth', nome);
+        if (el) el.textContent = nome;
+      } else if (el) {
+        el.textContent = localStorage.getItem('abcl-livraria-auth') || 'Caixa';
+      }
+    });
+  }
   if (typeof FirebaseAuthPatch !== 'undefined') FirebaseAuthPatch.loginFirebaseLocal();
   initApp();
   setTimeout(preloadLivroImgs, 2000);
@@ -1225,10 +1251,12 @@ function filtrarClientes(q) {
   const dd = document.getElementById('dropdown-clientes');
   const pessoas = getPessoas();
   const termo = q.trim().toLowerCase();
-  const matches = [
-    ...pessoas.filter(p => !termo || p.toLowerCase().includes(termo)),
-    '✦ Avulso (digitar nome)',
-  ].slice(0, 20);
+
+  // Sem termo mostra todas; Avulso sempre no final
+  const filtradas = termo
+    ? pessoas.filter(p => p.toLowerCase().includes(termo))
+    : pessoas;
+  const matches = [...filtradas.slice(0, 19), '✦ Avulso (digitar nome)'];
 
   if (!document.getElementById('busca-cliente').matches(':focus')) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
@@ -1950,8 +1978,8 @@ async function _enviarVendaFirebaseLiv(sale) {
       status_oferta:   null,
       forma_pagamento: sale.pagamento,
       cartao_tipo:     ['Crédito','Débito'].includes(sale.pagamento) ? sale.pagamento : null,
-      operador_uid:    sessionStorage.getItem('abcl-livraria-auth') || 'operador',
-      operador_nome:   sessionStorage.getItem('abcl-livraria-auth') || 'Caixa',
+      operador_uid:    localStorage.getItem('abcl-livraria-auth') || sessionStorage.getItem('abcl-livraria-auth') || 'operador',
+      operador_nome:   localStorage.getItem('abcl-livraria-auth') || sessionStorage.getItem('abcl-livraria-auth') || 'Caixa',
       ano_acampamento: new Date().getFullYear(),
       cliente:         sale.cliente,
       pessoa:          sale.cliente,
@@ -1960,10 +1988,20 @@ async function _enviarVendaFirebaseLiv(sale) {
       data:            sale.data,
       local_id:        sale.id,
     };
-    if (navigator.onLine) {
-      await VendasFirebase.salvarVendaFirebase(venda, MODULO_LIVRARIA);
-    } else {
-      await OfflineSync.adicionarFilaSincronizacao(venda);
+    // Sempre enfileira (fila é a única que fala com o Firebase, com retry próprio).
+    // Não dependemos de navigator.onLine (wifi sem internet daria 'true' e perderia venda).
+    venda.id_temporario = sale.firestore_id || ('tmp_' + sale.id);
+    sale.firestore_id   = venda.id_temporario;
+
+    const _sales = getSales();
+    const _idx   = _sales.findIndex(s => s.id === sale.id);
+    if (_idx >= 0) { _sales[_idx].firestore_id = venda.id_temporario; set('abcl-livraria-sales', _sales); }
+
+    await OfflineSync.adicionarFilaSincronizacao(venda);
+
+    // Espelha o catálogo (estoque já baixado localmente) no Firebase.
+    if (typeof ProdutosSync !== 'undefined') {
+      ProdutosSync.salvarNoFirebase('produtos_livraria', get('abcl-livraria-livros') || []).catch(() => {});
     }
     if (document.getElementById('chk-oferta')) {
       document.getElementById('chk-oferta').checked = false;

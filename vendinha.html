@@ -27,6 +27,13 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 <script src="js/produtos-sync.js"></script>
 <script src="js/acampantes-sync.js"></script>
 <script src="js/firebase-auth-patch.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL Vendinha</title>
@@ -549,6 +556,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         <button class="view-tab active" onclick="switchView('caixa',this)">🛒 Caixa</button>
         <button class="view-tab" onclick="switchView('historico',this)">📋 Histórico</button>
         <button class="view-tab" onclick="switchView('devendo',this)">⚠️ Devendo</button>
+        <button class="view-tab" id="tab-creditos-btn" onclick="switchView('creditos',this)">💰 Créditos</button>
         <button class="view-tab" onclick="switchView('estoque',this)">📦 Estoque</button>
         <button class="view-tab" onclick="switchView('config',this)">⚙️ Definições</button>
         <button class="view-tab" onclick="switchView('resumo',this)">📊 Resumo</button>
@@ -621,6 +629,34 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
           </select>
         </div>
         <div id="devendo-list"></div>
+      </div>
+
+      <!-- ── PAINEL: CRÉDITOS ── -->
+      <div class="view-panel" id="vp-creditos">
+        <div class="section-h">
+          <span>💰 Créditos dos acampantes</span>
+          <span id="creditos-total-badge" style="font-size:.75rem;color:var(--verde-cl);"></span>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap;">
+          <div style="position:relative;flex:1;min-width:160px;">
+            <input type="text" id="creditos-busca" placeholder="🔍 Buscar/filtrar acampante..."
+              autocomplete="off"
+              oninput="filtrarPessoasCredito(this.value); renderCreditos();"
+              onfocus="filtrarPessoasCredito(this.value)"
+              style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.84rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+            <div id="dropdown-creditos" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--borda);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+          </div>
+          <button class="btn btn-solid btn-sm" onclick="abrirCreditoManual()">+ Crédito</button>
+        </div>
+        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.85rem;font-size:.78rem;color:var(--suave);flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+            <input type="checkbox" id="creditos-show-zerados" onchange="renderCreditos()" style="accent-color:var(--verde);cursor:pointer;" />
+            Mostrar saldo zerado
+          </label>
+          <button onclick="document.getElementById('creditos-busca').value='';_creditoFiltroNome='';renderCreditos();document.getElementById('dropdown-creditos').style.display='none';"
+            style="background:none;border:1px solid var(--borda);border-radius:6px;padding:.25rem .6rem;color:var(--suave);font-size:.72rem;cursor:pointer;">✕ Limpar filtro</button>
+        </div>
+        <div id="creditos-list"></div>
       </div>
 
       <!-- ── PAINEL: ESTOQUE ── -->
@@ -742,6 +778,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
 
       <div class="pedido-footer">
+        <div id="usar-credito-box" style="display:none;align-items:center;gap:.5rem;margin-bottom:.5rem;padding:.5rem .7rem;background:rgba(64,145,108,.1);border:1px solid rgba(64,145,108,.3);border-radius:8px;">
+          <input type="checkbox" id="usar-credito-chk" onchange="renderCart()" style="accent-color:var(--verde);cursor:pointer;width:16px;height:16px;" />
+          <label for="usar-credito-chk" style="font-size:.82rem;color:var(--verde-cl);cursor:pointer;flex:1;">
+            Usar crédito <span id="usar-credito-label"></span>
+          </label>
+        </div>
         <div class="total-row">
           <span class="total-label">Total</span>
           <span class="total-val" id="cart-total">R$ 0,00</span>
@@ -814,6 +856,12 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       </button>
     </div>
 
+    <button id="quitar-btn-saldo" onclick="confirmarQuitarSaldo()"
+      style="display:none;width:100%;padding:.85rem;border-radius:10px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.1);color:#fcd34d;cursor:pointer;font-size:.9rem;font-weight:600;margin-bottom:1.25rem;transition:background .2s;"
+      onmouseover="this.style.background='rgba(245,158,11,.22)'" onmouseout="this.style.background='rgba(245,158,11,.1)'">
+      💰 Usar saldo
+    </button>
+
     <button onclick="fecharModalQuitar()"
       style="font-size:.78rem;color:var(--suave);background:none;border:none;cursor:pointer;text-decoration:underline;width:100%;text-align:center;">Cancelar</button>
   </div>
@@ -853,9 +901,138 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   </button>
 </nav>
 
+<!-- ══ MODAL EDITAR VENDA ══ -->
+<div id="editar-venda-modal" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;width:min(480px,96vw);max-height:90vh;overflow-y:auto;padding:1.5rem;">
+    <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin-bottom:1.25rem;">✏️ Editar Venda</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem;">
+      <div>
+        <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.3rem;">Acampante</label>
+        <input id="ev-pessoa" type="text" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.875rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+      </div>
+      <div>
+        <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.3rem;">Período</label>
+        <select id="ev-periodo" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.875rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;">
+          <option>Manhã</option><option>Tarde</option><option>Noite</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.3rem;">Pagamento</label>
+        <select id="ev-pagamento" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.875rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;">
+          <option>PIX</option><option>Dinheiro</option><option>Fiado</option><option>Crédito</option><option>Débito</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.3rem;">Desconto (R$)</label>
+        <input id="ev-desconto" type="number" min="0" step="0.01" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.875rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+      </div>
+    </div>
+    <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);margin-bottom:.5rem;">Itens</div>
+    <div id="ev-itens" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:1rem;max-height:200px;overflow-y:auto;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(64,145,108,.07);border:1px solid rgba(64,145,108,.15);border-radius:8px;padding:.6rem .9rem;margin-bottom:1.25rem;">
+      <span style="font-size:.8rem;color:var(--suave);">Total recalculado</span>
+      <span id="ev-total-display" style="font-family:'Cinzel',serif;font-size:1.1rem;color:var(--verde-cl);"></span>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;">
+      <button onclick="document.getElementById('editar-venda-modal').style.display='none'"
+        style="padding:.55rem 1.1rem;border-radius:8px;border:1px solid var(--borda);background:none;color:var(--suave);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;">Cancelar</button>
+      <button onclick="salvarEdicaoVenda()"
+        style="padding:.55rem 1.25rem;border-radius:8px;border:none;background:var(--verde);color:#fff;cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;font-weight:600;">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL CRÉDITO / TROCO ══ -->
+<div id="credito-modal" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;width:min(380px,94vw);padding:1.5rem;">
+    <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin-bottom:.2rem;">💰 Troco como Crédito</div>
+    <div id="credito-modal-nome" style="font-size:.8rem;color:var(--suave);margin-bottom:.75rem;"></div>
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.35rem;">Valor pago pelo acampante (R$)</label>
+      <input type="number" id="credito-pago-input" min="0" step="0.01" oninput="atualizarResumoCredito()"
+        style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.65rem .85rem;font-size:1.1rem;color:var(--texto);font-family:'Cinzel',serif;outline:none;box-sizing:border-box;" />
+    </div>
+    <div id="credito-resumo" style="display:none;background:rgba(64,145,108,.07);border:1px solid rgba(64,145,108,.2);border-radius:8px;padding:.65rem .9rem;margin-bottom:1rem;font-size:.8rem;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--suave);">Total da compra</span><span id="cr-total" style="color:var(--texto);"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:.3rem;"><span style="color:var(--suave);">Troco → crédito</span><span id="cr-troco" style="color:var(--verde-cl);font-weight:600;"></span></div>
+    </div>
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="document.getElementById('credito-modal').style.display='none'"
+        style="flex:1;padding:.75rem;border-radius:8px;border:1px solid var(--borda);background:none;color:var(--suave);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;">Cancelar</button>
+      <button onclick="confirmarCredito()"
+        style="flex:2;padding:.75rem;border-radius:8px;border:none;background:var(--verde);color:#fff;cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;font-weight:600;">💰 Registrar crédito</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ADICIONAR CRÉDITO ══ -->
+<div id="add-credito-modal" style="display:none;position:fixed;inset:0;z-index:215;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:16px;width:min(360px,94vw);padding:1.5rem;">
+    <div style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin-bottom:1.25rem;">💰 Adicionar Crédito</div>
+
+    <div style="margin-bottom:.85rem;">
+      <label id="add-credito-label" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.35rem;">Acampante</label>
+      <input id="add-credito-nome" type="text" placeholder="Nome do acampante"
+        style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:.9rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+    </div>
+
+    <div id="add-credito-tel-wrap" style="margin-bottom:.85rem;display:none;">
+      <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.35rem;">WhatsApp / Telefone</label>
+      <input id="add-credito-tel" type="tel" placeholder="(00) 00000-0000"
+        style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:.9rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
+      <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.35rem;">Valor (R$)</label>
+      <div style="position:relative;">
+        <span style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);font-size:.9rem;color:var(--suave);">R$</span>
+        <input id="add-credito-valor" type="number" min="0.01" step="0.01" placeholder="0.00"
+          style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.65rem .85rem .65rem 2.5rem;font-size:1.1rem;font-weight:600;color:var(--texto);font-family:'Cinzel',serif;outline:none;box-sizing:border-box;" />
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="document.getElementById('add-credito-modal').style.display='none'"
+        style="flex:1;padding:.7rem;border-radius:8px;border:1px solid var(--borda);background:none;color:var(--suave);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;">Cancelar</button>
+      <button onclick="confirmarAdicionarCredito()"
+        style="flex:2;padding:.7rem;border-radius:8px;border:none;background:var(--verde);color:#fff;cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;font-weight:600;">💰 Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: DEVOLVER CRÉDITO (valor selecionável) ── -->
+<div id="dev-credito-modal" style="display:none;position:fixed;inset:0;z-index:216;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:1.5rem;max-width:380px;width:100%;">
+    <div style="font-family:'Cinzel',serif;font-size:1rem;color:#fca5a5;margin-bottom:.35rem;">💵 Devolver crédito</div>
+    <div style="font-size:.82rem;color:var(--suave);margin-bottom:1rem;">
+      <span id="dev-credito-nome-label" style="color:var(--texto);font-weight:600;"></span>
+      · saldo <span id="dev-credito-saldo-label" style="color:var(--verde-cl);"></span>
+    </div>
+
+    <label style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);display:block;margin-bottom:.35rem;">Valor a devolver (R$)</label>
+    <div style="position:relative;margin-bottom:.5rem;">
+      <span style="position:absolute;left:.85rem;top:50%;transform:translateY(-50%);font-size:.9rem;color:var(--suave);">R$</span>
+      <input id="dev-credito-valor" type="number" min="0.01" step="0.01" oninput="atualizarResumoDevolver()"
+        style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.65rem .85rem .65rem 2.5rem;font-size:1.1rem;font-weight:600;color:var(--texto);font-family:'Cinzel',serif;outline:none;box-sizing:border-box;" />
+    </div>
+    <div id="dev-credito-atalhos" style="display:flex;gap:.4rem;margin-bottom:.6rem;"></div>
+    <div id="dev-credito-resumo" style="display:none;font-size:.8rem;margin-bottom:1rem;">
+      <span id="dev-credito-restante"></span>
+    </div>
+
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="document.getElementById('dev-credito-modal').style.display='none'"
+        style="flex:1;padding:.7rem;border-radius:8px;border:1px solid var(--borda);background:none;color:var(--suave);cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;">Cancelar</button>
+      <button onclick="confirmarDevolverCredito()"
+        style="flex:2;padding:.7rem;border-radius:8px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;font-size:.84rem;font-weight:600;">💵 Devolver</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
+console.log('%c[ABCL] vendinha build: credito-fix-11 ✅', 'color:#40916C;font-weight:bold');
 // ══════════════════════════════════════════════════
 // IMG CACHE — IndexedDB offline image cache
 // Versão 1.0 — abclhub
@@ -879,77 +1056,84 @@ const ImgCache = (() => {
   }
 
   async function get(url) {
-    const db    = await openDB();
-    return new Promise((res, rej) => {
-      const tx  = db.transaction(STORE, 'readonly');
-      const req = tx.objectStore(STORE).get(url);
-      req.onsuccess = e => res(e.target.result?.data || null);
-      req.onerror   = () => res(null);
-    });
+    try {
+      const db = await openDB();
+      return new Promise(res => {
+        const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(url);
+        req.onsuccess = e => res(e.target.result?.data || null);
+        req.onerror   = () => res(null);
+      });
+    } catch(e) { return null; }
   }
 
   async function set(url, base64) {
     try {
-      const db  = await openDB();
-      const tx  = db.transaction(STORE, 'readwrite');
+      const db = await openDB();
+      const tx = db.transaction(STORE, 'readwrite');
       tx.objectStore(STORE).put({ url, data: base64 });
     } catch(e) { /* silencioso */ }
   }
 
-  async function urlToBase64(url) {
-    const res  = await fetch(url, { cache: 'force-cache' });
-    const blob = await res.blob();
-    return new Promise((res, rej) => {
-      const reader    = new FileReader();
-      reader.onload   = e => res(e.target.result);
-      reader.onerror  = rej;
-      reader.readAsDataURL(blob);
-    });
+  // Converte img já carregada em base64 via canvas (sem fetch, sem CORS)
+  function imgToBase64(imgEl) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width  = imgEl.naturalWidth  || 300;
+      canvas.height = imgEl.naturalHeight || 300;
+      canvas.getContext('2d').drawImage(imgEl, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.82);
+    } catch(e) {
+      // Canvas tainted — Firebase Storage sem CORS configurado
+      // Imagem exibe normalmente, só não vai para o cache
+      return null;
+    }
   }
 
-  // API principal — chame para cada <img> do sistema
-  // Uso: ImgCache.load(imgElement, urlOriginal, fallbackEmoji)
+  // API principal
   async function load(img, url, fallback) {
-    if (!url) { img.parentElement && (img.parentElement.innerHTML = fallback || '📦'); return; }
+    if (!url) { if (img.parentElement) img.parentElement.innerHTML = fallback || '📦'; return; }
 
-    // 1. Tenta carregar normalmente (online)
-    img.onerror = async () => {
-      // 2. Falhou — busca no cache IndexedDB
-      const cached = await get(url);
-      if (cached) {
-        img.onerror = null;
-        img.src     = cached;
-      } else {
-        // 3. Sem cache — exibe fallback emoji
-        if (img.parentElement) img.parentElement.innerHTML = fallback || '📦';
-      }
+    // 1. Já tem no cache? Exibe direto (funciona offline)
+    const cached = await get(url);
+    if (cached) {
+      img.onerror = null;
+      img.src = cached;
+      return;
+    }
+
+    // 2. Sem cache — carrega normalmente (SEM crossOrigin para não bloquear Firebase Storage)
+    img.onerror = () => {
+      // Falhou (offline sem cache) — exibe emoji fallback
+      if (img.parentElement) img.parentElement.innerHTML = fallback || '📦';
     };
 
     img.onload = async () => {
-      // Online e carregou — salva no cache se ainda não tem
-      try {
-        const cached = await get(url);
-        if (!cached) {
-          const b64 = await urlToBase64(url);
-          await set(url, b64);
-        }
-      } catch(e) { /* rede pode cair no meio — ignora */ }
+      // Carregou com sucesso — tenta salvar no cache via canvas
+      // Se Firebase não tiver CORS configurado, canvas falha silenciosamente
+      const b64 = imgToBase64(img);
+      if (b64) await set(url, b64);
     };
 
-    img.src = url;
+    img.src = url; // Sem crossOrigin — imagem carrega normalmente
   }
 
-  // Pré-carrega um array de URLs em background (chame após initApp)
+  // Pré-carrega URLs em background
   async function preload(urls) {
     for (const url of urls) {
       if (!url) continue;
       const cached = await get(url);
-      if (!cached) {
-        try {
-          const b64 = await urlToBase64(url);
-          await set(url, b64);
-        } catch(e) { /* offline ou erro — pula */ }
-      }
+      if (cached) continue;
+      await new Promise(resolve => {
+        const tmp = new Image();
+        // SEM crossOrigin — apenas tenta cachear via canvas se possível
+        tmp.onload = async () => {
+          const b64 = imgToBase64(tmp);
+          if (b64) await set(url, b64);
+          resolve();
+        };
+        tmp.onerror = resolve;
+        tmp.src = url;
+      });
     }
   }
 
@@ -987,8 +1171,21 @@ function vLogout() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const u = sessionStorage.getItem('abcl-vendinha-auth') || sessionStorage.getItem('abcl-auth') || 'Caixa';
-  document.getElementById('v-username').textContent = u;
+  // Operador identificado pelo login do Admin (Firebase Auth: Google ou e-mail).
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().onAuthStateChanged((user) => {
+      const el = document.getElementById('v-username');
+      if (user && !user.isAnonymous) {
+        const nome = user.displayName || user.email || 'Operador';
+        localStorage.setItem('abcl-vendinha-auth', nome);
+        sessionStorage.setItem('abcl-vendinha-auth', nome);
+        if (el) el.textContent = nome;
+      } else if (el) {
+        el.textContent = localStorage.getItem('abcl-vendinha-auth') || 'Caixa';
+      }
+    });
+  }
+  // Garante sessão Firebase p/ sincronizar mesmo sem login real (não trava a venda).
   if (typeof FirebaseAuthPatch !== 'undefined') FirebaseAuthPatch.loginFirebaseLocal();
   initApp();
   // Pré-carrega imagens para uso offline após 2s (deixa o app carregar primeiro)
@@ -996,11 +1193,502 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ══════════════════════════════════════════════════
-// MOBILE TAB SYSTEM
+// ABCL BANK — CRÉDITOS (TROCO)
+// ══════════════════════════════════════════════════
+function getCreditos() { return get('abcl-creditos') || []; }
+function setCreditos(v) { set('abcl-creditos', v); }
+
+// Origem do crédito: 'acampante' (selecionado da lista) ou 'avulso' (nome digitado).
+// Créditos antigos sem o campo são tratados como 'acampante' (compatibilidade).
+function _origemCredito(c) { return c.origem || 'acampante'; }
+
+function getCreditoByNome(nome, origem = 'acampante') {
+  return getCreditos().find(c =>
+    c.nome.toLowerCase() === nome.toLowerCase() && _origemCredito(c) === origem);
+}
+
+function getSaldoCredito(nome, origem = 'acampante') {
+  const c = getCreditoByNome(nome, origem);
+  return c ? c.saldo : 0;
+}
+
+function adicionarCredito(nome, valor, vendaId, origem = 'acampante', telefone = '') {
+  if (valor <= 0) return;
+  const creditos = getCreditos();
+  let c = creditos.find(x =>
+    x.nome.toLowerCase() === nome.toLowerCase() && _origemCredito(x) === origem);
+  if (!c) {
+    c = { nome, saldo: 0, historico: [], origem };
+    creditos.push(c);
+  }
+  if (telefone && !c.telefone) c.telefone = telefone;   // guarda telefone p/ exibição (avulso)
+  c.saldo = +(c.saldo + valor).toFixed(2);
+  c.historico.push({
+    tipo: 'troco', valor,
+    data: new Date().toLocaleDateString('pt-BR'),
+    hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    venda_id: vendaId || null,
+  });
+  setCreditos(creditos);
+  atualizarBadgeCreditos();
+}
+
+function usarCredito(nome, valor, origem = 'acampante', ref = null) {
+  const creditos = getCreditos();
+  const c = creditos.find(x =>
+    x.nome.toLowerCase() === nome.toLowerCase() && _origemCredito(x) === origem);
+  if (!c || c.saldo < valor) return false;
+  c.saldo = +(c.saldo - valor).toFixed(2);
+  c.historico.push({
+    tipo: 'uso', valor,
+    data: new Date().toLocaleDateString('pt-BR'),
+    hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    venda_id: ref?.venda_id || null,
+    desc:     ref?.desc || null,   // itens da venda, p/ exibir a qual compra pertence
+  });
+  setCreditos(creditos);
+  atualizarBadgeCreditos();
+  return true;
+}
+
+// Abre o modal de devolução (permite escolher o valor, igual quitar fiado)
+let _devolverCtx = null;
+function abrirDevolverCredito(nome, origem = 'acampante') {
+  const c = getCreditoByNome(nome, origem);
+  if (!c || c.saldo <= 0) { toast('⚠️ Sem saldo para devolver.'); return; }
+  _devolverCtx = { nome: c.nome, saldo: c.saldo, origem };
+
+  document.getElementById('dev-credito-nome-label').textContent = c.nome;
+  document.getElementById('dev-credito-saldo-label').textContent = `R$ ${c.saldo.toFixed(2)}`;
+  const inp = document.getElementById('dev-credito-valor');
+  inp.value = c.saldo.toFixed(2);
+  inp.max   = c.saldo.toFixed(2);
+
+  // Atalhos rápidos 25/50/75/100%
+  document.getElementById('dev-credito-atalhos').innerHTML = [25, 50, 75, 100].map(pct => {
+    const val = (c.saldo * pct / 100).toFixed(2);
+    return `<button onclick="document.getElementById('dev-credito-valor').value='${val}';atualizarResumoDevolver()"
+      style="flex:1;padding:.3rem;border-radius:5px;border:1px solid var(--borda);background:var(--card2);color:var(--suave);font-size:.68rem;cursor:pointer;">${pct}%</button>`;
+  }).join('');
+
+  atualizarResumoDevolver();
+  document.getElementById('dev-credito-modal').style.display = 'flex';
+}
+
+function atualizarResumoDevolver() {
+  if (!_devolverCtx) return;
+  const val    = parseFloat(document.getElementById('dev-credito-valor').value) || 0;
+  const restante = Math.max(0, _devolverCtx.saldo - val);
+  const resumo = document.getElementById('dev-credito-resumo');
+  if (val > 0) {
+    resumo.style.display = 'block';
+    document.getElementById('dev-credito-restante').textContent =
+      restante > 0.001 ? `Saldo restante: R$ ${restante.toFixed(2)}` : '✅ Saldo zerado';
+    document.getElementById('dev-credito-restante').style.color =
+      restante > 0.001 ? 'var(--amarelo)' : 'var(--verde-cl)';
+  } else {
+    resumo.style.display = 'none';
+  }
+}
+
+function confirmarDevolverCredito() {
+  const ctx = _devolverCtx;
+  if (!ctx) return;
+  const valor = +(parseFloat(document.getElementById('dev-credito-valor').value) || 0).toFixed(2);
+  if (valor <= 0)          { toast('⚠️ Informe um valor maior que zero.'); return; }
+  if (valor > ctx.saldo + 0.001) { toast('⚠️ Valor maior que o saldo disponível.'); return; }
+  _devolverCreditoValor(ctx.nome, valor, ctx.origem || 'acampante');
+  document.getElementById('dev-credito-modal').style.display = 'none';
+  _devolverCtx = null;
+}
+
+// Executor: devolve um valor (parcial ou total) do crédito de uma pessoa
+function _devolverCreditoValor(nome, valor, origem = 'acampante') {
+  const creditos = getCreditos();
+  const c = creditos.find(x =>
+    x.nome.toLowerCase() === nome.toLowerCase() && _origemCredito(x) === origem);
+  if (!c || c.saldo <= 0) return;
+  valor = Math.min(valor, c.saldo);
+  c.saldo = +(c.saldo - valor).toFixed(2);
+  c.historico.push({
+    tipo: 'devolucao', valor,
+    data: new Date().toLocaleDateString('pt-BR'),
+    hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+  });
+  setCreditos(creditos);
+  renderCreditos();
+  atualizarBadgeCreditos();
+  toast(`💵 R$ ${valor.toFixed(2)} devolvido para ${c.nome}.${c.saldo > 0 ? ` Saldo: R$ ${c.saldo.toFixed(2)}.` : ' Saldo zerado.'}`);
+}
+
+function atualizarBadgeCreditos() {
+  // O botão não exibe mais valor (isso confundia). Mantém só o rótulo.
+  const btn = document.getElementById('tab-creditos-btn');
+  if (!btn) return;
+  const badge = btn.querySelector('.credito-badge');
+  if (badge) badge.remove();
+  btn.textContent = '💰 Créditos';
+}
+
+function renderCreditos() {
+  const el    = document.getElementById('creditos-list');
+  const badge = document.getElementById('creditos-total-badge');
+  if (!el) return;
+
+  // Filtro de texto (igual ao Histórico) + opção de mostrar saldo zerado.
+  // Histórico de cada cartão é carregado sob demanda (🧾) p/ não pesar a lista.
+  const termo       = (document.getElementById('creditos-busca')?.value || '').toLowerCase().trim();
+  const mostrarZero = !!document.getElementById('creditos-show-zerados')?.checked;
+  const LIMITE      = 200;
+
+  const creditos = getCreditos();
+  const totalSaldo = creditos.reduce((s, c) => s + (c.saldo > 0 ? c.saldo : 0), 0);
+  if (badge) badge.textContent = totalSaldo > 0 ? `Total: R$ ${totalSaldo.toFixed(2)}` : '';
+
+  // Aplica filtros
+  let lista = creditos.filter(c => mostrarZero ? true : c.saldo > 0);
+  if (termo) lista = lista.filter(c => c.nome.toLowerCase().includes(termo));
+  // Ordena: quem tem saldo primeiro, depois por nome
+  lista.sort((a, b) => (b.saldo > 0) - (a.saldo > 0) || a.nome.localeCompare(b.nome));
+
+  const ocultosZero = mostrarZero ? 0 : creditos.filter(c => c.saldo <= 0).length;
+  const total = lista.length;
+  const limitada = lista.slice(0, LIMITE);
+
+  if (!total) {
+    const msg = termo
+      ? `Nenhum acampante encontrado para "${termo}".`
+      : `Nenhum crédito${mostrarZero ? '' : ' com saldo'} registrado.`;
+    el.innerHTML = `<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem 0;">${msg}</p>`;
+    return;
+  }
+
+  el.innerHTML = limitada.map(c => {
+    const nomeEsc  = c.nome.replace(/'/g, "\\'");
+    const temSaldo = c.saldo > 0;
+    const origem   = _origemCredito(c);
+    const ehAvulso = origem === 'avulso';
+    const tel      = c.telefone || (ehAvulso ? (c.nome.match(/\(([^)]+)\)\s*$/)?.[1] || '') : '');
+    const nomeBase = ehAvulso ? c.nome.replace(/\s*\([^)]*\)\s*$/, '') : c.nome;
+    const tagAvulso = ehAvulso
+      ? ` <span style="font-size:.6rem;font-weight:600;color:#fcd34d;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 5px;vertical-align:middle;">avulso</span>`
+      : '';
+    return `
+    <div class="credito-card" style="background:${temSaldo ? 'rgba(64,145,108,.07)' : 'rgba(255,255,255,.03)'};border:1px solid ${temSaldo ? 'rgba(64,145,108,.2)' : 'var(--borda)'};border-radius:10px;padding:.85rem 1rem;margin-bottom:.6rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;">
+        <div>
+          <div style="font-weight:600;font-size:.9rem;${temSaldo ? '' : 'color:var(--suave);'}">${nomeBase}${tagAvulso}</div>
+          ${tel ? `<div style="font-size:.7rem;color:var(--suave);">📱 ${tel}</div>` : ''}
+          <div style="font-size:.7rem;color:var(--suave);">${c.historico?.length || 0} movimentação(ões)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;">
+          <div style="font-family:'Cinzel',serif;font-size:1.1rem;color:${temSaldo ? 'var(--verde-cl)' : 'var(--suave)'};">R$ ${c.saldo.toFixed(2)}</div>
+          <button onclick="toggleHistoricoCredito('${nomeEsc}', this, '${origem}')" title="Ver histórico"
+            style="font-size:.8rem;padding:.3rem .5rem;border-radius:6px;border:1px solid var(--borda);background:var(--card2);color:var(--suave);cursor:pointer;">🧾</button>
+          ${temSaldo ? `
+          <button onclick="abrirDevolverCredito('${nomeEsc}', '${origem}')"
+            style="font-size:.7rem;padding:.3rem .6rem;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;cursor:pointer;white-space:nowrap;"
+            onmouseover="this.style.background='rgba(239,68,68,.2)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">
+            💵 Devolver
+          </button>` : ''}
+        </div>
+      </div>
+      <div class="hist-credito" style="display:none;margin-top:.65rem;padding-top:.6rem;border-top:1px solid var(--borda);"></div>
+    </div>`;
+  }).join('');
+
+  if (total > LIMITE) {
+    el.innerHTML += `<p style="color:var(--amarelo);font-size:.72rem;text-align:center;padding:.4rem 0;">Mostrando ${LIMITE} de ${total}. Use a busca para refinar.</p>`;
+  } else if (ocultosZero > 0) {
+    el.innerHTML += `<p style="color:var(--suave);font-size:.72rem;text-align:center;padding:.4rem 0;">+ ${ocultosZero} com saldo zerado — marque "Mostrar saldo zerado" para vê-los</p>`;
+  }
+}
+
+// Histórico sob demanda: só renderiza o do cartão clicado
+function toggleHistoricoCredito(nome, btn, origem = 'acampante') {
+  const card = btn.closest('.credito-card');
+  const box  = card && card.querySelector('.hist-credito');
+  if (!box) return;
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  const c    = getCreditoByNome(nome, origem);
+  const hist = (c?.historico || []).slice().reverse().slice(0, 20);
+  box.innerHTML = hist.length
+    ? hist.map(h => {
+        const rotulo = h.tipo === 'troco' ? '🔄 Troco' : h.tipo === 'uso' ? '🛒 Usado' : '💵 Devolvido';
+        const neg    = h.tipo === 'uso' || h.tipo === 'devolucao';
+        return `
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--suave);padding:.2rem 0;gap:.75rem;">
+          <span>${h.data} ${h.hora} · ${rotulo}${h.desc ? ` · <span style="color:var(--texto);">${h.desc}</span>` : ''}</span>
+          <span style="color:${neg ? '#fca5a5' : 'var(--verde-cl)'};white-space:nowrap;">
+            ${neg ? '-' : '+'}R$ ${h.valor.toFixed(2)}
+          </span>
+        </div>`;
+      }).join('')
+    : '<div style="font-size:.72rem;color:var(--suave);">Sem movimentações.</div>';
+  box.style.display = 'block';
+}
+
+// Modal troco → crédito
+let _creditoCtx = null;
+function abrirModalTroco(nome, totalVenda, vendaId, origem = 'acampante') {
+  _creditoCtx = { nome, totalVenda, vendaId, origem };
+  document.getElementById('credito-modal-nome').textContent = nome;
+  document.getElementById('credito-pago-input').value = '';
+  document.getElementById('credito-resumo').style.display = 'none';
+  document.getElementById('credito-modal').style.display = 'flex';
+}
+
+function atualizarResumoCredito() {
+  if (!_creditoCtx) return;
+  const pago  = parseFloat(document.getElementById('credito-pago-input').value) || 0;
+  const troco = pago - _creditoCtx.totalVenda;
+  const resumo= document.getElementById('credito-resumo');
+  if (pago > _creditoCtx.totalVenda) {
+    document.getElementById('cr-total').textContent  = `R$ ${_creditoCtx.totalVenda.toFixed(2)}`;
+    document.getElementById('cr-troco').textContent  = `R$ ${troco.toFixed(2)}`;
+    resumo.style.display = 'flex';
+    resumo.style.flexDirection = 'column';
+    resumo.style.gap = '.25rem';
+  } else {
+    resumo.style.display = 'none';
+  }
+}
+
+function confirmarCredito() {
+  if (!_creditoCtx) return;
+  const pago  = parseFloat(document.getElementById('credito-pago-input').value) || 0;
+  const troco = +(pago - _creditoCtx.totalVenda).toFixed(2);
+  if (troco <= 0) { toast('⚠️ Valor pago deve ser maior que o total.'); return; }
+  document.getElementById('credito-modal').style.display = 'none';
+  adicionarCredito(_creditoCtx.nome, troco, _creditoCtx.vendaId, _creditoCtx.origem || 'acampante');
+  toast(`💰 Troco de R$ ${troco.toFixed(2)} registrado como crédito para ${_creditoCtx.nome}!`);
+  _creditoCtx = null;
+}
+
+function abrirCreditoManual() {
+  // Usa o acampante já selecionado/digitado no campo de busca.
+  // Se vazio, abre em branco para cadastro manual (origem: acampante por padrão).
+  const nome = (document.getElementById('creditos-busca')?.value || _creditoFiltroNome || '').trim();
+  abrirModalAdicionarCredito(nome, 'acampante');
+}
+
+let _addCreditoOrigem = 'acampante';
+function abrirModalAdicionarCredito(nome, origem = 'acampante') {
+  _addCreditoOrigem = origem;
+  document.getElementById('add-credito-nome').value  = nome;
+  document.getElementById('add-credito-valor').value = '';
+  // Campo telefone só para avulso (atrela nome + telefone, como na vendinha)
+  const ehAvulso = origem === 'avulso';
+  document.getElementById('add-credito-tel-wrap').style.display = ehAvulso ? 'block' : 'none';
+  document.getElementById('add-credito-tel').value = '';
+  document.getElementById('add-credito-nome').placeholder = ehAvulso ? 'Nome (avulso)' : 'Nome do acampante';
+  document.getElementById('add-credito-label').textContent = ehAvulso ? 'Nome (avulso)' : 'Acampante';
+  document.getElementById('add-credito-modal').style.display = 'flex';
+  setTimeout(() => {
+    (nome
+      ? document.getElementById('add-credito-valor')
+      : document.getElementById('add-credito-nome')
+    )?.focus();
+  }, 50);
+}
+
+function confirmarAdicionarCredito() {
+  const nomeBase = document.getElementById('add-credito-nome').value.trim();
+  const tel      = document.getElementById('add-credito-tel').value.trim();
+  const valor    = parseFloat(document.getElementById('add-credito-valor').value);
+  if (!nomeBase)            { toast('⚠️ Informe o nome.'); return; }
+  if (!valor || valor <= 0) { toast('⚠️ Informe um valor válido.'); return; }
+  // Para avulso, a identidade é nome + telefone (mesmo formato do caixa: "Nome (tel)")
+  const ehAvulso = _addCreditoOrigem === 'avulso';
+  const nome = (ehAvulso && tel) ? `${nomeBase} (${tel})` : nomeBase;
+  document.getElementById('add-credito-modal').style.display = 'none';
+  adicionarCredito(nome, valor, null, _addCreditoOrigem, ehAvulso ? tel : '');
+  // Limpa o campo para a lista completa reaparecer (com o novo registro incluído)
+  _creditoFiltroNome = '';
+  document.getElementById('creditos-busca').value = '';
+  renderCreditos();
+  atualizarBadgeCreditos();
+  toast(`💰 R$ ${valor.toFixed(2)} adicionado para ${nomeBase}${ehAvulso ? ' (avulso)' : ''}.`);
+}
+
+// Exibe botão troco na finalizarVenda quando pagamento = Dinheiro
+function verificarTroco(venda) {
+  if (venda.pagamento !== 'Dinheiro') return;
+  if (!venda.pessoa || venda.pessoa === 'Anônimo') return;
+  // Só abre se houver troco potencial — usuário digita quanto pagou
+  if (confirm(`💰 Registrar troco como crédito para ${venda.pessoa}?\n\nClique OK para informar o valor pago.`)) {
+    abrirModalTroco(venda.pessoa, venda.total, venda.id, venda.avulso ? 'avulso' : 'acampante');
+  }
+}
+
+// Integra crédito como forma de pagamento no checkout
+function aplicarCreditoCheckout(nome, totalVenda) {
+  const saldo = getSaldoCredito(nome);
+  if (saldo <= 0) { toast('⚠️ Sem crédito disponível para este acampante.'); return; }
+  const usar  = Math.min(saldo, totalVenda);
+  if (!confirm(`Usar R$ ${usar.toFixed(2)} de crédito de ${nome}?\n(Saldo disponível: R$ ${saldo.toFixed(2)})`)) return;
+  usarCredito(nome, usar);
+  toast(`💰 R$ ${usar.toFixed(2)} de crédito usado. Restante a pagar: R$ ${(totalVenda - usar).toFixed(2)}`);
+  return usar;
+}
+
+// ══════════════════════════════════════════════════
+// EDITAR VENDA
+// ══════════════════════════════════════════════════
+let _editarVendaId = null;
+
+function abrirEditarVenda(id) {
+  const sales = getSales();
+  const s = sales.find(x => x.id === id);
+  if (!s) { toast('Venda não encontrada.'); return; }
+  _editarVendaId = id;
+
+  document.getElementById('ev-pessoa').value    = s.pessoa || '';
+  document.getElementById('ev-periodo').value   = s.periodo || 'Manhã';
+  document.getElementById('ev-pagamento').value = s.pagamento || 'PIX';
+  document.getElementById('ev-desconto').value  = s.desconto || 0;
+
+  // Renderiza itens editáveis
+  const itensEl = document.getElementById('ev-itens');
+  itensEl.innerHTML = s.itens.map((item, idx) => `
+    <div style="display:flex;align-items:center;gap:.6rem;background:var(--card2);border-radius:8px;padding:.5rem .75rem;">
+      <span style="flex:1;font-size:.84rem;">${item.nome}</span>
+      <span style="font-size:.75rem;color:var(--suave);">R$ ${item.preco.toFixed(2)}</span>
+      <div style="display:flex;align-items:center;gap:.4rem;">
+        <button onclick="evAlterarQtd(${idx}, -1)"
+          style="width:24px;height:24px;border-radius:50%;border:1px solid var(--borda);background:none;color:var(--texto);cursor:pointer;font-size:.9rem;line-height:1;">−</button>
+        <span id="ev-qtd-${idx}" style="font-size:.84rem;min-width:20px;text-align:center;">${item.qtd}</span>
+        <button onclick="evAlterarQtd(${idx}, 1)"
+          style="width:24px;height:24px;border-radius:50%;border:1px solid var(--borda);background:none;color:var(--texto);cursor:pointer;font-size:.9rem;line-height:1;">+</button>
+        <button onclick="evRemoverItem(${idx})"
+          style="width:24px;height:24px;border-radius:50%;border:1px solid rgba(239,68,68,.3);background:none;color:#fca5a5;cursor:pointer;font-size:.75rem;">✕</button>
+      </div>
+    </div>
+  `).join('');
+
+  evAtualizarTotal();
+  document.getElementById('editar-venda-modal').style.display = 'flex';
+}
+
+function evAlterarQtd(idx, delta) {
+  const sales = getSales();
+  const s = sales.find(x => x.id === _editarVendaId);
+  if (!s) return;
+  s.itens[idx].qtd = Math.max(0, s.itens[idx].qtd + delta);
+  const el = document.getElementById(`ev-qtd-${idx}`);
+  if (el) el.textContent = s.itens[idx].qtd;
+  set('abcl-sales-v2', sales);
+  evAtualizarTotal();
+}
+
+function evRemoverItem(idx) {
+  const sales = getSales();
+  const s = sales.find(x => x.id === _editarVendaId);
+  if (!s) return;
+  // Devolve estoque do item removido
+  const item    = s.itens[idx];
+  const produtos = getProdutos();
+  const p = produtos.find(x => x.id === item.id);
+  if (p) { p.estoque += item.qtd; set('abcl-produtos', produtos); }
+  s.itens.splice(idx, 1);
+  set('abcl-sales-v2', sales);
+  abrirEditarVenda(_editarVendaId); // re-render
+}
+
+function evAtualizarTotal() {
+  const sales   = getSales();
+  const s       = sales.find(x => x.id === _editarVendaId);
+  if (!s) return;
+  const desconto= parseFloat(document.getElementById('ev-desconto')?.value) || 0;
+  const subtotal= s.itens.reduce((sum, i) => sum + i.preco * i.qtd, 0);
+  const total   = Math.max(0, subtotal - desconto);
+  const el      = document.getElementById('ev-total-display');
+  if (el) el.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+function salvarEdicaoVenda() {
+  const sales = getSales();
+  const idx   = sales.findIndex(x => x.id === _editarVendaId);
+  if (idx < 0) { toast('Venda não encontrada.'); return; }
+
+  const s       = sales[idx];
+  const desconto= parseFloat(document.getElementById('ev-desconto').value) || 0;
+  const subtotal= s.itens.reduce((sum, i) => sum + i.preco * i.qtd, 0);
+
+  s.pessoa    = document.getElementById('ev-pessoa').value.trim() || s.pessoa;
+  s.periodo   = document.getElementById('ev-periodo').value;
+  s.pagamento = document.getElementById('ev-pagamento').value;
+  s.desconto  = desconto;
+  s.total     = +Math.max(0, subtotal - desconto).toFixed(2);
+
+  // Remove itens com qtd 0
+  s.itens = s.itens.filter(i => i.qtd > 0);
+
+  set('abcl-sales-v2', sales);
+  document.getElementById('editar-venda-modal').style.display = 'none';
+  renderHistorico();
+  renderStats();
+  renderDevendo();
+  renderResumo();
+  _editarVendaId = null;
+  toast('✅ Venda atualizada!');
+}
 // ══════════════════════════════════════════════════
 let _mobileTab = 'produtos';
 
 function isMobile() { return window.innerWidth <= 768; }
+
+// Autocomplete de acampante na aba Créditos
+let _creditoFiltroNome = '';
+
+function filtrarPessoasCredito(q) {
+  const pessoas = getPessoas();
+  const dd      = document.getElementById('dropdown-creditos');
+  const termo   = q.trim().toLowerCase();
+  const filtradas = termo ? pessoas.filter(p => p.toLowerCase().includes(termo)) : pessoas;
+  // Acrescenta a opção "Avulso" ao final, igual à aba Caixa
+  const matches   = [...filtradas.slice(0, 20), '✦ Avulso (digitar nome)'];
+
+  if (!document.getElementById('creditos-busca')?.matches(':focus')) { dd.style.display = 'none'; return; }
+  if (!matches.length) { dd.style.display = 'none'; return; }
+
+  dd.style.display = 'block';
+  dd.innerHTML = matches.map(p => {
+    const isAvulso = p.startsWith('✦');
+    const onclick  = isAvulso ? 'selecionarCreditoAvulso()' : `selecionarPessoaCredito('${p.replace(/'/g,"\\'")}')`;
+    return `
+    <div onclick="${onclick}"
+      style="padding:.55rem 1rem;cursor:pointer;font-size:.84rem;border-bottom:1px solid rgba(64,145,108,.08);${isAvulso?'color:var(--suave);font-style:italic;':''}transition:background .12s;"
+      onmouseover="this.style.background='rgba(64,145,108,.12)'"
+      onmouseout="this.style.background=''">
+      ${isAvulso ? p : `<span style="color:var(--verde-cl);margin-right:.4rem;">👤</span>${p}`}
+    </div>`;
+  }).join('');
+}
+
+function selecionarPessoaCredito(nome) {
+  document.getElementById('creditos-busca').value = nome;
+  document.getElementById('dropdown-creditos').style.display = 'none';
+  _creditoFiltroNome = nome;
+  renderCreditos();   // filtra a lista para o acampante selecionado
+  // O operador clica em "+ Crédito" (que virá preenchido com este acampante).
+}
+
+// Avulso: abre o modal com o nome em branco para digitar livremente (origem avulso)
+function selecionarCreditoAvulso() {
+  document.getElementById('dropdown-creditos').style.display = 'none';
+  document.getElementById('creditos-busca').value = '';
+  _creditoFiltroNome = '';
+  renderCreditos();
+  abrirModalAdicionarCredito('', 'avulso');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#creditos-busca') && !e.target.closest('#dropdown-creditos')) {
+    const dd = document.getElementById('dropdown-creditos');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 function mobileSwitchTab(tab) {
   if (!isMobile()) return;
@@ -1081,6 +1769,7 @@ let cart      = [];
 let pagamento = 'PIX';
 let periodo   = 'Manhã';
 let pessoa    = '';
+let pessoaAvulso = false;   // true quando o cliente é avulso (nome digitado), não da lista
 let histFilter = 'Todos';
 
 const PRODUTOS_DEFAULT = [
@@ -1144,6 +1833,7 @@ function initApp() {
   renderResumo();
   loadDefinicoes();
   renderBotoesPagamento();
+  atualizarBadgeCreditos();
 }
 
 // ══════════════════════════════════════════════════
@@ -1153,19 +1843,22 @@ function renderPessoas() { /* busca é dinâmica */ }
 
 function filtrarPessoas(q) {
   const pessoas = getPessoas();
-  const dd = document.getElementById('dropdown-pessoas');
-  const termo = q.trim().toLowerCase();
-  const matches = [
-    ...pessoas.filter(p => !termo || p.toLowerCase().includes(termo)),
-    '✦ Avulso (digitar nome)',
-  ].slice(0, 25);
+  const dd      = document.getElementById('dropdown-pessoas');
+  const termo   = q.trim().toLowerCase();
 
-  if (!document.getElementById('busca-pessoa')?.matches(':focus')) { dd.style.display='none'; return; }
+  // Filtra pessoas — sem termo mostra todas (até 24 + Avulso)
+  const filtradas = termo
+    ? pessoas.filter(p => p.toLowerCase().includes(termo))
+    : pessoas;
+
+  const matches = [...filtradas.slice(0, 24), '✦ Avulso (digitar nome)'];
+
+  if (!document.getElementById('busca-pessoa')?.matches(':focus')) { dd.style.display = 'none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = matches.map(p => {
     const isAvulso = p.startsWith('✦');
-    const val = isAvulso ? '__avulso__' : p;
-    const label = isAvulso ? '' : p;
+    const val      = isAvulso ? '__avulso__' : p;
+    const label    = isAvulso ? '' : p;
     return `<div onclick="selecionarPessoa('${val.replace(/'/g,"\\'")}','${label.replace(/'/g,"\\'")}')"
       style="padding:.6rem 1rem;cursor:pointer;font-size:.85rem;border-bottom:1px solid rgba(64,145,108,.08);${isAvulso?'color:var(--suave);font-style:italic;':''}transition:background .12s;"
       onmouseover="this.style.background='rgba(64,145,108,.12)'"
@@ -1186,23 +1879,27 @@ function selecionarPessoa(val, label) {
     inp.style.display = 'block'; inpTel.style.display = 'block';
     chip.style.display = 'none';
     document.getElementById('busca-pessoa').value = '';
-    pessoa = ''; inp.focus();
+    pessoa = ''; pessoaAvulso = true; inp.focus();
   } else {
     inp.style.display = 'none'; inpTel.style.display = 'none';
     inp.value = ''; inpTel.value = '';
     chip.style.display = 'flex';
     chipNome.textContent = label;
     document.getElementById('busca-pessoa').value = '';
-    pessoa = val;
+    pessoa = val; pessoaAvulso = false;
   }
+  renderCart();   // atualiza o box "Usar crédito" conforme o acampante
 }
 
 function limparPessoa() {
   pessoa = '';
+  pessoaAvulso = false;
   document.getElementById('pessoa-selecionada').style.display = 'none';
   document.getElementById('busca-pessoa').value = '';
   document.getElementById('input-avulso').style.display = 'none';
   document.getElementById('input-avulso-tel').style.display = 'none';
+  const box = document.getElementById('usar-credito-box');
+  if (box) { box.style.display = 'none'; document.getElementById('usar-credito-chk').checked = false; }
 }
 
 function setPessoa(val) { selecionarPessoa(val, val); }
@@ -1211,6 +1908,8 @@ function setAvulso() {
   const nome = document.getElementById('input-avulso').value.trim();
   const tel  = document.getElementById('input-avulso-tel').value.trim();
   pessoa = nome + (tel ? ` (${tel})` : '');
+  pessoaAvulso = true;
+  renderCart();   // atualiza o box "Usar crédito" conforme o nome avulso digitado
 }
 
 // Fechar dropdown ao clicar fora
@@ -1271,12 +1970,36 @@ function ajustarCampo(id, delta) {
   renderCart();
 }
 
+// Mostra/atualiza o box "Usar crédito" conforme o cliente selecionado.
+// Funciona para acampante (lista) e avulso (digitado), mas em "balcões" separados:
+// o saldo é buscado na origem certa, então um avulso nunca acessa o crédito de um
+// acampante de mesmo nome (e vice-versa).
+function atualizarUsarCredito(total) {
+  const box   = document.getElementById('usar-credito-box');
+  const chk    = document.getElementById('usar-credito-chk');
+  const label  = document.getElementById('usar-credito-label');
+  if (!box) return;
+  const origem = pessoaAvulso ? 'avulso' : 'acampante';
+  const saldo  = (pessoa && pessoa !== 'Anônimo') ? getSaldoCredito(pessoa, origem) : 0;
+  if (saldo > 0 && cart.length > 0) {
+    box.style.display = 'flex';
+    const usar = Math.min(saldo, total || 0);
+    label.textContent = chk.checked
+      ? `— aplicando R$ ${usar.toFixed(2)} (saldo R$ ${saldo.toFixed(2)})`
+      : `(disponível R$ ${saldo.toFixed(2)})`;
+  } else {
+    box.style.display = 'none';
+    chk.checked = false;
+  }
+}
+
 function renderCart() {
   const desconto = parseFloat(document.getElementById('desconto')?.value) || 0;
   const subtotal = cart.reduce((s, i) => s + i.preco * i.qtd, 0);
   const total    = Math.max(0, subtotal - desconto);
 
   document.getElementById('cart-total').textContent = `R$ ${total.toFixed(2)}`;
+  atualizarUsarCredito(total);
 
   // Atualiza badge mobile
   atualizarCartBadge();
@@ -1345,18 +2068,30 @@ function checkout() {
   const subtotal = cart.reduce((s, i) => s + i.preco * i.qtd, 0);
   const total    = Math.max(0, subtotal - desconto + oferta);
 
-  // #3.5 — se PIX, mostrar QR Code antes de confirmar
-  if (pagamento === 'PIX') {
-    showQrCode(total, () => finalizarVenda(total, subtotal, desconto, oferta));
+  // Crédito (saldo do cliente) — só se o checkbox "Usar crédito" estiver marcado.
+  // Busca no "balcão" certo: acampante (lista) ou avulso (digitado), nunca misturando.
+  const usarCred     = document.getElementById('usar-credito-chk')?.checked;
+  const origemCred   = pessoaAvulso ? 'avulso' : 'acampante';
+  const saldo        = (usarCred && pessoa && pessoa !== 'Anônimo') ? getSaldoCredito(pessoa, origemCred) : 0;
+  const creditoUsado = +Math.min(saldo, total).toFixed(2);
+  const aPagar       = +(total - creditoUsado).toFixed(2);
+
+  // Pago 100% com crédito → não precisa de PIX/QR
+  if (creditoUsado >= total - 0.001 && creditoUsado > 0) {
+    finalizarVenda(total, subtotal, desconto, oferta, creditoUsado);
     return;
   }
 
-  finalizarVenda(total, subtotal, desconto, oferta);
+  // #3.5 — se o restante for PIX, mostra o QR pelo valor RESTANTE
+  if (pagamento === 'PIX') {
+    showQrCode(aPagar, () => finalizarVenda(total, subtotal, desconto, oferta, creditoUsado));
+    return;
+  }
+
+  finalizarVenda(total, subtotal, desconto, oferta, creditoUsado);
 }
 
-function finalizarVenda(total, subtotal, desconto, oferta) {
-  const pago = pagamento !== 'Fiado';
-
+function finalizarVenda(total, subtotal, desconto, oferta, creditoUsado = 0) {
   // #4 — validação final de estoque
   const produtos = getProdutos();
   for (const ci of cart) {
@@ -1367,20 +2102,35 @@ function finalizarVenda(total, subtotal, desconto, oferta) {
     }
   }
 
+  // Revalida o crédito disponível por segurança (pode ter mudado), na origem certa
+  const origemCred = pessoaAvulso ? 'avulso' : 'acampante';
+  creditoUsado = +Math.min(creditoUsado || 0, (pessoa && pessoa !== 'Anônimo') ? getSaldoCredito(pessoa, origemCred) : 0).toFixed(2);
+  const pagoComCredito = creditoUsado >= total - 0.001 && creditoUsado > 0; // 100% com saldo
+  const formaPgto = pagoComCredito ? 'Saldo' : pagamento;
+  const pago      = formaPgto !== 'Fiado';
+
   const sale = {
     id:        Date.now(),
     pessoa,
+    avulso:    pessoaAvulso,
     periodo,
-    pagamento,
+    pagamento: formaPgto,
     pago,
     desconto,
     oferta,
     subtotal,
     total,
+    credito_usado: creditoUsado,
     itens:     cart.map(i => ({ id: i.id, nome: i.nome, preco: i.preco, qtd: i.qtd })),
     hora:      new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }),
     data:      new Date().toLocaleDateString('pt-BR'),
   };
+
+  // Se o restante foi fiado, o valor em aberto é só o que NÃO foi pago com crédito
+  if (formaPgto === 'Fiado' && creditoUsado > 0) {
+    sale.valor_original = total;
+    sale.valor_aberto   = +(total - creditoUsado).toFixed(2);
+  }
 
   // Baixar estoque
   cart.forEach(ci => {
@@ -1388,6 +2138,12 @@ function finalizarVenda(total, subtotal, desconto, oferta) {
     if (p) p.estoque = Math.max(0, p.estoque - ci.qtd);
   });
   set('abcl-produtos', produtos);
+
+  // Abater o crédito usado do saldo (no balcão certo: acampante ou avulso)
+  if (creditoUsado > 0) {
+    const refVenda = { venda_id: sale.id, desc: sale.itens.map(i => `${i.nome}×${i.qtd}`).join(', ') };
+    usarCredito(pessoa, creditoUsado, origemCred, refVenda);
+  }
 
   // Salvar venda
   const sales = getSales();
@@ -1401,7 +2157,16 @@ function finalizarVenda(total, subtotal, desconto, oferta) {
   renderDevendo();
   renderEstoque();
   renderResumo();
-  toast(`✅ Venda finalizada! R$ ${total.toFixed(2)}`);
+  renderCreditos();
+  const restante = +(total - creditoUsado).toFixed(2);
+  toast(creditoUsado > 0
+    ? `✅ Venda R$ ${total.toFixed(2)} — crédito usado R$ ${creditoUsado.toFixed(2)}${restante > 0 ? `, a pagar R$ ${restante.toFixed(2)}` : ''}`
+    : `✅ Venda finalizada! R$ ${total.toFixed(2)}`);
+
+  // Oferecer registrar troco como crédito (só em dinheiro puro, sem crédito usado)
+  if (formaPgto === 'Dinheiro' && creditoUsado === 0 && pessoa && pessoa !== 'Anônimo') {
+    setTimeout(() => verificarTroco(sale), 500);
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -1647,8 +2412,13 @@ function setPeriodo(p, btn) {
 function renderStats() {
   const sales = getSales();
   const total    = sales.reduce((s, v) => s + v.total, 0);
-  const fiado    = sales.filter(v => v.pagamento === 'Fiado').reduce((s, v) => s + v.total, 0);
-  const recebido = sales.filter(v => v.pagamento !== 'Fiado').reduce((s, v) => s + v.total, 0);
+  const fiado    = sales.filter(v => v.pagamento === 'Fiado' && !v.quitado)
+                        .reduce((s, v) => s + (v.valor_aberto ?? v.total), 0);
+  // "Recebido" = dinheiro/PIX realmente coletado agora.
+  // Desconta o crédito usado, pois esse dinheiro JÁ entrou quando o crédito foi criado
+  // (não é caixa novo — evita contar duas vezes).
+  const recebido = sales.filter(v => v.pagamento !== 'Fiado')
+                        .reduce((s, v) => s + (v.total - (v.credito_usado || 0)), 0);
 
   document.getElementById('s-qtd').textContent     = sales.length;
   document.getElementById('s-total').textContent   = `R$ ${total.toFixed(2)}`;
@@ -1740,22 +2510,47 @@ function renderHistorico() {
         </div>
         <div class="hist-meta">${s.data} · ${s.hora} · ${s.itens.map(i=>`${i.nome}×${i.qtd}`).join(', ')}</div>
       </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div class="hist-val" style="color:${PAG_COR[s.pagamento]||'var(--texto)'}">R$ ${s.total.toFixed(2)}</div>
-        ${s.pagamento === 'Fiado' && !s.quitado ? '<div style="font-size:.62rem;color:var(--amarelo);">⚠ pendente</div>' : ''}
-        ${s.quitado ? '<div style="font-size:.62rem;color:var(--verde-cl);">✓ quitado</div>' : ''}
+      <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+        <div style="text-align:right;">
+          <div class="hist-val" style="color:${PAG_COR[s.pagamento]||'var(--texto)'}">R$ ${s.total.toFixed(2)}</div>
+          ${s.pagamento === 'Fiado' && !s.quitado ? '<div style="font-size:.62rem;color:var(--amarelo);">⚠ pendente</div>' : ''}
+          ${s.quitado ? '<div style="font-size:.62rem;color:var(--verde-cl);">✓ quitado</div>' : ''}
+        </div>
+        <button onclick="abrirEditarVenda(${s.id})"
+          title="Editar venda"
+          style="background:none;border:1px solid rgba(116,198,157,.2);border-radius:6px;padding:.3rem .5rem;cursor:pointer;color:var(--suave);font-size:.75rem;transition:all .15s;flex-shrink:0;"
+          onmouseover="this.style.background='rgba(116,198,157,.1)';this.style.color='var(--verde-cl)'"
+          onmouseout="this.style.background='none';this.style.color='var(--suave)'">
+          ✏️
+        </button>
       </div>
     </div>
   `).join('');
 }
 
 function clearAllSales() {
+  if (!confirm('Limpar todo o histórico?\n\nO estoque será restaurado para os produtos vendidos.')) return;
+  const sales    = getSales();
+  const produtos = getProdutos();
+
+  // Devolve estoque de todas as vendas não canceladas
+  sales.forEach(s => {
+    if (s.cancelada) return;
+    (s.itens || []).forEach(item => {
+      const p = produtos.find(x => x.id === item.id);
+      if (p) p.estoque += item.qtd;
+    });
+  });
+
+  set('abcl-produtos', produtos);
   set('abcl-sales-v2', []);
   renderStats();
   renderHistorico();
   renderDevendo();
   renderResumo();
-  toast('Histórico limpo.');
+  renderProdutos();
+  renderEstoque();
+  toast('✅ Histórico limpo e estoque restaurado.');
 }
 
 // ══════════════════════════════════════════════════
@@ -1873,7 +2668,24 @@ function quitarFiado(nome, ids) {
     }
   });
 
-  _quitarCtx = { nome, ids, totalAberto };
+  // Origem do devedor (acampante x avulso) p/ buscar o crédito no balcão certo.
+  // Fiados antigos sem o campo são tratados como acampante.
+  const algumAvulso = ids.some(id => sales.find(x => x.id === id)?.avulso);
+  const origemDev   = algumAvulso ? 'avulso' : 'acampante';
+  const saldoDev    = getSaldoCredito(nome, origemDev);
+
+  _quitarCtx = { nome, ids, totalAberto, origem: origemDev, saldo: saldoDev };
+
+  // Botão "Usar saldo" — só aparece se o devedor tiver crédito
+  const btnSaldo = document.getElementById('quitar-btn-saldo');
+  if (btnSaldo) {
+    if (saldoDev > 0) {
+      btnSaldo.style.display = 'block';
+      btnSaldo.textContent = `💰 Usar saldo (R$ ${saldoDev.toFixed(2)})`;
+    } else {
+      btnSaldo.style.display = 'none';
+    }
+  }
 
   // Preenche modal
   document.getElementById('quitar-nome-label').textContent     = nome;
@@ -1949,6 +2761,27 @@ function confirmarQuitarPix() {
   if (!ctx) return;
   _quitarCtx = ctx;                                    // restaura para callback
   showQrCode(valorPagar, () => _efetivarQuitar('PIX', valorPagar));
+}
+
+// Quitar fiado usando o CRÉDITO (saldo) do próprio devedor.
+// Não movimenta caixa: abate o crédito (passivo) contra o fiado (a receber).
+function confirmarQuitarSaldo() {
+  const ctx = _quitarCtx;
+  if (!ctx) return;
+  const input = parseFloat(document.getElementById('quitar-valor-parcial')?.value) || ctx.totalAberto || 0;
+  const saldo = ctx.saldo || 0;
+  const valorComSaldo = +Math.min(input, ctx.totalAberto, saldo).toFixed(2);
+  if (valorComSaldo <= 0) { toast('⚠️ Sem saldo disponível para quitar.'); return; }
+  // Abate o crédito no balcão certo (acampante/avulso) e registra a referência
+  const ok = usarCredito(ctx.nome, valorComSaldo, ctx.origem || 'acampante', { desc: 'Quitação de fiado' });
+  if (!ok) { toast('⚠️ Saldo insuficiente.'); return; }
+  fecharModalQuitar();
+  _quitarCtx = ctx;
+  _efetivarQuitar('Saldo', valorComSaldo);
+  renderCreditos();
+  if (valorComSaldo < input - 0.001) {
+    setTimeout(() => toast(`💡 O saldo cobriu R$ ${valorComSaldo.toFixed(2)}. O restante segue em aberto.`), 700);
+  }
 }
 
 async function _efetivarQuitar(forma, valorPagar) {
@@ -2072,6 +2905,7 @@ function renderEstoque() {
       </div>
     </div>
   `).join('');
+  processImgCache(document.getElementById('estoque-list'));
 }
 
 function adjustEstoque(id, delta) {
@@ -2356,14 +3190,16 @@ function exportCSV() {
 function switchView(name, btn) {
   document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['caixa','historico','devendo','estoque','config','resumo'].forEach(v => {
+  ['caixa','historico','devendo','creditos','estoque','config','resumo'].forEach(v => {
     const el = document.getElementById('vp-' + v);
     if (el) el.style.display = v === name ? 'block' : 'none';
   });
-  if (name === 'estoque') { renderEstoque(); renderProdutos(); }
-  if (name === 'resumo')  renderResumo();
-  if (name === 'devendo') renderDevendo();
-  if (name === 'config')  { carregarDefinicoes(); renderListaPagamentos(); }
+  if (name === 'estoque')  { renderEstoque(); renderProdutos(); }
+  if (name === 'resumo')   renderResumo();
+  if (name === 'devendo')  renderDevendo();
+  if (name === 'historico') renderHistorico();
+  if (name === 'creditos') renderCreditos();
+  if (name === 'config')   { carregarDefinicoes(); renderListaPagamentos(); }
 }
 
 function toast(msg) {
@@ -2446,9 +3282,10 @@ async function enviarVendaFirebase(sale) {
       valor_oferta:    parseInt(document.getElementById('campo-valor-oferta')?.value) || 0,
       status_oferta:   document.getElementById('chk-oferta')?.checked ? 'pendente' : null,
       forma_pagamento: sale.pagamento,
+      credito_usado:   sale.credito_usado || 0,
       cartao_tipo:     ['Crédito','Débito'].includes(sale.pagamento) ? sale.pagamento : null,
-      operador_uid:    sessionStorage.getItem('abcl-vendinha-auth') || 'operador',
-      operador_nome:   sessionStorage.getItem('abcl-vendinha-auth') || 'Caixa',
+      operador_uid:    localStorage.getItem('abcl-vendinha-auth') || sessionStorage.getItem('abcl-vendinha-auth') || 'operador',
+      operador_nome:   localStorage.getItem('abcl-vendinha-auth') || sessionStorage.getItem('abcl-vendinha-auth') || 'Caixa',
       ano_acampamento: new Date().getFullYear(),
       pessoa:          sale.pessoa,
       periodo:         sale.periodo,
@@ -2457,16 +3294,23 @@ async function enviarVendaFirebase(sale) {
       local_id:        sale.id,
     };
 
-    if (navigator.onLine) {
-      const docId = await VendasFirebase.salvarVendaFirebase(venda, MODULO_VENDINHA);
-      // Guardar o firestore_id na venda local para quitação futura
-      if (docId && sale.id) {
-        const sales = getSales();
-        const idx   = sales.findIndex(s => s.id === sale.id);
-        if (idx >= 0) { sales[idx].firestore_id = docId; set('abcl-sales-v2', sales); }
-      }
-    } else {
-      await OfflineSync.adicionarFilaSincronizacao(venda);
+    // Sempre enfileira. A fila é a ÚNICA que conversa com o Firebase e tem retry
+    // próprio. Não dependemos de navigator.onLine (que dá 'true' em wifi sem internet,
+    // cenário clássico de sítio, e faria a venda se perder num timeout silencioso).
+    venda.id_temporario = sale.firestore_id || ('tmp_' + sale.id);
+    sale.firestore_id   = venda.id_temporario;   // grava local p/ quitação de fiado futura
+
+    // Persiste o firestore_id na venda local (mesmo offline)
+    const _sales = getSales();
+    const _idx   = _sales.findIndex(s => s.id === sale.id);
+    if (_idx >= 0) { _sales[_idx].firestore_id = venda.id_temporario; set('abcl-sales-v2', _sales); }
+
+    await OfflineSync.adicionarFilaSincronizacao(venda);
+
+    // Espelha o catálogo (com o estoque já baixado localmente) no Firebase.
+    // localStorage é a fonte de verdade do estoque; isto só mantém o backup/admin em dia.
+    if (typeof ProdutosSync !== 'undefined') {
+      ProdutosSync.salvarNoFirebase('produtos_vendinha', getProdutos()).catch(() => {});
     }
 
     // Limpar campos de oferta
@@ -2482,8 +3326,8 @@ async function enviarVendaFirebase(sale) {
 
 // Patch finalizarVenda para disparar o sync Firebase após salvar local
 const _finalizarVendaOrig = finalizarVenda;
-window.finalizarVenda = async function(total, subtotal, desconto, oferta) {
-  _finalizarVendaOrig(total, subtotal, desconto, oferta);
+window.finalizarVenda = async function(total, subtotal, desconto, oferta, creditoUsado = 0) {
+  _finalizarVendaOrig(total, subtotal, desconto, oferta, creditoUsado);
   // A venda foi salva; pegar a mais recente para enviar
   const ultimaVenda = getSales()[0];
   if (ultimaVenda) await enviarVendaFirebase(ultimaVenda);

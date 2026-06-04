@@ -230,8 +230,23 @@
       } catch (err) {
         console.error('[OfflineSync] Falha ao sincronizar venda:', id, err);
 
-        if (_tentativas[id] >= MAX_RETRIES) {
-          console.warn('[OfflineSync] Máx. tentativas atingido para:', id);
+        // Falha de REDE nunca é permanente. Num sítio com internet oscilante,
+        // a venda DEVE continuar na fila até a conexão voltar — jamais descartada.
+        const code = (err && err.code) || '';
+        const ehErroDeRede =
+          !navigator.onLine ||
+          code === 'unavailable' || code === 'deadline-exceeded' ||
+          code === 'cancelled'   || code === 'internal' ||
+          code === 'resource-exhausted' || code === '' ||
+          /network|timeout|offline|fetch|unavailable/i.test(err.message || '');
+
+        if (ehErroDeRede) {
+          // Mantém pendente; zera o contador para não acumular rumo a "erro permanente".
+          _tentativas[id] = 0;
+          agendarSincronizacao(Math.min(RETRY_DELAY * 4, 15000));
+        } else if (_tentativas[id] >= MAX_RETRIES) {
+          // Erro real e não-transitório (ex.: permissão, dado inválido): sinaliza p/ revisão.
+          console.warn('[OfflineSync] Erro não-recuperável para:', id, code);
           marcarErro(id, err.message);
         } else {
           agendarSincronizacao(RETRY_DELAY * _tentativas[id]);
@@ -304,6 +319,7 @@
   // ── Eventos de rede ──────────────────────────────────────────────────────────
   window.addEventListener('online', () => {
     _status = 'online';
+    _tentativas = {};            // conexão voltou: nova chance limpa para toda a fila
     atualizarUI();
     agendarSincronizacao(800);
   });

@@ -84,25 +84,30 @@
    * @returns {Promise<string>} ID do documento salvo
    */
   async function salvarVendaFirebase(dadosParciais, modulo) {
-    const venda   = montarVenda(dadosParciais, modulo);
-    const docId   = dadosParciais.firestore_id || gerarId();
-    const docRef  = colVendas().doc(docId);
+    const venda  = montarVenda(dadosParciais, modulo);
 
-    await docRef.set(venda);
+    // ID canônico e ESTÁVEL: usa o id_temporario gerado offline como ID do documento.
+    // Assim, se a fila reenviar a mesma venda (timeout que na verdade gravou, wifi
+    // instável etc.), o .set() apenas sobrescreve o MESMO doc — nunca cria duplicata.
+    const docId  = dadosParciais.id_temporario || dadosParciais.firestore_id || gerarId();
+    const docRef = colVendas().doc(docId);
 
-    // Atualiza estoque (best-effort, não bloqueia o salvamento)
-    try {
-      await _atualizarEstoqueBatch(modulo, venda.produtos, 'subtrair');
-    } catch (e) {
-      console.warn('[VendasFirebase] Estoque não atualizado:', e);
-    }
+    // Transação garante atomicidade: só a PRIMEIRA gravação "vence".
+    // Em qualquer reenvio, o doc já existe → operação vira no-op (idempotente).
+    await db().runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (snap.exists) return;        // já sincronizada antes — não duplica nada
+      tx.set(docRef, venda);
+    });
 
-    // Atualiza resumo financeiro
-    try {
-      await atualizarResumoFinanceiro(venda.ano_acampamento, venda.total, modulo);
-    } catch (e) {
-      console.warn('[VendasFirebase] Resumo financeiro não atualizado:', e);
-    }
+    // Estoque: NÃO é mais alterado aqui.
+    // Com 1 aparelho por módulo, o localStorage é a fonte de verdade do estoque
+    // e o catálogo (produtos_<modulo>) é espelhado pela própria página após a venda
+    // (ProdutosSync.salvarNoFirebase). Evita coleção órfã e contagem dupla.
+
+    // Resumo financeiro: NÃO é incrementado aqui.
+    // O financeiro.html recalcula os totais direto da coleção 'vendas'
+    // (fonte única de verdade), o que elimina drift e contagem dupla em reenvios.
 
     return docId;
   }
