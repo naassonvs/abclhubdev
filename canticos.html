@@ -275,5 +275,36 @@
     renderFiltros();
     render();
   </script>
+<script>
+  // ══ Guard: seção desligada pelo Admin (config/secoes_site) ══
+  (function guardSecao() {
+    var KEY = 'canticos';
+    function off(c){ return c && c[KEY] === false; }
+    function aviso() {
+      if (document.getElementById('secao-off-overlay')) return;
+      var ov = document.createElement('div');
+      ov.id = 'secao-off-overlay';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;background:#0a0e0f;color:#e8eef4;font-family:sans-serif;';
+      ov.innerHTML = '<div style="font-size:2.5rem;margin-bottom:1rem;">🚧</div>'
+        + '<h1 style="color:#6ee7b7;margin-bottom:.5rem;font-size:1.4rem;">Seção temporariamente desativada</h1>'
+        + '<p style="color:#7a8a92;max-width:420px;margin-bottom:1.5rem;">Esta área está em manutenção. Volte em breve.</p>'
+        + '<a href="index.html" style="color:#34d399;text-decoration:none;border:1px solid #2a3135;border-radius:8px;padding:.6rem 1.2rem;">← Voltar ao site</a>';
+      document.body.appendChild(ov);
+      document.body.style.overflow = 'hidden';
+    }
+    var cfg = {};
+    try { cfg = JSON.parse(localStorage.getItem('abcl-secoes-site')) || {}; } catch (e) {}
+    if (off(cfg)) aviso();
+    try {
+      var fdb = window._gdb || (window.firebase && firebase.firestore ? firebase.firestore() : null);
+      if (fdb) fdb.collection('config').doc('secoes_site').get().then(function (d) {
+        if (!d.exists) return;
+        var dd = d.data() || {};
+        localStorage.setItem('abcl-secoes-site', JSON.stringify(dd));
+        if (off(dd)) aviso();
+      }).catch(function () {});
+    } catch (e) {}
+  })();
+</script>
 </body>
 </html>

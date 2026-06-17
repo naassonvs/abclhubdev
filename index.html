@@ -25,6 +25,41 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* Scrollspy — item do menu da seção visível */
+    .nav-links a { transition: color .2s ease; }
+    .nav-links a.active {
+      color: var(--verde-claro) !important;
+      position: relative;
+    }
+    .nav-links a.active::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -6px;
+      height: 2px;
+      background: var(--verde-claro);
+      border-radius: 2px;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
+  <script>
+  try {
+    const firebaseConfig = {
+      apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+      authDomain:        "abcl-hub-dev.firebaseapp.com",
+      projectId:         "abcl-hub-dev",
+      storageBucket:     "abcl-hub-dev.firebasestorage.app",
+      messagingSenderId: "243573406078",
+      appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+    };
+    if (typeof firebase !== 'undefined' && !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider('6LcYAyUtAAAAAJj1yYLnrmo-MThtvjoXAKiLMiGr'), true); } catch(e) { console.warn('[AppCheck] nao ativado:', (e && (e.code||e.message)) || e); }
+    window._gdb = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+  } catch(e) { window._gdb = null; }
+  </script>
 </head>
 <body>
 
@@ -75,6 +110,7 @@
     <ul class="nav-links">
       <li><a href="#temas">Temas</a></li>
       <li><a href="#local">Local</a></li>
+      <li><a href="#galeria">Galeria</a></li>
       <li><a href="#inscricao">Inscrição</a></li>
       <li><a href="#faq">FAQ</a></li>
       <li><a href="#loja">Loja</a></li>
@@ -104,6 +140,7 @@
   <div id="menu-mobile" role="dialog" aria-label="Menu de navegação">
     <a href="#temas"     onclick="toggleMenu()">Temas</a>
     <a href="#local"     onclick="toggleMenu()">Local</a>
+    <a href="#galeria" onclick="toggleMenu()">Galeria</a>
     <a href="#inscricao" onclick="toggleMenu()">Inscrição</a>
     <a href="#faq"       onclick="toggleMenu()">FAQ</a>
     <a href="#loja"      onclick="toggleMenu()">🛍️ Loja</a>
@@ -346,6 +383,129 @@
     </div>
   </section>
 
+  <!-- ───────────── GALERIA / MOMENTOS ───────────── -->
+  <style>
+    .galeria-mosaico { columns: 4 220px; column-gap: 10px; }
+    .galeria-mosaico a { display:block; margin-bottom:10px; border-radius:8px; overflow:hidden;
+      border:2px solid rgba(64,145,108,.25); break-inside:avoid; cursor:zoom-in;
+      transition: transform .25s, border-color .25s; }
+    .galeria-mosaico a:hover { transform: scale(1.02); border-color: var(--verde-cl, #74C69D); }
+    .galeria-mosaico img { width:100%; display:block; }
+    #lightbox { position:fixed; inset:0; z-index:9999; background:rgba(5,12,8,.95);
+      display:none; align-items:center; justify-content:center; }
+    #lightbox.aberto { display:flex; }
+    #lightbox img { max-width:92vw; max-height:86vh; border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.6); }
+    .lb-btn { position:absolute; top:50%; transform:translateY(-50%); background:rgba(64,145,108,.18);
+      border:1px solid rgba(64,145,108,.45); color:#D8F3DC; font-size:1.6rem; width:48px; height:48px;
+      border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .lb-btn:hover { background:rgba(64,145,108,.35); }
+    #lb-ant { left:1rem; } #lb-prox { right:1rem; }
+    #lb-fechar { position:absolute; top:1rem; right:1rem; transform:none; font-size:1.2rem; }
+    #lb-contador { position:absolute; bottom:1.1rem; left:50%; transform:translateX(-50%);
+      color:#9fc7ab; font-size:.8rem; letter-spacing:.08em; }
+    @media (max-width:600px){ .lb-btn{ width:40px;height:40px;font-size:1.3rem; } }
+  </style>
+
+  <section class="local" id="galeria" style="padding-top:5rem;">
+    <div class="container">
+      <p class="label reveal">Momentos</p>
+      <h2 class="titulo reveal">Galeria das edições</h2>
+      <div class="sep reveal"></div>
+      <p class="corpo reveal" style="max-width:560px;margin-bottom:2rem;">
+        Um pouco do que já vivemos juntos nos acampamentos — comunhão, estudo da Palavra e alegria.
+      </p>
+      <div class="galeria-mosaico reveal" id="galeria-mosaico"><!-- preenchido via JS --></div>
+    </div>
+  </section>
+
+  <!-- Lightbox da galeria -->
+  <div id="lightbox" role="dialog" aria-label="Foto ampliada" onclick="if(event.target===this)lbFechar()">
+    <button class="lb-btn" id="lb-fechar" onclick="lbFechar()" aria-label="Fechar">✕</button>
+    <button class="lb-btn" id="lb-ant" onclick="lbNavegar(-1)" aria-label="Anterior">‹</button>
+    <img id="lb-img" src="" alt="Foto do acampamento" />
+    <iframe id="lb-frame" style="display:none;width:min(92vw,960px);aspect-ratio:16/9;border:0;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    <button class="lb-btn" id="lb-prox" onclick="lbNavegar(1)" aria-label="Próxima">›</button>
+    <div id="lb-contador"></div>
+  </div>
+
+  <script>
+  // ═══ GALERIA & MÍDIAS ═══
+  // Fonte principal: coleção `galeria` do Firestore (gerenciada no Admin → Galeria & Mídias).
+  // Fallback: liste fotos manualmente abaixo (caminho ou URL), uma por linha.
+  const GALERIA_FOTOS = [
+    // 'assets/galeria/foto1.jpg',
+  ];
+
+  let GAL_ITENS = [];   // [{tipo:'foto', src} | {tipo:'video', thumb, embed, legenda}]
+
+  function _galRender() {
+    const sec = document.getElementById('galeria');
+    const mos = document.getElementById('galeria-mosaico');
+    if (!GAL_ITENS.length) { sec.style.display = 'none'; return; }
+    sec.style.display = '';
+    mos.innerHTML = GAL_ITENS.map((it, i) => {
+      if (it.tipo === 'video') {
+        return `<a href="javascript:void(0)" onclick="lbAbrir(${i})" style="position:relative;">
+          ${it.thumb ? `<img src="${it.thumb}" loading="lazy" alt="${it.legenda||'Vídeo do acampamento'}" />`
+                     : `<span style="display:flex;align-items:center;justify-content:center;height:140px;background:rgba(64,145,108,.12);font-size:2rem;">🎬</span>`}
+          <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.2rem;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.7);">▶</span>
+        </a>`;
+      }
+      return `<a href="javascript:void(0)" onclick="lbAbrir(${i})"><img src="${it.src}" loading="lazy" alt="Foto do acampamento ${i+1}" onerror="this.parentElement.style.display='none'" /></a>`;
+    }).join('');
+  }
+
+  (async function montarGaleria(){
+    // 1) Firestore (gerenciado pelo Admin)
+    if (window._gdb) {
+      try {
+        const snap = await _gdb.collection('galeria').get();
+        GAL_ITENS = snap.docs.map(d => d.data())
+          .sort((a,b) => (b.ts||0) - (a.ts||0))
+          .map(it => it.tipo === 'video'
+            ? { tipo:'video', thumb: it.thumb||'', embed: it.embed, legenda: it.legenda||'' }
+            : { tipo:'foto',  src: it.data || it.url });
+      } catch (e) { /* offline → fallback */ }
+    }
+    // 2) Fallback: array manual
+    if (!GAL_ITENS.length && GALERIA_FOTOS.length) {
+      GAL_ITENS = GALERIA_FOTOS.map(src => ({ tipo:'foto', src }));
+    }
+    _galRender();
+  })();
+
+  let _lbIdx = 0;
+  function lbAbrir(i){ _lbIdx=i; _lbAtualiza(); document.getElementById('lightbox').classList.add('aberto'); document.body.style.overflow='hidden'; }
+  function lbFechar(){
+    document.getElementById('lightbox').classList.remove('aberto');
+    document.body.style.overflow='';
+    const fr = document.getElementById('lb-frame'); if (fr) fr.src = 'about:blank';   // para o vídeo ao fechar
+  }
+  function lbNavegar(d){ _lbIdx=( _lbIdx + d + GAL_ITENS.length ) % GAL_ITENS.length; _lbAtualiza(); }
+  function _lbAtualiza(){
+    const it = GAL_ITENS[_lbIdx];
+    const img = document.getElementById('lb-img');
+    const fr  = document.getElementById('lb-frame');
+    if (it.tipo === 'video') {
+      img.style.display = 'none';
+      fr.style.display = '';
+      fr.src = it.embed + (it.embed.includes('?') ? '&' : '?') + 'autoplay=1';
+    } else {
+      fr.style.display = 'none'; fr.src = '';
+      img.style.display = '';
+      img.src = it.src;
+    }
+    document.getElementById('lb-contador').textContent = (_lbIdx+1)+' / '+GAL_ITENS.length;
+  }
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('lightbox').classList.contains('aberto')) return;
+    if (e.key==='Escape') lbFechar();
+    if (e.key==='ArrowLeft') lbNavegar(-1);
+    if (e.key==='ArrowRight') lbNavegar(1);
+  });
+  </script>
+
+
 
   <!-- ══ INSCRIÇÃO ══════════════════════════════════════════════ -->
   <section class="inscricao" id="inscricao">
@@ -389,13 +549,19 @@
         </div>
       </div>
 
-      <!-- ── CTA Google Forms ── -->
+      <!-- ── CTA Formulários (ativos do Admin) + fallback ── -->
       <div class="forms-cta reveal">
-        <p>
+        <p id="inscricao-forms-intro">
           Preencha o formulário oficial de inscrição pelo Google Forms.
           É rápido e seus dados ficam organizados diretamente com a equipe organizadora!
         </p>
+
+        <!-- Formulários ativos (renderizados via JS a partir do Admin) -->
+        <div id="inscricao-forms-dyn" style="display:none; flex-direction:column; gap:.65rem; align-items:center;"></div>
+
+        <!-- Fallback: aparece se não houver formulários ativos ou o JS/Firebase falhar -->
         <a
+          id="inscricao-forms-fallback"
           href="https://forms.gle/VAdsxWVp7fedCzD76"
           target="_blank"
           rel="noopener noreferrer"
@@ -911,5 +1077,124 @@
         const lc=document.getElementById(s.local); if(lc&&p.cidade) lc.textContent=p.cidade;
       });
     } catch(e){}
+  })();
+
+  // ══════════════════════════════════════════════════
+  // SCROLLSPY — destaca no menu a seção visível
+  // ══════════════════════════════════════════════════
+  (function scrollSpy() {
+    const ids = ['temas','local','galeria','inscricao','faq','loja','links'];
+    const linksPorId = {};
+    ids.forEach(id => { linksPorId[id] = Array.from(document.querySelectorAll('.nav-links a[href="#' + id + '"]')); });
+    const secoes = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (!secoes.length) return;
+
+    function ativar(id) {
+      document.querySelectorAll('.nav-links a.active').forEach(a => a.classList.remove('active'));
+      (linksPorId[id] || []).forEach(a => a.classList.add('active'));
+    }
+
+    const obs = new IntersectionObserver((entries) => {
+      // pega a seção que está cruzando a faixa central do viewport
+      const visivel = entries.filter(e => e.isIntersecting)
+                             .sort((a,b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visivel) ativar(visivel.target.id);
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+
+    secoes.forEach(s => obs.observe(s));
+  })();
+
+  // ══════════════════════════════════════════════════
+  // SEÇÕES PÚBLICAS — liga/desliga via Admin (config/secoes_site)
+  // ══════════════════════════════════════════════════
+  function aplicarSecoesSite(cfg) {
+    cfg = cfg || {};
+    const idsSecoes = ['temas','local','galeria','inscricao','faq','loja','links'];
+    idsSecoes.forEach(id => {
+      const visivel = cfg[id] !== false;            // padrão = visível
+      const sec = document.getElementById(id);
+      if (sec) sec.style.display = visivel ? '' : 'none';
+      // esconde todo link que aponta pra essa seção (menu desktop, mobile e botões CTA)
+      document.querySelectorAll('a[href="#' + id + '"]').forEach(a => {
+        const li = a.closest('li');
+        (li || a).style.display = visivel ? '' : 'none';
+      });
+    });
+    // Cânticos é página separada — só esconde o link do menu
+    const cantVisivel = cfg.canticos !== false;
+    document.querySelectorAll('a[href="canticos.html"]').forEach(a => {
+      const li = a.closest('li');
+      (li || a).style.display = cantVisivel ? '' : 'none';
+    });
+  }
+
+  (function carregarSecoesSite() {
+    // 1) localStorage imediato (offline-first, sem flash)
+    let cfg = {};
+    try { cfg = JSON.parse(localStorage.getItem('abcl-secoes-site')) || {}; } catch (e) {}
+    aplicarSecoesSite(cfg);
+    // 2) Firebase atualiza e re-aplica
+    if (window._gdb) {
+      window._gdb.collection('config').doc('secoes_site').get()
+        .then(doc => {
+          if (doc.exists) {
+            const d = doc.data() || {};
+            localStorage.setItem('abcl-secoes-site', JSON.stringify(d));
+            aplicarSecoesSite(d);
+          }
+        })
+        .catch(() => {});
+    }
+  })();
+
+  // ══════════════════════════════════════════════════
+  // INSCRIÇÃO — exibe os formulários ATIVOS (internos ou link externo)
+  // ══════════════════════════════════════════════════
+  function _btnFormInscricao(f) {
+    const ext  = !!f.urlExterna;
+    const href = ext ? f.urlExterna : ('formulario.html?id=' + f.id);
+    const attr = ext ? ' target="_blank" rel="noopener noreferrer"' : '';
+    const label = f.titulo || 'Formulário de inscrição';
+    return '<a href="' + href + '"' + attr + ' class="btn-forms">'
+      + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'
+      + label + '</a>';
+  }
+
+  function aplicarFormulariosInscricao(lista) {
+    const dyn   = document.getElementById('inscricao-forms-dyn');
+    const fb    = document.getElementById('inscricao-forms-fallback');
+    const intro = document.getElementById('inscricao-forms-intro');
+    if (!dyn) return;
+    const ativos = (Array.isArray(lista) ? lista : []).filter(f => f && f.ativo && !f.excluido);
+    if (ativos.length) {
+      dyn.innerHTML = ativos.map(_btnFormInscricao).join('');
+      dyn.style.display = 'flex';
+      if (fb) fb.style.display = 'none';
+      if (intro) intro.textContent = ativos.length > 1
+        ? 'Escolha o formulário e garanta sua vaga:'
+        : 'Preencha o formulário de inscrição e garanta sua vaga:';
+    } else {
+      // sem formulários ativos → mantém o botão padrão (fallback)
+      dyn.style.display = 'none';
+      if (fb) fb.style.display = '';
+    }
+  }
+
+  (function carregarFormulariosInscricao() {
+    // 1) cache local (instantâneo)
+    let lista = [];
+    try { lista = JSON.parse(localStorage.getItem('abcl-forms-lista')) || []; } catch (e) {}
+    if (lista.length) aplicarFormulariosInscricao(lista);
+    // 2) Firebase (estado real)
+    if (window._gdb) {
+      window._gdb.collection('forms').get()
+        .then(snap => {
+          const vivos = [];
+          snap.forEach(d => { const x = d.data() || {}; if (!x.excluido) vivos.push(x); });
+          localStorage.setItem('abcl-forms-lista', JSON.stringify(vivos));
+          aplicarFormulariosInscricao(vivos);
+        })
+        .catch(() => {});
+    }
   })();
   </script>

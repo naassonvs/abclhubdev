@@ -13,6 +13,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
   <script>
   const firebaseConfig = {
     apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
@@ -23,6 +24,10 @@
     appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
   };
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  // App Check (reCAPTCHA v3) — verifica que a requisição vem do app real. Debug token só em localhost.
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider('6LcYAyUtAAAAAJj1yYLnrmo-MThtvjoXAKiLMiGr'), true); }
+  catch (e) { console.warn('[AppCheck] nao ativado:', (e && (e.code || e.message)) || e); }
   </script>
   <!-- Módulos ABCL -->
   <script src="js/offline-sync.js"></script>
@@ -214,17 +219,19 @@
       border-right: 1px solid var(--borda);
       display: flex;
       flex-direction: column;
-      padding: 1.5rem 1rem;
+      padding: 0.85rem 0.8rem;
       position: sticky;
       top: 0;
       height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .sidebar-logo {
       display: flex; align-items: center; gap: .6rem;
-      padding-bottom: 1.25rem;
+      padding-bottom: .7rem;
       border-bottom: 1px solid var(--borda);
-      margin-bottom: 1.5rem;
+      margin-bottom: .7rem;
     }
 
     .sidebar-logo img { width: 32px; height: 32px; object-fit: contain; }
@@ -241,15 +248,16 @@
       letter-spacing: .2em;
       text-transform: uppercase;
       color: var(--suave);
-      margin-bottom: .5rem;
-      margin-top: 1rem;
+      margin-bottom: .3rem;
+      margin-top: .6rem;
     }
 
     .nav-item {
-      display: flex; align-items: center; gap: .65rem;
-      padding: .6rem .75rem;
+      display: flex; align-items: center; gap: .6rem;
+      padding: .4rem .7rem;
       border-radius: 8px;
       font-size: .84rem;
+      line-height: 1.2;
       color: var(--suave);
       cursor: pointer;
       transition: background .15s, color .15s;
@@ -511,9 +519,34 @@
     }
 
     .login-box.shake { animation: shake 0.4s ease; }
+
+    /* ── Toggle slider On/Off reutilizável (verde=ativo / vermelho=inativo) ── */
+    .tgl { position: relative; display: inline-block; vertical-align: middle; width: 64px; height: 28px; cursor: pointer; flex-shrink: 0; }
+    .tgl-input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .tgl-label { position: relative; display: block; height: 100%; border-radius: 99px; background: #b54b4b; transition: background .2s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
+    .tgl-label::before, .tgl-label::after { position: absolute; top: 50%; transform: translateY(-50%); font-size: .6rem; font-weight: 700; letter-spacing: .04em; line-height: 1; }
+    .tgl-label::before { content: attr(data-off); right: 9px;  color: rgba(255,255,255,.92); }
+    .tgl-label::after  { content: attr(data-on);  left: 9px;   color: #fff; opacity: 0; }
+    .tgl-input:checked + .tgl-label { background: #3f9e57; }
+    .tgl-input:checked + .tgl-label::before { opacity: 0; }
+    .tgl-input:checked + .tgl-label::after  { opacity: 1; }
+    .tgl-handle { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: left .2s ease; }
+    .tgl-input:checked ~ .tgl-handle { left: 39px; }
+
+    /* ── Gráficos de respostas (barras) ── */
+    .rb-row { display:flex; align-items:center; gap:.6rem; margin:.4rem 0; font-size:.78rem; }
+    .rb-label { flex:0 0 36%; color:var(--texto); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rb-track { flex:1; background:rgba(255,255,255,.06); border-radius:6px; height:18px; overflow:hidden; }
+    .rb-fill { height:100%; background:linear-gradient(90deg, var(--verde-mid,#40916C), var(--verde-claro,#74C69D)); border-radius:6px; transition:width .4s ease; }
+    .rb-count { flex:0 0 auto; color:var(--suave); font-variant-numeric:tabular-nums; min-width:60px; text-align:right; }
   </style>
 </head>
 <body>
+
+<!-- Splash: cobre a tela até decidirmos login x admin (evita "piscar") -->
+<div id="splash-screen" style="position:fixed;inset:0;z-index:10000;background:var(--fundo);display:flex;align-items:center;justify-content:center;">
+  <img src="assets/logo-abcl.svg" alt="" style="width:56px;height:56px;opacity:.85;" onerror="this.style.display='none'"/>
+</div>
 
 <!-- ══ LOGIN ══════════════════════════════════════════════════ -->
 <div id="login-screen">
@@ -532,19 +565,46 @@
 
     <div class="divider"><span>OU</span></div>
 
+    <div class="field" id="campo-nome" style="display:none;">
+      <label>Nome completo</label>
+      <input type="text" id="login-nome" placeholder="Seu nome" autocomplete="name"
+             onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
     <div class="field">
       <label>E-mail</label>
       <input type="email" id="login-user" placeholder="seu@email.com" autocomplete="email" />
     </div>
     <div class="field">
       <label>Senha</label>
-      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
-             onkeydown="if(event.key==='Enter') doLogin()" />
+      <div style="position:relative;">
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"
+               style="width:100%;padding-right:2.6rem;"
+               onkeydown="if(event.key==='Enter') doLogin()" />
+        <button type="button" id="olho-senha" onclick="toggleSenhaVisivel('login-pass','olho-senha')" title="Mostrar/ocultar senha" aria-label="Mostrar ou ocultar senha"
+          style="position:absolute;top:50%;right:.55rem;transform:translateY(-50%);background:none;border:none;color:var(--suave);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:.2rem;line-height:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="field" id="campo-confirmar" style="display:none;">
+      <label>Confirmar senha</label>
+      <div style="position:relative;">
+        <input type="password" id="login-pass2" placeholder="••••••••" autocomplete="new-password"
+               style="width:100%;padding-right:2.6rem;"
+               onkeydown="if(event.key==='Enter') doLogin()" />
+        <button type="button" id="olho-senha2" onclick="toggleSenhaVisivel('login-pass2','olho-senha2')" title="Mostrar/ocultar senha" aria-label="Mostrar ou ocultar senha"
+          style="position:absolute;top:50%;right:.55rem;transform:translateY(-50%);background:none;border:none;color:var(--suave);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:.2rem;line-height:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
     </div>
     <button class="btn btn-solid" id="btn-entrar" onclick="doLogin()"
       style="width:100%;padding:.85rem;margin-top:.5rem;justify-content:center;font-size:.85rem;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.3);letter-spacing:.04em;">
       Entrar
     </button>
+    <p id="login-toggle" style="font-size:.78rem;color:var(--suave);text-align:center;margin-top:1rem;">
+      Não tem conta? <a onclick="toggleModoLogin()" id="login-toggle-link" style="color:var(--verde-claro);cursor:pointer;text-decoration:underline;">Criar conta</a>
+    </p>
     <p style="font-size:.7rem;color:rgba(240,237,230,.25);text-align:center;margin-top:1.25rem;">
       Apenas membros autorizados da organização.
     </p>
@@ -566,29 +626,29 @@
       <div class="sidebar-logo">
         <img src="assets/logo-abcl.svg" alt="ABCL" />
         <span>ABCL Admin</span>
+        <button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro"
+          style="margin-left:auto;width:30px;height:30px;border-radius:50%;border:1px solid var(--borda);background:var(--card2);cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s;"
+          onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
       </div>
 
       <div class="nav-label">Geral</div>
-      <button class="nav-item active" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
-      <button class="nav-item" onclick="switchTab('links', this)">🔗 Hub de Links</button>
-      <button class="nav-item" onclick="switchTab('preletores', this)">🎤 Preletores</button>
-      <button class="nav-item" onclick="switchTab('conteudo', this)">✏️ Conteúdo</button>
-      <button class="nav-item" onclick="switchTab('visual', this)">🎨 Visual</button>
-      <button class="nav-item" onclick="switchTab('visitas', this)">📊 Visitas</button>
-      <button class="nav-item" onclick="switchTab('insights', this)">💡 Insights</button>
+      <button class="nav-item active" data-tela="dashboard" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+      <button class="nav-item" data-tela="links" onclick="switchTab('links', this)">🔗 Hub de Links</button>
+      <button class="nav-item" data-tela="preletores" onclick="switchTab('preletores', this)">🎤 Temas &amp; Preletores</button>
+      <button class="nav-item" data-tela="conteudo" onclick="switchTab('conteudo', this)">✏️ Conteúdo</button>
+      <button class="nav-item" data-tela="visual" onclick="switchTab('visual', this)">🎨 Visual</button>
+      <button class="nav-item" data-tela="visitas" onclick="switchTab('visitas', this)">📊 Visitas</button>
+      <button class="nav-item" data-tela="insights" onclick="switchTab('insights', this)">💡 Insights</button>
 
       <div class="nav-label">Ferramentas</div>
-      <button class="nav-item" onclick="window.open('vendinha.html','_blank')">🛒 Vendinha</button>
-      <button class="nav-item" onclick="window.open('livraria.html','_blank')">📚 Livraria</button>
-      <button class="nav-item" onclick="window.open('canticos.html','_blank')">🎵 Cânticos</button>
-      <button class="nav-item" onclick="switchTab('gestao-canticos', this)">⚙️ Gerir Cânticos</button>
-      <button class="nav-item" onclick="window.open('loja.html','_blank')">🛍️ Loja</button>
-      <button class="nav-item" onclick="switchTab('gestao-loja', this)">⚙️ Gerir Loja</button>
-      <button class="nav-item" onclick="window.open('financeiro.html','_blank')">💰 Financeiro</button>
-      <button class="nav-item" onclick="switchTab('formularios', this)">📝 Formulários</button>
-      <button class="nav-item" onclick="switchTab('importar-acampantes', this)">👥 Importar Acampantes</button>
-      <button class="nav-item" onclick="window.open('links.html','_blank')">👁 Ver Hub</button>
-      <button class="nav-item" onclick="window.open('index.html','_blank')">🌐 Ver Site</button>
+      <button class="nav-item" data-tela="vendinha" onclick="window.open('vendinha.html','_blank')">🛒 Vendinha</button>
+      <button class="nav-item" data-tela="livraria" onclick="window.open('livraria.html','_blank')">📚 Livraria</button>
+      <button class="nav-item" data-tela="galeria-midias" onclick="switchTab('galeria-midias', this)">🖼 Galeria / Mídias / Cânticos</button>
+      <button class="nav-item" data-tela="gestao-loja" onclick="switchTab('gestao-loja', this)">🛍️ Loja</button>
+      <button class="nav-item" data-tela="financeiro" onclick="window.open('financeiro.html','_blank')">💰 Financeiro</button>
+      <button class="nav-item" data-tela="formularios" onclick="switchTab('formularios', this)">📝 Formulários</button>
+      <button class="nav-item" data-tela="importar-acampantes" onclick="switchTab('importar-acampantes', this)">👥 Importar Acampantes</button>
+      <button class="nav-item" data-tela="ver-site" onclick="window.open('index.html','_blank')">🌐 Ver Site</button>
 
       <div id="nav-sistema" style="display:none;">
         <div class="nav-label">Sistema</div>
@@ -653,7 +713,7 @@
           <h2>⚡ Acesso rápido</h2>
           <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.75rem;">
             <button class="btn btn-ghost" onclick="switchTab('links', document.querySelector('.nav-item[onclick*=\'links\']'))" style="justify-content:center; padding:.85rem;">🔗 Editar Links</button>
-            <button class="btn btn-ghost" onclick="switchTab('preletores', document.querySelector('.nav-item[onclick*=\'preletores\']'))" style="justify-content:center; padding:.85rem;">🎤 Preletores</button>
+            <button class="btn btn-ghost" onclick="switchTab('preletores', document.querySelector('.nav-item[onclick*=\'preletores\']'))" style="justify-content:center; padding:.85rem;">🎤 Temas &amp; Preletores</button>
             <button class="btn btn-ghost" onclick="switchTab('conteudo', document.querySelector('.nav-item[onclick*=\'conteudo\']'))" style="justify-content:center; padding:.85rem;">✏️ Conteúdo</button>
             <button class="btn btn-solid" onclick="window.open('vendinha.html','_blank')" style="justify-content:center; padding:.85rem;">🛒 Abrir Vendinha</button>
             <button class="btn btn-ghost" onclick="window.open('livraria.html','_blank')" style="justify-content:center; padding:.85rem;">📚 Livraria</button>
@@ -699,7 +759,10 @@
       <div class="tab" id="tab-links">
         <div class="page-header">
           <div><h1>Hub de Links</h1><p>Gerencie os links exibidos na página /links</p></div>
-          <button class="btn btn-solid btn-sm" onclick="openLinkModal()">+ Novo link</button>
+          <div style="display:flex;gap:.5rem;">
+            <button class="btn btn-ghost btn-sm" onclick="window.open('links.html','_blank')">👁 Ver Hub</button>
+            <button class="btn btn-solid btn-sm" onclick="openLinkModal()">+ Novo link</button>
+          </div>
         </div>
 
         <div class="section-card">
@@ -715,15 +778,15 @@
         </div>
       </div>
 
-      <!-- ══ PRELETORES ══ -->
+      <!-- ══ TEMAS & PRELETORES ══ -->
       <div class="tab" id="tab-preletores">
         <div class="page-header">
-          <div><h1>Preletores</h1><p>Adicione e edite os preletores do acampamento</p></div>
+          <div><h1>Temas &amp; Preletores</h1><p>Cada preletor define o tema que prega — é isso que alimenta a seção "Temas" do site</p></div>
           <button class="btn btn-solid btn-sm" onclick="openPrelModal()">+ Novo preletor</button>
         </div>
 
         <div class="section-card">
-          <h2>🎤 Preletores cadastrados</h2>
+          <h2>🎤 Preletores &amp; seus temas</h2>
           <div id="prel-list"></div>
         </div>
       </div>
@@ -731,7 +794,7 @@
       <!-- ══ CONTEÚDO ══ -->
       <div class="tab" id="tab-conteudo">
         <div class="page-header">
-          <div><h1>Conteúdo do Site</h1><p>Edite textos, datas e informações do evento</p></div>
+          <div><h1>Conteúdo do Site</h1><p>Edite textos, datas e informações do evento (os temas ficam em Temas &amp; Preletores)</p></div>
           <button class="btn btn-solid btn-sm" onclick="saveConteudo()">💾 Salvar tudo</button>
         </div>
 
@@ -763,17 +826,11 @@
         </div>
 
         <div class="section-card">
-          <h2>📝 Temas</h2>
-          <div style="margin-bottom:1.25rem; padding-bottom:1.25rem; border-bottom:1px solid var(--borda);">
-            <strong style="font-size:.82rem; color:var(--verde-claro);">Tema 1</strong>
-            <div class="field" style="margin-top:.75rem;"><label>Título</label><input type="text" id="t1-titulo" placeholder="Amar a Família de Deus" /></div>
-            <div class="field"><label>Subtítulo / livro</label><input type="text" id="t1-sub" placeholder="Um estudo sobre a Igreja Local..." /></div>
-          </div>
-          <div>
-            <strong style="font-size:.82rem; color:var(--verde-claro);">Tema 2</strong>
-            <div class="field" style="margin-top:.75rem;"><label>Título</label><input type="text" id="t2-titulo" placeholder="A Relativização da Verdade" /></div>
-            <div class="field"><label>Subtítulo / livro</label><input type="text" id="t2-sub" placeholder="Estudos sobre os tempos em que vivemos" /></div>
-          </div>
+          <h2>👁 Seções públicas do site</h2>
+          <p style="font-size:.73rem; color:var(--suave); margin-bottom:1rem;">
+            Ligue ou desligue seções do site público. Desligada, a seção e seu item no menu somem do site — útil para manutenção ou ajustes pontuais. Vale na hora (e sincroniza no Firebase).
+          </p>
+          <div id="secoes-site-lista"></div>
         </div>
       </div>
 
@@ -991,6 +1048,16 @@
             </div>
             <div class="field"><label>Imagem de capa (URL ou base64)</label><input type="text" id="form-capa" placeholder="https://..." /></div>
 
+            <!-- Destino: interno ou link externo -->
+            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
+              <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">🔗 Destino do formulário</div>
+              <div class="field" style="margin-bottom:.4rem;">
+                <label>Link externo (Google Forms, opcional)</label>
+                <input type="url" id="form-url-externa" placeholder="https://forms.gle/..." />
+              </div>
+              <div style="font-size:.65rem;color:var(--suave);">Vazio → o site abre o <strong>nosso formulário interno</strong>. Preenchido → o site abre <strong>este link</strong>.</div>
+            </div>
+
             <!-- Vagas e fila de espera -->
             <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
               <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);margin-bottom:.65rem;">🎟️ Vagas e controle</div>
@@ -1064,6 +1131,37 @@
               <button class="btn btn-ghost btn-sm" onclick="renderPreview()">↺ Atualizar</button>
             </div>
             <div id="form-preview" style="background:var(--card2);border-radius:10px;padding:1.25rem;border:1px solid var(--borda);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA: RESPOSTAS (inscrições por formulário · ao vivo do Firestore) -->
+      <div class="tab" id="tab-respostas">
+        <button class="btn btn-ghost btn-sm" onclick="switchTab('formularios', document.querySelector('[data-tela=formularios]'))" style="margin-bottom:.85rem;color:var(--suave);padding-left:0;">← Formulários</button>
+        <div class="page-header">
+          <div>
+            <h1 id="resp-titulo">📊 Respostas</h1>
+            <p id="resp-sub">Inscrições recebidas — lidas ao vivo do banco de dados</p>
+          </div>
+          <div style="display:flex;gap:.5rem;">
+            <button class="btn btn-ghost btn-sm" onclick="recarregarRespostas()">↻ Atualizar</button>
+            <button class="btn btn-solid btn-sm" onclick="exportarRespostasCSV()">⬇ Exportar CSV</button>
+          </div>
+        </div>
+
+        <div id="resp-loading" style="text-align:center;padding:3rem;color:var(--suave);">Carregando do Firebase…</div>
+        <div id="resp-erro" style="display:none;text-align:center;padding:2rem;color:#fca5a5;"></div>
+        <div id="resp-vazio" style="display:none;text-align:center;padding:3rem;color:var(--suave);">Nenhuma inscrição recebida ainda para este formulário.</div>
+
+        <div id="resp-conteudo" style="display:none;">
+          <div class="grid-3" id="resp-kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"></div>
+          <div id="resp-graficos"></div>
+          <div class="section-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+              <h2 style="margin:0;">📋 Inscritos <span id="resp-tabela-count" style="font-size:.72rem;color:var(--suave);font-weight:400;"></span></h2>
+              <input type="text" id="resp-busca" placeholder="🔍 Buscar por nome, código ou telefone…" oninput="_filtrarRespostas()" style="max-width:280px;width:100%;padding:.5rem .8rem;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:8px;color:var(--texto);font-size:.85rem;outline:none;" />
+            </div>
+            <div id="resp-tabela"></div>
           </div>
         </div>
       </div>
@@ -1184,7 +1282,51 @@
       </div>
 
       <!-- ══ GESTÃO CÂNTICOS ══ -->
+      <!-- ══ GALERIA & MÍDIAS ══ -->
+      <div class="tab" id="tab-galeria-midias">
+        <div class="tab-header">
+          <div>
+            <h1>🖼 Galeria &amp; Mídias</h1>
+            <p>Fotos e vídeos exibidos na seção "Momentos" do site</p>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-sm" id="gm-tab-fotos"  onclick="gmSubTab('fotos')"  style="border:1px solid var(--borda);">📷 Fotos</button>
+          <button class="btn btn-sm" id="gm-tab-videos" onclick="gmSubTab('videos')" style="border:1px solid var(--borda);">🎬 Vídeos</button>
+          <button class="btn btn-sm btn-ghost" id="gm-link-canticos" onclick="switchTab('gestao-canticos', document.querySelector('[data-tela=galeria-midias]'))" style="border:1px solid var(--borda);">🎵 Gerir Cânticos →</button>
+        </div>
+
+        <!-- FOTOS -->
+        <div id="gm-painel-fotos">
+          <div class="card" style="margin-bottom:1.25rem;">
+            <label for="gm-input-fotos" style="display:block;border:2px dashed var(--borda);border-radius:10px;padding:1.6rem;text-align:center;cursor:pointer;color:var(--suave);">
+              📤 <b>Clique para enviar fotos</b> (pode selecionar várias)<br>
+              <span style="font-size:.72rem;">As imagens são comprimidas automaticamente antes de salvar — economia de espaço no Firebase.</span>
+            </label>
+            <input type="file" id="gm-input-fotos" accept="image/*" multiple style="display:none;" onchange="gmUploadFotos(this.files)" />
+            <div id="gm-upload-status" style="margin-top:.75rem;font-size:.78rem;color:var(--suave);"></div>
+          </div>
+          <div id="gm-grid-fotos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.75rem;"></div>
+        </div>
+
+        <!-- VÍDEOS -->
+        <div id="gm-painel-videos" style="display:none;">
+          <div class="card" style="margin-bottom:1.25rem;">
+            <label style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);">Link do vídeo (YouTube ou Vimeo)</label>
+            <div style="display:flex;gap:.5rem;margin-top:.4rem;flex-wrap:wrap;">
+              <input type="text" id="gm-video-url" placeholder="https://youtube.com/watch?v=..." style="flex:1;min-width:220px;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.6rem .8rem;color:var(--texto);" />
+              <input type="text" id="gm-video-legenda" placeholder="Legenda (opcional)" style="width:200px;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.6rem .8rem;color:var(--texto);" />
+              <button class="btn btn-solid btn-sm" onclick="gmAddVideo()">➕ Adicionar</button>
+            </div>
+            <div style="font-size:.7rem;color:var(--suave);margin-top:.5rem;">O vídeo é exibido na galeria do site e abre no player ao clicar. Links não ocupam espaço no Firebase.</div>
+          </div>
+          <div id="gm-grid-videos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;"></div>
+        </div>
+      </div>
+
       <div class="tab" id="tab-gestao-canticos">
+        <button class="btn btn-ghost btn-sm" onclick="switchTab('galeria-midias', document.querySelector('[data-tela=galeria-midias]'))" style="margin-bottom:.85rem;color:var(--suave);padding-left:0;">← Galeria &amp; Mídias</button>
         <div class="page-header">
           <div><h1>🎶 Gestão de Cânticos</h1><p>Letras, hinários e links de apresentação PPT</p></div>
           <div style="display:flex;gap:.5rem;">
@@ -1266,7 +1408,7 @@
               </div>
               <div style="display:flex;align-items:center;gap:.5rem;">
                 <span style="font-size:.7rem;background:rgba(64,145,108,.15);color:var(--verde-claro);padding:.2rem .6rem;border-radius:99px;">● Ativo</span>
-                <button class="btn btn-ghost btn-sm" onclick="toast('💡 Para restringir domínios: Firestore Rules ou Cloud Function onCreate.')">Configurar</button>
+                <button class="btn btn-ghost btn-sm" onclick="toast('💡 Firebase Console → Authentication → Sign-in method (ativar Google) e Users (gerenciar contas).')">Configurar</button>
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;border-bottom:1px solid var(--borda);">
@@ -1279,7 +1421,7 @@
               </div>
               <div style="display:flex;align-items:center;gap:.5rem;">
                 <span style="font-size:.7rem;background:rgba(64,145,108,.15);color:var(--verde-claro);padding:.2rem .6rem;border-radius:99px;">● Ativo</span>
-                <button class="btn btn-ghost btn-sm" onclick="toast('💡 Firebase Console → Authentication → Templates.')">Configurar</button>
+                <button class="btn btn-ghost btn-sm" onclick="toast('💡 Firebase Console → Authentication → Sign-in method (ativar E-mail/senha) e Users (criar/gerenciar contas).')">Configurar</button>
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;">
@@ -1481,6 +1623,7 @@
           <option value="textarea">Texto longo</option>
           <option value="radio">Escolha única (radio)</option>
           <option value="checkbox">Múltipla escolha</option>
+          <option value="financeiro">💰 Vínculo financeiro (R$)</option>
           <option value="select">Lista suspensa</option>
           <option value="numero">Número</option>
           <option value="secao">Seção / Cabeçalho</option>
@@ -1515,6 +1658,10 @@
     <div class="field" id="pq-field-opcoes" style="display:none;">
       <label>Opções <span style="font-size:.65rem;font-weight:400;color:var(--suave);">— uma por linha</span></label>
       <textarea id="pq-opcoes" rows="6" placeholder="Sim&#10;Não&#10;Talvez"></textarea>
+      <div id="pq-dica-fin" style="display:none;font-size:.7rem;color:var(--amarelo);margin-top:.4rem;line-height:1.45;">
+        💰 Escreva cada opção no formato <b>"Descrição — R$ 0,00"</b> (ex.: <i>Estadia completa — R$ 200,00</i>).<br>
+        O valor selecionado soma no <b>total da inscrição</b> e alimenta a tela <b>Financeiro</b>.
+      </div>
     </div>
 
     <!-- Imagem -->
@@ -1616,12 +1763,10 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 
 // Usuários fallback (se Firebase falhar ou estiver offline)
-const FALLBACK_USERS = {
-  'naasson@abcl.com':  'abcl2026',
-  'haniel@abcl.com':   'abcl2026',
-  'mauri@abcl.com':    'abcl2026',
-  'admin@abcl.com':    'abcl@admin',
-};
+// Credenciais de fallback removidas por segurança: senhas em texto puro no
+// cliente são visíveis no código-fonte. O acesso agora é 100% via Firebase Auth.
+// Usuários já autenticados continuam entrando offline pela sessão persistida do Firebase.
+
 
 // ── LOGIN COM GOOGLE ──
 async function loginComGoogle() {
@@ -1652,58 +1797,123 @@ async function loginComGoogle() {
 }
 
 // ── LOGIN COM EMAIL/SENHA ──
+// Modo da tela de login: 'entrar' (padrão) ou 'criar' (auto-cadastro por e-mail)
+let _loginModo = 'entrar';
+
+function setModoLogin(modo, limparErro) {
+  _loginModo = modo;
+  const btn  = document.getElementById('btn-entrar');
+  const link = document.getElementById('login-toggle-link');
+  const p    = document.getElementById('login-toggle');
+  const pass = document.getElementById('login-pass');
+  const conf = document.getElementById('campo-confirmar');
+  const nome = document.getElementById('campo-nome');
+  if (limparErro !== false) { const e = document.getElementById('login-error'); if (e) e.style.display = 'none'; }
+  if (modo === 'criar') {
+    if (btn)  btn.textContent = 'Criar conta';
+    if (p)    p.firstChild.textContent = 'Já tem conta? ';
+    if (link) link.textContent = 'Entrar';
+    if (pass) pass.setAttribute('autocomplete', 'new-password');
+    if (conf) conf.style.display = '';
+    if (nome) nome.style.display = '';
+  } else {
+    if (btn)  btn.textContent = 'Entrar';
+    if (p)    p.firstChild.textContent = 'Não tem conta? ';
+    if (link) link.textContent = 'Criar conta';
+    if (pass) pass.setAttribute('autocomplete', 'current-password');
+    if (conf) conf.style.display = 'none';
+    if (nome) nome.style.display = 'none';
+  }
+}
+
+function toggleModoLogin() {
+  setModoLogin(_loginModo === 'entrar' ? 'criar' : 'entrar', true);
+}
+
+// Mostra/oculta a senha (olho aberto = visível, olho cortado = oculta)
+function toggleSenhaVisivel(inpId, btnId) {
+  const inp = document.getElementById(inpId || 'login-pass');
+  const btn = document.getElementById(btnId || 'olho-senha');
+  if (!inp || !btn) return;
+  const mostrar = (inp.type === 'password');
+  inp.type = mostrar ? 'text' : 'password';
+  btn.innerHTML = mostrar
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+}
+
 async function doLogin() {
   const email = document.getElementById('login-user').value.trim().toLowerCase();
   const senha = document.getElementById('login-pass').value;
 
-  if (!email || !senha) {
-    mostrarErro('Digite e-mail e senha');
+  if (!email || !senha) { mostrarErro('Digite e-mail e senha'); return; }
+
+  if (!navigator.onLine) {
+    mostrarErro('É necessário estar online para entrar ou criar conta.');
     return;
   }
+
+  const criando = (_loginModo === 'criar');
+  if (criando && senha.length < 6) {
+    mostrarErro('A senha precisa de ao menos 6 caracteres.');
+    return;
+  }
+  if (criando) {
+    const senha2 = (document.getElementById('login-pass2') || {}).value || '';
+    if (senha !== senha2) { mostrarErro('As senhas não coincidem.'); return; }
+  }
+  const nome = (document.getElementById('login-nome')?.value || '').trim();
+  if (criando && nome.length < 2) { mostrarErro('Digite seu nome completo.'); return; }
 
   const btn = document.getElementById('btn-entrar');
   const textoOriginal = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = `<div style="display:inline-flex;align-items:center;gap:.6rem;">
     <div style="width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;"></div>
-    Entrando…
+    ${criando ? 'Criando…' : 'Entrando…'}
   </div>`;
 
-  const restaurarBtn = () => {
-    btn.disabled = false;
-    btn.innerHTML = textoOriginal;
-  };
+  const restaurarBtn = () => { btn.disabled = false; btn.innerHTML = textoOriginal; };
 
   try {
-    if (navigator.onLine) {
-      const userCredential = await auth.signInWithEmailAndPassword(email, senha);
-      await verificarPerfilUsuario(userCredential.user);
-      // Restaura botão se ainda estiver na tela de login (acesso bloqueado/pendente)
-      if (document.getElementById('login-screen').style.display !== 'none') {
-        restaurarBtn();
-      }
-    } else {
-      if (FALLBACK_USERS[email] && FALLBACK_USERS[email] === senha) {
-        entrarNoSistema(email.split('@')[0], null);
-      } else {
-        mostrarErro('Credenciais inválidas ou é necessário estar online para primeiro acesso');
-        restaurarBtn();
+    const cred = criando
+      ? await auth.createUserWithEmailAndPassword(email, senha)
+      : await auth.signInWithEmailAndPassword(email, senha);
+    // Grava o nome no perfil do Firebase Auth (e usa como fallback no doc pendente)
+    if (criando && nome) { try { await cred.user.updateProfile({ displayName: nome }); } catch (e) {} }
+    // verificarPerfilUsuario: 1º acesso cria pedido pendente e desloga; bloqueado/pendente avisa; aprovado entra
+    await verificarPerfilUsuario(cred.user, criando ? nome : undefined);
+    if (document.getElementById('login-screen').style.display !== 'none') {
+      restaurarBtn();
+      // Após criar conta (segue pendente), volta o formulário para "Entrar" — mantém o aviso de aprovação
+      if (criando) {
+        setModoLogin('entrar', false);
+        document.getElementById('login-pass').value = '';
+        const p2 = document.getElementById('login-pass2'); if (p2) p2.value = '';
+        const nm = document.getElementById('login-nome'); if (nm) nm.value = '';
       }
     }
   } catch (erro) {
     console.error('Erro no login:', erro);
-    if (FALLBACK_USERS[email] && FALLBACK_USERS[email] === senha) {
-      entrarNoSistema(email.split('@')[0], null);
-    } else {
-      mostrarErro('E-mail ou senha incorretos');
-      restaurarBtn();
-    }
+    const code = erro && erro.code;
+    let msg = criando ? 'Não foi possível criar a conta.' : 'E-mail ou senha incorretos.';
+    if      (code === 'auth/email-already-in-use')   msg = 'Este e-mail já está cadastrado. Use "Entrar".';
+    else if (code === 'auth/weak-password')          msg = 'A senha precisa de ao menos 6 caracteres.';
+    else if (code === 'auth/invalid-email')          msg = 'E-mail inválido.';
+    else if (code === 'auth/network-request-failed') msg = 'Falha de rede. Verifique a conexão.';
+    else if (code === 'auth/too-many-requests')      msg = 'Muitas tentativas. Aguarde alguns instantes.';
+    mostrarErro(msg);
+    restaurarBtn();
   }
 }
 
 // ── VERIFICAR PERFIL NO FIRESTORE ──
-async function verificarPerfilUsuario(user) {
+async function verificarPerfilUsuario(user, nomeManual) {
   try {
+    // Sessões ANÔNIMAS (login do PDV vendinha/livraria via firebase-auth-patch)
+    // não são pedidos de acesso de coordenador. Ignora para não poluir a Gestão de Acessos.
+    if (user.isAnonymous) { return; }
+
     // Garante dados mais completos possíveis do Firebase Auth
     await user.reload().catch(() => {});
 
@@ -1713,6 +1923,7 @@ async function verificarPerfilUsuario(user) {
       || '';
     const nome  = user.displayName
       || user.providerData?.[0]?.displayName
+      || (nomeManual || '').trim()
       || '';
     const isGoogle = user.providerData?.some(p => p.providerId === 'google.com');
     const provedor = isGoogle ? 'google' : 'email';
@@ -1782,34 +1993,48 @@ async function verificarPerfilUsuario(user) {
 }
 
 // ── ENTRAR NO SISTEMA ──
-function entrarNoSistema(nomeUsuario, firebaseUser) {
+function hideSplash() {
+  const s = document.getElementById('splash-screen');
+  if (s) s.style.display = 'none';
+}
+
+async function entrarNoSistema(nomeUsuario, firebaseUser) {
   sessionStorage.setItem('abcl-auth', nomeUsuario);
-  if (firebaseUser) {
-    sessionStorage.setItem('abcl-auth-uid', firebaseUser.uid);
-  }
-  
+  if (firebaseUser) sessionStorage.setItem('abcl-auth-uid', firebaseUser.uid);
+
+  document.getElementById('user-name-display').textContent = nomeUsuario;
+  // Monta a interface e aplica perfil/permissões ANTES de exibir — evita o "piscar"
+  // de telas que o coordenador não pode ver.
+  try { initAdmin(); await aplicarVisibilidadePorPerfil(); }
+  catch (e) { console.error('Erro ao montar admin:', e); }
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('admin-screen').style.display = 'block';
-  document.getElementById('user-name-display').textContent = nomeUsuario;
-  initAdmin();
-  aplicarVisibilidadePorPerfil();
+  hideSplash();
 }
 
 // ── MOSTRAR ERRO ──
 function mostrarErro(mensagem) {
+  hideSplash(); // garante a tela de login visível (ela ficava atrás do splash)
+  const loginScreen = document.getElementById('login-screen');
+  if (loginScreen) loginScreen.style.display = '';
+  const adminScreen = document.getElementById('admin-screen');
+  if (adminScreen) adminScreen.style.display = 'none';
+
   const erro = document.getElementById('login-error');
   erro.textContent = mensagem;
   erro.style.display = 'block';
 
   // Shake no card
   const box = document.querySelector('.login-box');
-  box.classList.remove('shake');
-  void box.offsetWidth; // força reflow para reiniciar animação
-  box.classList.add('shake');
+  if (box) {
+    box.classList.remove('shake');
+    void box.offsetWidth; // força reflow para reiniciar animação
+    box.classList.add('shake');
+  }
 
   setTimeout(() => {
     erro.style.display = 'none';
-    box.classList.remove('shake');
+    if (box) box.classList.remove('shake');
   }, 5000);
 }
 
@@ -1821,26 +2046,45 @@ function doLogout() {
   location.reload();
 }
 
+// ── TEMA CLARO/ESCURO ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const novo = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  html.setAttribute('data-theme', novo);
+  try { localStorage.setItem('abcl-admin-theme', novo); } catch (e) {}
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = (novo === 'light') ? '🌙' : '☀️';
+}
+
+function _restaurarTema() {
+  let t = 'dark';
+  try { t = localStorage.getItem('abcl-admin-theme') || 'dark'; } catch (e) {}
+  document.documentElement.setAttribute('data-theme', t);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = (t === 'light') ? '🌙' : '☀️';
+}
+window.addEventListener('DOMContentLoaded', _restaurarTema);
+
 // ── CHECK SESSION ON LOAD ──
 window.addEventListener('DOMContentLoaded', () => {
   const u = sessionStorage.getItem('abcl-auth');
-  
-  // Se já tem sessão salva, entra direto
-  if (u) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'block';
-    document.getElementById('user-name-display').textContent = u;
-    initAdmin();
-    aplicarVisibilidadePorPerfil(); // ← garante seção SISTEMA visível após reload
-    return;
-  }
 
-  // Verifica se Firebase tem usuário logado
+  // Sessão já ativa nesta aba → entra direto (entrarNoSistema espera o perfil antes de exibir)
+  if (u) { entrarNoSistema(u, null); return; }
+
+  // Aguarda o Firebase decidir; o splash continua cobrindo (sem piscar o login)
+  let resolvido = false;
   auth.onAuthStateChanged((user) => {
-    if (user) {
-      verificarPerfilUsuario(user);
+    resolvido = true;
+    if (user && !user.isAnonymous) {
+      verificarPerfilUsuario(user); // entra (entrarNoSistema) ou revela login (mostrarErro)
+    } else {
+      hideSplash(); // sem usuário → mostra a tela de login
     }
   });
+
+  // Fallback: se o Firebase não responder (offline sem cache), libera a tela de login
+  setTimeout(() => { if (!resolvido) hideSplash(); }, 4000);
 });
 
 // Adiciona animação de spin para loading
@@ -1885,8 +2129,6 @@ const DEFAULT_CONT = {
   idade:'A partir de 14 anos', estadia:'185', diaria:'60', inscricao:'A partir de 1º de Junho',
   forms:'https://forms.gle/VAdsxWVp7fedCzD76', whats:'5531988262599',
   versiculo:'Efésios 2:19',
-  t1titulo:'Amar a Família de Deus', t1sub:'Um estudo sobre a Igreja Local — Composição, Propósito e Futuro',
-  t2titulo:'A Relativização da Verdade', t2sub:'Estudos sobre os tempos em que vivemos',
 };
 
 function getLinks() { return get('abcl-links') || DEFAULT_LINKS; }
@@ -1901,6 +2143,7 @@ function initAdmin() {
   renderLinks();
   renderPrels();
   loadConteudo();
+  renderSecoesSite();
   loadVisual();
   renderLojaStats();
   renderProdutosAdmin();
@@ -1921,15 +2164,24 @@ async function verificarPendentes() {
       .where('aprovado', '==', false)
       .where('bloqueado', '==', false)
       .get();
+    // Conta só pedidos REAIS — exclui sessões anônimas (sem nome e sem e-mail)
+    const reais = snap.docs.filter(d => !_gaEhFantasma(d.data())).length;
     const badge = document.getElementById('ga-badge-pendentes');
     if (!badge) return;
-    if (snap.size > 0) {
-      badge.textContent = snap.size;
+    if (reais > 0) {
+      badge.textContent = reais;
       badge.style.display = 'inline-block';
     } else {
       badge.style.display = 'none';
     }
   } catch(e) { /* silencioso */ }
+}
+
+// Um "fantasma" é um doc pendente criado por sessão anônima do PDV: sem nome e sem e-mail.
+function _gaEhFantasma(u) {
+  return !u.aprovado && !u.bloqueado
+      && !(u.email && String(u.email).trim())
+      && !(u.nome  && String(u.nome).trim());
 }
 
 // ── DASHBOARD ──
@@ -2297,10 +2549,6 @@ function loadConteudo() {
   document.getElementById('c-forms').value     = c.forms;
   document.getElementById('c-whats').value     = c.whats;
   document.getElementById('c-versiculo').value = c.versiculo;
-  document.getElementById('t1-titulo').value   = c.t1titulo;
-  document.getElementById('t1-sub').value      = c.t1sub;
-  document.getElementById('t2-titulo').value   = c.t2titulo;
-  document.getElementById('t2-sub').value      = c.t2sub;
 }
 
 function saveConteudo() {
@@ -2316,14 +2564,67 @@ function saveConteudo() {
     forms:    document.getElementById('c-forms').value.trim(),
     whats:    document.getElementById('c-whats').value.trim(),
     versiculo:document.getElementById('c-versiculo').value.trim(),
-    t1titulo: document.getElementById('t1-titulo').value.trim(),
-    t1sub:    document.getElementById('t1-sub').value.trim(),
-    t2titulo: document.getElementById('t2-titulo').value.trim(),
-    t2sub:    document.getElementById('t2-sub').value.trim(),
   };
   set('abcl-conteudo', c);
   renderDashboard();
   toast('Conteúdo salvo com sucesso!');
+}
+
+// ── SEÇÕES PÚBLICAS DO SITE (liga/desliga) ──
+const SECOES_SITE = [
+  { id:'temas',     nome:'Temas',     icon:'📖' },
+  { id:'local',     nome:'Local',     icon:'📍' },
+  { id:'galeria',   nome:'Galeria',   icon:'🖼' },
+  { id:'inscricao', nome:'Inscrição', icon:'📋' },
+  { id:'faq',       nome:'FAQ',       icon:'❓' },
+  { id:'loja',      nome:'Loja',      icon:'🛍️' },
+  { id:'links',     nome:'Links',     icon:'🔗' },
+  { id:'canticos',  nome:'Cânticos',  icon:'🎶' },
+];
+
+function getSecoesSite() {
+  try { return JSON.parse(localStorage.getItem('abcl-secoes-site')) || {}; } catch (e) { return {}; }
+}
+
+function renderSecoesSite() {
+  const cont = document.getElementById('secoes-site-lista');
+  if (!cont) return;
+  const cfg = getSecoesSite();
+  cont.innerHTML = SECOES_SITE.map((s, i) => {
+    const on  = cfg[s.id] !== false;
+    const sep = i < SECOES_SITE.length - 1 ? 'border-bottom:1px solid var(--borda);' : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;${sep}">
+      <span style="font-size:.9rem;">${s.icon} ${s.nome}</span>
+      <label class="tgl">
+        <input type="checkbox" class="tgl-input" ${on ? 'checked' : ''} onchange="toggleSecaoSite('${s.id}', this.checked)" />
+        <span class="tgl-label" data-on="ON" data-off="OFF"></span>
+        <span class="tgl-handle"></span>
+      </label>
+    </div>`;
+  }).join('');
+}
+
+let _secoesSiteTimer = null;
+function toggleSecaoSite(id, on) {
+  const cfg = getSecoesSite();
+  cfg[id] = on;
+  localStorage.setItem('abcl-secoes-site', JSON.stringify(cfg));
+  clearTimeout(_secoesSiteTimer);
+  _secoesSiteTimer = setTimeout(() => {
+    try { if (typeof db !== 'undefined' && db) db.collection('config').doc('secoes_site').set(cfg, { merge: true }); } catch (e) {}
+  }, 600);
+  const nome = (SECOES_SITE.find(s => s.id === id) || {}).nome || id;
+  toast(on ? `✅ "${nome}" ativada no site` : `🚫 "${nome}" desativada no site`);
+}
+
+async function carregarSecoesSiteAdmin() {
+  try {
+    if (typeof db !== 'undefined' && db) {
+      const doc = await db.collection('config').doc('secoes_site').get();
+      if (doc.exists) localStorage.setItem('abcl-secoes-site', JSON.stringify(doc.data() || {}));
+    }
+  } catch (e) {}
+  renderSecoesSite();
 }
 
 // ── VISUAL ──
@@ -2360,16 +2661,23 @@ function previewLogo(input) {
 
 // ── UI UTILS ──
 function switchTab(name, btn) {
+  const perfil = sessionStorage.getItem('abcl-auth-perfil') || '';
+  if (perfil !== 'admin' && _gaPermsCoordCache && !coordPodeVer(name, _gaPermsCoordCache)) {
+    toast('🔒 Você não tem permissão para acessar esta tela.');
+    return;
+  }
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name)?.classList.add('active');
   if (btn) btn.classList.add('active');
   if (name === 'visitas')          renderVisitas();
+  if (name === 'conteudo')         carregarSecoesSiteAdmin();
   if (name === 'insights')         renderInsights();
   if (name === 'dashboard')        renderDashboard();
   if (name === 'formularios')      initFormularios();
   if (name === 'gestao-loja')      initGestaoloja();
   if (name === 'gestao-canticos')  initGestaoCanticos();
+  if (name === 'galeria-midias')   initGaleriaMidias();
   if (name === 'gestao-acessos')   initGestaoAcessos();
   if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 }
@@ -2377,10 +2685,11 @@ function switchTab(name, btn) {
 // ══════════════════════════════════════════════════
 // APLICAR VISIBILIDADE POR PERFIL
 // ══════════════════════════════════════════════════
-function aplicarVisibilidadePorPerfil() {
+async function aplicarVisibilidadePorPerfil() {
   const perfil = sessionStorage.getItem('abcl-auth-perfil') || '';
   const navSistema = document.getElementById('nav-sistema');
   if (navSistema) navSistema.style.display = (perfil === 'admin') ? 'block' : 'none';
+  await aplicarPermissoesCoordenador();   // aplica enforcement de "Ver" para o coordenador
 }
 
 // ══════════════════════════════════════════════════
@@ -2391,7 +2700,7 @@ const GA_TELAS = [
   { grupo: 'Geral', itens: [
     { id: 'dashboard',  nome: 'Dashboard',    sub: 'Visão geral do sistema',          acoes: ['ver'] },
     { id: 'links',      nome: 'Hub de Links', sub: 'Links públicos da página /links', acoes: ['ver', 'editar', 'excluir'] },
-    { id: 'preletores', nome: 'Preletores',   sub: 'Cadastro de preletores',          acoes: ['ver', 'editar', 'excluir'] },
+    { id: 'preletores', nome: 'Temas & Preletores', sub: 'Temas do site e cadastro de preletores', acoes: ['ver', 'editar', 'excluir'] },
     { id: 'conteudo',   nome: 'Conteúdo',     sub: 'Textos, datas e dados do evento', acoes: ['ver', 'editar'] },
     { id: 'visual',     nome: 'Visual',       sub: 'Cores e logo do site',            acoes: ['ver', 'editar'] },
     { id: 'visitas',    nome: 'Visitas',      sub: 'Analytics de acesso ao site',     acoes: ['ver'] },
@@ -2400,14 +2709,12 @@ const GA_TELAS = [
   { grupo: 'Ferramentas', itens: [
     { id: 'vendinha',            nome: 'Vendinha',            sub: 'PDV de vendas do acampamento',   acoes: ['ver', 'editar', 'excluir'] },
     { id: 'livraria',            nome: 'Livraria',            sub: 'Catálogo e vendas de livros',    acoes: ['ver', 'editar', 'excluir'] },
-    { id: 'canticos',            nome: 'Cânticos',            sub: 'Visualização da biblioteca',     acoes: ['ver'] },
+    { id: 'galeria-midias',      nome: 'Galeria / Mídias / Cânticos', sub: 'Fotos, vídeos e cânticos do site', acoes: ['ver', 'editar', 'excluir'] },
     { id: 'gestao-canticos',     nome: 'Gerir Cânticos',      sub: 'Edição da biblioteca de cânticos', acoes: ['ver', 'editar', 'excluir'] },
-    { id: 'loja',                nome: 'Loja',                sub: 'Vitrine pública da loja',        acoes: ['ver'] },
-    { id: 'gestao-loja',         nome: 'Gerir Loja',          sub: 'Produtos, estoque e pedidos',    acoes: ['ver', 'editar', 'excluir'] },
+    { id: 'gestao-loja',         nome: 'Loja',                sub: 'Produtos, estoque e pedidos',    acoes: ['ver', 'editar', 'excluir'] },
     { id: 'financeiro',          nome: 'Financeiro',          sub: 'Relatórios financeiros',         acoes: ['ver', 'exportar'] },
     { id: 'formularios',         nome: 'Formulários',         sub: 'Criação e gestão de formulários',acoes: ['ver', 'editar', 'excluir'] },
     { id: 'importar-acampantes', nome: 'Importar Acampantes', sub: 'Importação via CSV/XLSX',        acoes: ['ver', 'editar'] },
-    { id: 'ver-hub',             nome: 'Ver Hub',             sub: 'Acesso à página /links',         acoes: ['ver'] },
     { id: 'ver-site',            nome: 'Ver Site',            sub: 'Acesso ao site público',         acoes: ['ver'] },
   ]},
   { grupo: 'Sistema', itens: [
@@ -2423,8 +2730,76 @@ function gaGetPermissoes() {
   return get('abcl-permissoes-coord') || {};
 }
 
+// Garante booleano explícito para toda tela/ação (default: permitido) e aplica a cascata Ver→demais
+function gaNormalizarPermissoes() {
+  GA_TELAS.forEach(g => g.itens.forEach(t => {
+    if (t.apenasAdmin || !t.acoes.length) return;
+    if (!_gaPermissoes[t.id]) _gaPermissoes[t.id] = {};
+    t.acoes.forEach(a => { if (typeof _gaPermissoes[t.id][a] !== 'boolean') _gaPermissoes[t.id][a] = true; });
+    if (_gaPermissoes[t.id].ver === false) t.acoes.forEach(a => { if (a !== 'ver') _gaPermissoes[t.id][a] = false; });
+  }));
+}
+
+// ── Enforcement de permissões para o perfil Coordenador ──
+let _gaPermsCoordCache = null;
+
+async function _carregarPermsCoord() {
+  try {
+    const doc = await db.collection('config').doc('permissoes_coordenacao').get();
+    if (doc.exists) { const d = doc.data() || {}; set('abcl-permissoes-coord', d); return d; }
+  } catch (e) { /* offline → usa o local */ }
+  return get('abcl-permissoes-coord') || {};
+}
+
+function coordPodeVer(telaId, perms) {
+  if (!perms || !perms[telaId]) return true;   // sem config → permitido por padrão
+  return perms[telaId].ver !== false;
+}
+
+async function aplicarPermissoesCoordenador() {
+  const perfil = sessionStorage.getItem('abcl-auth-perfil') || '';
+  if (perfil === 'admin') { _gaPermsCoordCache = null; return; }   // admin vê tudo
+  const perms = await _carregarPermsCoord();
+  _gaPermsCoordCache = perms;
+
+  // Esconde da nav as telas sem 'ver'
+  document.querySelectorAll('.nav-item[data-tela]').forEach(btn => {
+    const tela = btn.getAttribute('data-tela');
+    btn.style.display = coordPodeVer(tela, perms) ? '' : 'none';
+  });
+
+  // Gerir Cânticos agora é acessado por dentro da Galeria — o atalho respeita a mesma permissão de 'ver'.
+  const linkCanticos = document.getElementById('gm-link-canticos');
+  if (linkCanticos) linkCanticos.style.display = coordPodeVer('gestao-canticos', perms) ? '' : 'none';
+
+  // Se a tela ativa não é permitida (ex.: Dashboard bloqueado), abre a 1ª liberada
+  const ativo   = document.querySelector('.tab.active');
+  const ativoId = ativo ? ativo.id.replace('tab-', '') : '';
+  if (!ativoId || !coordPodeVer(ativoId, perms)) {
+    const primeiro = Array.from(document.querySelectorAll('.nav-item[data-tela]'))
+      .find(b => b.style.display !== 'none' && (b.getAttribute('onclick') || '').includes('switchTab'));
+    if (primeiro) {
+      primeiro.click();
+    } else {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      const temExterno = Array.from(document.querySelectorAll('.nav-item[data-tela]')).some(b => b.style.display !== 'none');
+      if (!temExterno) mostrarSemPermissao();
+    }
+  }
+}
+
+function mostrarSemPermissao() {
+  const main = document.querySelector('.main');
+  if (main) main.innerHTML = `<div style="max-width:480px;margin:4rem auto;text-align:center;color:var(--suave);">
+    <div style="font-size:2.5rem;margin-bottom:1rem;">🔒</div>
+    <h2 style="color:var(--texto);font-family:'Cinzel',serif;">Sem telas liberadas</h2>
+    <p style="margin-top:.5rem;">Seu perfil ainda não tem permissão para acessar nenhuma tela. Fale com o administrador.</p>
+  </div>`;
+}
+
 function initGestaoAcessos() {
   _gaPermissoes = gaGetPermissoes();
+  gaNormalizarPermissoes();
   gaRenderPerms();
   gaCarregarUsuarios();
 }
@@ -2451,12 +2826,14 @@ function gaRenderPerms() {
         </td>`;
       } else {
         const toggles = tela.acoes.map(acao => {
-          const checked = perm[acao] !== false && perm[acao] !== undefined ? (perm[acao] ? 'checked' : '') : '';
-          const isChecked = _gaPermissoes[tela.id] ? (perm[acao] ? 'checked' : '') : 'checked';
-          return `<label style="display:inline-flex;align-items:center;gap:.4rem;margin-right:.75rem;cursor:pointer;font-size:.78rem;color:var(--suave);">
-            <input type="checkbox" ${isChecked} data-tela="${tela.id}" data-acao="${acao}"
+          const isVer    = (acao === 'ver');
+          const verOn    = perm.ver !== false;
+          const ativo    = perm[acao] === true;
+          const disabled = (!isVer && !verOn);
+          return `<label style="display:inline-flex;align-items:center;gap:.4rem;margin-right:.75rem;cursor:${disabled?'not-allowed':'pointer'};font-size:.78rem;color:var(--suave);opacity:${disabled?'.4':'1'};">
+            <input type="checkbox" ${ativo?'checked':''} ${disabled?'disabled':''} data-tela="${tela.id}" data-acao="${acao}"
               onchange="gaTogglePerm('${tela.id}','${acao}',this.checked)"
-              style="accent-color:var(--verde-mid);width:14px;height:14px;cursor:pointer;" />
+              style="accent-color:var(--verde-mid);width:14px;height:14px;cursor:${disabled?'not-allowed':'pointer'};" />
             ${LABEL_ACAO[acao]}
           </label>`;
         }).join('');
@@ -2478,6 +2855,14 @@ function gaRenderPerms() {
 function gaTogglePerm(telaId, acao, valor) {
   if (!_gaPermissoes[telaId]) _gaPermissoes[telaId] = {};
   _gaPermissoes[telaId][acao] = valor;
+  if (acao === 'ver') {
+    if (!valor) {
+      // Sem "Ver" → zera Editar/Excluir/Exportar (não faz sentido agir no que não se vê)
+      const tela = GA_TELAS.flatMap(g => g.itens).find(t => t.id === telaId);
+      (tela?.acoes || []).forEach(a => { if (a !== 'ver') _gaPermissoes[telaId][a] = false; });
+    }
+    gaRenderPerms();  // re-renderiza para habilitar/desabilitar as dependentes
+  }
 }
 
 function salvarPermissoes() {
@@ -2528,9 +2913,36 @@ function gaTab(panel, btn) {
   document.getElementById('ga-panel-usuarios').style.display = panel === 'usuarios' ? '' : 'none';
 }
 
+// Abre programaticamente a sub-aba "Usuários & autenticação"
+function gaAbrirUsuarios() {
+  const alvo = Array.from(document.querySelectorAll('.ga-inner-tab'))
+    .find(b => /usu[aá]rios/i.test(b.textContent));
+  if (alvo) gaTab('usuarios', alvo);
+}
+
+// Remove do Firestore as requisições de login anônimo do PDV (não são pedidos de coordenador)
+async function gaLimparFantasmas() {
+  if (!_gaFantasmas.length) return;
+  if (!confirm(`Limpar ${_gaFantasmas.length} requisição(ões) de login anônimo do PDV?\n\nSão sessões da vendinha/livraria — não são pedidos de coordenador. Os documentos serão apagados do Firestore.`)) return;
+  try {
+    let batch = db.batch(), n = 0;
+    for (const u of _gaFantasmas) {
+      batch.delete(db.collection('usuarios').doc(u.uid));
+      if (++n % 450 === 0) { await batch.commit(); batch = db.batch(); }
+    }
+    await batch.commit();
+    const total = _gaFantasmas.length;
+    _gaFantasmas = [];
+    toast(`🧹 ${total} requisição(ões) anônima(s) removida(s).`);
+    gaCarregarUsuarios();
+    verificarPendentes();
+  } catch(e) { toast('Erro ao limpar: ' + e.message); }
+}
+
 // ── Usuários ──
 let _gaUsuariosTodos = [];
 let _gaUsuariosFiltrados = [];
+let _gaFantasmas = [];
 
 async function gaCarregarUsuarios() {
   const tbody = document.getElementById('ga-usuarios-body');
@@ -2538,9 +2950,14 @@ async function gaCarregarUsuarios() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--suave);font-size:.82rem;">Carregando…</td></tr>';
   try {
     const snap = await db.collection('usuarios').get();
-    _gaUsuariosTodos = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    const todos = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    // Separa fantasmas (sessões anônimas do PDV) dos usuários reais
+    _gaFantasmas      = todos.filter(u => _gaEhFantasma(u));
+    _gaUsuariosTodos  = todos.filter(u => !_gaEhFantasma(u));
     _gaUsuariosFiltrados = [..._gaUsuariosTodos];
     gaRenderUsuarios();
+    // Se houver pedidos reais pendentes, abre direto a sub-aba "Usuários & autenticação"
+    if (_gaUsuariosTodos.some(u => !u.aprovado && !u.bloqueado)) gaAbrirUsuarios();
   } catch(e) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:#fca5a5;font-size:.82rem;">Erro ao carregar: ${e.message}</td></tr>`;
   }
@@ -2562,8 +2979,11 @@ function gaFiltrarUsuarios() {
 function gaRenderUsuarios() {
   const tbody = document.getElementById('ga-usuarios-body');
   if (!tbody) return;
+  const bannerFantasmas = _gaFantasmas.length
+    ? `<tr><td colspan="5" style="padding:.55rem 1rem;background:rgba(245,158,11,.06);border-bottom:1px solid var(--borda);font-size:.76rem;color:#fbbf24;">⚠️ ${_gaFantasmas.length} requisição(ões) de login anônimo do PDV foram ocultadas (não são pedidos de coordenador). <button onclick="gaLimparFantasmas()" style="margin-left:.6rem;font-size:.7rem;padding:.2rem .6rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;border-radius:5px;cursor:pointer;">🧹 Limpar ${_gaFantasmas.length}</button></td></tr>`
+    : '';
   if (!_gaUsuariosFiltrados.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--suave);font-size:.82rem;">Nenhum usuário encontrado.</td></tr>';
+    tbody.innerHTML = bannerFantasmas + '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--suave);font-size:.82rem;">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   const badge = (tipo) => tipo === 'admin'
@@ -2579,7 +2999,7 @@ function gaRenderUsuarios() {
     if (p === 'google' || p === 'google.com') return '<span style="font-size:.7rem;background:var(--card2);border:1px solid var(--borda);border-radius:4px;padding:.1rem .45rem;">G · Google</span>';
     return '<span style="font-size:.7rem;background:var(--card2);border:1px solid var(--borda);border-radius:4px;padding:.1rem .45rem;">✉ E-mail</span>';
   };
-  tbody.innerHTML = _gaUsuariosFiltrados.map(u => `
+  tbody.innerHTML = bannerFantasmas + _gaUsuariosFiltrados.map(u => `
     <tr style="transition:background .1s;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background=''">
       <td style="padding:.7rem 1rem;border-bottom:1px solid var(--borda);">
         ${(u.nome || u.email) ? `
@@ -2731,7 +3151,34 @@ function toast(msg) {
 let _formAtualId = null;
 
 function getTodosForms() { return get('abcl-forms-lista') || []; }
-function setTodosForms(lista) { set('abcl-forms-lista', lista); }
+
+// ── Sync de formulários com o Firebase (coleção `forms`) ──
+// Push: toda mutação local espelha no Firebase (debounce). Pull: ao abrir a aba.
+let _formsPushTimer = null;
+function _formsPushFb() {
+  clearTimeout(_formsPushTimer);
+  _formsPushTimer = setTimeout(async () => {
+    try {
+      const lista = getTodosForms();
+      const batch = db.batch();
+      lista.forEach(f => batch.set(db.collection('forms').doc(String(f.id)), f, { merge: true }));
+      await batch.commit();
+      console.log(`[Forms] ☁️ ${lista.length} formulário(s) sincronizado(s)`);
+    } catch (e) { console.warn('[Forms] sync falhou (offline?)', e.message); }
+  }, 800);
+}
+
+async function _formsPullFb() {
+  try {
+    const snap = await db.collection('forms').get();
+    if (snap.empty) return false;
+    const vivos = snap.docs.map(d => d.data()).filter(f => !f.excluido);
+    set('abcl-forms-lista', vivos);
+    return true;
+  } catch (e) { return false; }
+}
+
+function setTodosForms(lista) { set('abcl-forms-lista', lista); _formsPushFb(); }
 function getFormById(id) { return getTodosForms().find(f => f.id === id) || null; }
 function salvarForm(form) {
   const lista = getTodosForms();
@@ -2845,7 +3292,8 @@ function renderListaForms() {
       <div style="flex:1;min-width:0;">
         <div style="font-weight:600;font-size:.92rem;margin-bottom:.15rem;">${f.titulo}</div>
         <div style="font-size:.72rem;color:var(--suave);">
-          ${f.subtitulo||''} &middot; ${(f.perguntas||[]).length} perguntas &middot; ${f.criadoEm||''}
+          ${f.subtitulo||''} &middot; ${(f.perguntas||[]).length} perguntas &middot; ${f.criadoEm||''}<span id="form-resp-count-${f.id}"></span>
+          <span style="margin-left:.3rem;">${f.urlExterna ? '🔗 Link externo' : '📝 Interno'}</span>
           ${f.agendaInicio||f.agendaFim ? '<span style="color:rgba(245,158,11,.7);margin-left:.3rem;">⏰</span>' : ''}
         </div>
       </div>
@@ -2853,6 +3301,7 @@ function renderListaForms() {
         ${_badgeAgendamento(f)}
       </div>
       <div style="display:flex;gap:.4rem;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="abrirRespostas('${f.id}')" title="Ver respostas">📊</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirAgendamento('${f.id}')" title="Agendar">⏰</button>
         <button class="btn btn-ghost btn-sm" onclick="verFormularioById('${f.id}')">👁</button>
         <button class="btn btn-ghost btn-sm" onclick="editarFormulario('${f.id}')">✏️ Editar</button>
@@ -2860,6 +3309,7 @@ function renderListaForms() {
           ${['inscricao','perfil'].includes(f.id)?'disabled title="Formulário padrão"':''}>✕</button>
       </div>
     </div>`).join('') || '<p style="color:var(--suave);font-size:.82rem;text-align:center;padding:2rem;">Nenhum formulário.</p>';
+  _carregarContagemRespostas();
 }
 
 function criarNovoFormulario() {
@@ -2938,6 +3388,7 @@ function editarFormulario(id) {
   document.getElementById('form-whats').value     = f.whats     || '';
   document.getElementById('form-btn-label').value = f.btnLabel  || '';
   document.getElementById('form-capa').value      = f.capa      || '';
+  if (document.getElementById('form-url-externa')) document.getElementById('form-url-externa').value = f.urlExterna || '';
   // Vagas
   document.getElementById('form-vagas-masc').value  = f.vagasMasc  || '';
   document.getElementById('form-vagas-fem').value   = f.vagasFem   || '';
@@ -2994,10 +3445,17 @@ function toggleFormAtivoById(id) {
 }
 
 function excluirFormulario(id) {
-  if (!confirm('Excluir este formulário?')) return;
+  if (!confirm('Excluir este formulário?\n\nAs inscrições e os dados dos acampantes já recebidos NÃO serão apagados — eles ficam preservados no banco de dados, vinculados ao histórico.')) return;
   setTodosForms(getTodosForms().filter(f => f.id !== id));
+  // Soft-delete no Firebase: marca como excluído (preserva o vínculo das inscrições)
+  try {
+    db.collection('forms').doc(String(id)).set({
+      excluido: true,
+      excluido_em: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (e) { /* offline: o push do setTodosForms cobre o resto */ }
   renderListaForms();
-  toast('🗑 Formulário excluído.');
+  toast('🗑 Formulário excluído. Inscrições preservadas.');
 }
 
 // ── AGENDAMENTO ──
@@ -3076,7 +3534,190 @@ function atualizarPreviewAgendaModal() {
 }
 
 function verFormulario() { if (_formAtualId) verFormularioById(_formAtualId); }
-function verFormularioById(id) { window.open('formulario.html?id=' + id, '_blank'); }
+function verFormularioById(id) {
+  const f = getTodosForms().find(x => x.id === id);
+  window.open(f && f.urlExterna ? f.urlExterna : 'formulario.html?id=' + id, '_blank');
+}
+
+// ══════════════════════════════════════════════════
+// RESPOSTAS — inscrições por formulário, AO VIVO do Firestore
+// (fonte da verdade: coleção `inscricoes`. Sem localStorage.)
+// ══════════════════════════════════════════════════
+let _respFormId = null, _respCache = [], _respForm = null;
+
+function abrirRespostas(formId) {
+  _respFormId = formId;
+  _respForm = getTodosForms().find(f => f.id === formId) || { id: formId, titulo: 'Formulário', perguntas: [] };
+  switchTab('respostas', document.querySelector('[data-tela=formularios]'));
+  const t = document.getElementById('resp-titulo');
+  if (t) t.textContent = '📊 ' + (_respForm.titulo || 'Respostas');
+  carregarRespostas();
+}
+function recarregarRespostas() { if (_respFormId) carregarRespostas(); }
+
+// Contagem de respostas por formulário (badge na lista) — uma leitura agrupada, cache curto
+let _respContagemCache = null, _respContagemTs = 0;
+async function _carregarContagemRespostas(forcar) {
+  try {
+    if (typeof db === 'undefined' || !db) return;
+    if (!forcar && _respContagemCache && (Date.now() - _respContagemTs < 30000)) {
+      _aplicarContagemRespostas(_respContagemCache); return;
+    }
+    const snap = await db.collection('inscricoes').get();
+    const cont = {};
+    snap.forEach(d => { const fid = (d.data() || {}).form_id; if (fid) cont[String(fid)] = (cont[String(fid)] || 0) + 1; });
+    _respContagemCache = cont; _respContagemTs = Date.now();
+    _aplicarContagemRespostas(cont);
+  } catch (e) {}
+}
+function _aplicarContagemRespostas(cont) {
+  getTodosForms().forEach(f => {
+    const el = document.getElementById('form-resp-count-' + f.id);
+    if (!el) return;
+    const n = cont[String(f.id)] || 0;
+    el.textContent = n ? ` · ${n} ${n === 1 ? 'resposta' : 'respostas'}` : '';
+    el.style.color = n ? 'var(--verde-claro)' : '';
+    el.style.fontWeight = n ? '600' : '';
+  });
+}
+
+function _tsMs(t){ if(!t) return 0; if (typeof t.toMillis==='function') return t.toMillis(); if (t.seconds) return t.seconds*1000; const d=new Date(t); return isNaN(d)?0:d.getTime(); }
+function _tsData(t){ const ms=_tsMs(t); return ms ? new Date(ms).toLocaleDateString('pt-BR') : '—'; }
+function _esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function _rotuloLimpo(o){ return String(o).replace(/\s*[—-]\s*R\$.*/,'').replace(/\s*\(\s*R\$[^)]*\)\s*/,'').trim() || String(o).trim(); }
+function _moeda(v){ return 'R$ ' + (Number(v)||0).toFixed(2).replace('.',','); }
+
+async function carregarRespostas() {
+  const L=document.getElementById('resp-loading'), E=document.getElementById('resp-erro'),
+        V=document.getElementById('resp-vazio'), C=document.getElementById('resp-conteudo');
+  L.style.display='block'; E.style.display='none'; V.style.display='none'; C.style.display='none';
+  try {
+    if (typeof db === 'undefined' || !db) throw new Error('Firebase indisponível');
+    const snap = await db.collection('inscricoes').where('form_id','==',String(_respFormId)).get();
+    _respCache = snap.docs.map(d => ({ _id:d.id, ...d.data() }));
+    _respCache.sort((a,b) => _tsMs(b.criado_em) - _tsMs(a.criado_em));   // mais recentes primeiro
+    L.style.display='none';
+    if (!_respCache.length) { V.style.display='block'; return; }
+    C.style.display='block';
+    _renderRespKPIs();
+    _renderRespGraficos();
+    _renderRespTabela(_respCache);
+  } catch (err) {
+    L.style.display='none'; E.style.display='block';
+    E.textContent = 'Erro ao carregar do Firebase: ' + err.message;
+  }
+}
+
+function _labelSexo(){ const p=(_respForm.perguntas||[]).find(p=>p.label&&p.label.toLowerCase().includes('sexo')); return p?p.label:null; }
+
+function _renderRespKPIs() {
+  const list=_respCache, total=list.length;
+  const confirmadas = list.filter(r => (r.status_inscricao||'confirmada')!=='fila').length;
+  const fila = total - confirmadas;
+  const pagos = list.filter(r => r.status_pagamento==='pago').length;
+  const arrecadado = list.reduce((s,r)=> s + (Number(r.valor_total)||0), 0);
+  const aReceber = list.filter(r=>r.status_pagamento!=='pago').reduce((s,r)=>s+(Number(r.valor_total)||0),0);
+  const kpis = [
+    { label:'Inscritos',           value: total },
+    { label:'Confirmadas / Fila',  value: confirmadas + ' / ' + fila },
+    { label:'Pagos',               value: pagos + ' / ' + total },
+    { label:'Arrecadado',          value: _moeda(arrecadado) },
+    { label:'A receber',           value: _moeda(aReceber) },
+  ];
+  if (_respForm && (_respForm.vagasMasc||_respForm.vagasFem||_respForm.vagasGeral)) {
+    const sx=_labelSexo();
+    const masc = sx ? list.filter(r => ((r.respostas&&r.respostas[sx])||r.sexo)==='Masculino').length : 0;
+    const fem  = sx ? list.filter(r => ((r.respostas&&r.respostas[sx])||r.sexo)==='Feminino').length : 0;
+    if (_respForm.vagasGeral) kpis.push({ label:'Vagas', value: total + ' / ' + _respForm.vagasGeral });
+    else kpis.push({ label:'Vagas M · F', value: masc+'/'+(_respForm.vagasMasc||'∞')+' · '+fem+'/'+(_respForm.vagasFem||'∞') });
+  }
+  document.getElementById('resp-kpis').innerHTML = kpis.map(k =>
+    `<div class="stat-card"><div class="sc-label">${_esc(k.label)}</div><div class="sc-value" style="font-size:1.5rem;">${_esc(k.value)}</div></div>`).join('');
+}
+
+function _renderRespGraficos() {
+  const fechadas = (_respForm.perguntas||[]).filter(p => ['radio','select','checkbox','financeiro'].includes(p.tipo));
+  const cont = document.getElementById('resp-graficos');
+  if (!fechadas.length) { cont.innerHTML=''; return; }
+  cont.innerHTML = fechadas.map(p => {
+    const contagem = {};
+    (p.opcoes||[]).forEach(o => { contagem[_rotuloLimpo(o)] = 0; });
+    let respondentes = 0;
+    _respCache.forEach(r => {
+      const val = (r.respostas && r.respostas[p.label]) || '';
+      if (!val) return;
+      respondentes++;
+      String(val).split(', ').filter(Boolean).forEach(v => {
+        const k=_rotuloLimpo(v); contagem[k]=(contagem[k]||0)+1;
+      });
+    });
+    const max = Math.max(1, ...Object.values(contagem));
+    const linhas = Object.entries(contagem).sort((a,b)=>b[1]-a[1]).map(([opt,n]) => {
+      const w = Math.round(n/max*100), pct = respondentes ? Math.round(n/respondentes*100) : 0;
+      return `<div class="rb-row"><div class="rb-label" title="${_esc(opt)}">${_esc(opt)}</div><div class="rb-track"><div class="rb-fill" style="width:${w}%;"></div></div><div class="rb-count">${n} · ${pct}%</div></div>`;
+    }).join('');
+    return `<div class="section-card"><h2 style="font-size:.92rem;margin-bottom:.85rem;">${_esc(p.label)}</h2>${linhas || '<div style="color:var(--suave);font-size:.8rem;">Sem respostas.</div>'}</div>`;
+  }).join('');
+}
+
+function _renderRespTabela(list) {
+  const cnt=document.getElementById('resp-tabela-count'); if(cnt) cnt.textContent='('+list.length+')';
+  document.getElementById('resp-tabela').innerHTML = list.map((r,i) => {
+    const pago = r.status_pagamento==='pago';
+    const badge = pago ? '<span style="color:#74C69D;">● pago</span>' : '<span style="color:rgba(245,158,11,.85);">● pendente</span>';
+    const fila = (r.status_inscricao==='fila') ? ' <span style="color:rgba(245,158,11,.85);font-size:.7rem;">(fila)</span>' : '';
+    return `<div style="border-bottom:1px solid var(--borda);">
+      <div onclick="_toggleRespDetalhe(${i})" style="display:flex;align-items:center;gap:1rem;padding:.7rem .2rem;cursor:pointer;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:.86rem;">${_esc(r.nome||'(sem nome)')}${fila}</div>
+          <div style="font-size:.72rem;color:var(--suave);">${_esc(r.codigo||'—')} · ${_esc(r.telefone||'—')} · ${_tsData(r.criado_em)}</div>
+        </div>
+        <div style="font-size:.75rem;flex-shrink:0;">${badge}</div>
+        <div style="color:var(--suave);flex-shrink:0;">▾</div>
+      </div>
+      <div id="resp-det-${i}" style="display:none;padding:.2rem .2rem 1rem;font-size:.8rem;">${_detalheRespHtml(r)}</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--suave);text-align:center;padding:1.5rem;">Nada encontrado.</div>';
+}
+
+function _detalheRespHtml(r) {
+  const map = r.respostas || {};
+  const linhas = Object.entries(map).map(([k,v]) =>
+    `<div style="display:flex;gap:.6rem;padding:.2rem 0;border-bottom:1px dashed rgba(255,255,255,.04);"><div style="flex:0 0 42%;color:var(--suave);">${_esc(k)}</div><div style="flex:1;">${_esc(Array.isArray(v)?v.join(', '):v)}</div></div>`).join('');
+  let fin = '';
+  if ((r.itens_financeiros||[]).length) {
+    fin = '<div style="margin-top:.6rem;padding-top:.5rem;border-top:1px solid var(--borda);">'
+      + r.itens_financeiros.map(it=>`<div style="display:flex;justify-content:space-between;"><span>${_esc(it.descricao)}</span><span>${_moeda(it.valor)}</span></div>`).join('')
+      + `<div style="display:flex;justify-content:space-between;font-weight:600;margin-top:.3rem;"><span>Total</span><span>${_moeda(r.valor_total)}</span></div></div>`;
+  }
+  return (linhas + fin) || '<div style="color:var(--suave);">Sem respostas detalhadas.</div>';
+}
+
+function _toggleRespDetalhe(i){ const el=document.getElementById('resp-det-'+i); if(el) el.style.display = (el.style.display==='none'?'block':'none'); }
+
+function _filtrarRespostas() {
+  const q=(document.getElementById('resp-busca').value||'').toLowerCase().trim();
+  if (!q) { _renderRespTabela(_respCache); return; }
+  _renderRespTabela(_respCache.filter(r =>
+    (r.nome||'').toLowerCase().includes(q) || (r.codigo||'').toLowerCase().includes(q) || (r.telefone||'').includes(q)));
+}
+
+function exportarRespostasCSV() {
+  if (!_respCache.length) { toast('Nada para exportar.'); return; }
+  const labels = Array.from(new Set(_respCache.flatMap(r => Object.keys(r.respostas||{}))));
+  const head = ['Código','Nome','Telefone','Email','Data','Status pagamento','Valor total', ...labels];
+  const esc = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+  const linhas = _respCache.map(r => [
+    r.codigo, r.nome, r.telefone, r.email, _tsData(r.criado_em), r.status_pagamento, (Number(r.valor_total)||0).toFixed(2),
+    ...labels.map(l => { const v=(r.respostas||{})[l]; return Array.isArray(v)?v.join('; '):(v||''); })
+  ].map(esc).join(','));
+  const csv = '\ufeff' + [head.map(esc).join(','), ...linhas].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8;' }));
+  a.download = 'respostas-' + String(_respForm&&_respForm.titulo||'form').replace(/[^a-z0-9]+/gi,'-').toLowerCase() + '.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('✅ CSV exportado!');
+}
 
 function salvarAgendamentoEditor() {
   if (!_formAtualId) return;
@@ -3112,6 +3753,7 @@ function salvarConfigFormulario() {
   f.whats     = document.getElementById('form-whats').value.trim()     || f.whats;
   f.btnLabel  = document.getElementById('form-btn-label').value.trim() || f.btnLabel;
   f.capa      = document.getElementById('form-capa').value.trim();
+  f.urlExterna = (document.getElementById('form-url-externa')?.value || '').trim();
   // Vagas
   f.vagasMasc  = parseInt(document.getElementById('form-vagas-masc').value)  || 0;
   f.vagasFem   = parseInt(document.getElementById('form-vagas-fem').value)   || 0;
@@ -3172,7 +3814,7 @@ function renderFormPerguntas() {
 }
 
 function tipoIcon(t){return{texto:'✏️',textarea:'📝',radio:'🔘',checkbox:'☑️',select:'📋',numero:'🔢',secao:'📌',imagem:'🖼️'}[t]||'❓';}
-function tipoLabel(t){return{texto:'Texto curto',textarea:'Texto longo',radio:'Escolha única',checkbox:'Múltipla escolha',select:'Lista suspensa',numero:'Número',secao:'Seção',imagem:'Imagem'}[t]||t;}
+function tipoLabel(t){return{texto:'Texto curto',textarea:'Texto longo',radio:'Escolha única',checkbox:'Múltipla escolha',financeiro:'💰 Vínculo financeiro',select:'Lista suspensa',numero:'Número',secao:'Seção',imagem:'Imagem'}[t]||t;}
 
 let _dragIdx=null;
 function dragStart(e,i){_dragIdx=i;e.dataTransfer.effectAllowed='move';}
@@ -3223,7 +3865,8 @@ function editarPergunta(i){
 function fecharModalPergunta(){document.getElementById('pergunta-modal').classList.remove('open');_editandoPqIdx=null;}
 function atualizarCamposTipo(){
   const t=document.getElementById('pq-tipo').value;
-  document.getElementById('pq-field-opcoes').style.display=['radio','checkbox','select'].includes(t)?'':'none';
+  document.getElementById('pq-field-opcoes').style.display=['radio','checkbox','select','financeiro'].includes(t)?'':'none';
+  const dicaFin=document.getElementById('pq-dica-fin'); if(dicaFin) dicaFin.style.display=(t==='financeiro')?'':'none';
   document.getElementById('pq-field-imagem').style.display=t==='imagem'?'':'none';
   document.getElementById('pq-field-placeholder').style.display=(t==='imagem'||t==='secao')?'none':'';
 }
@@ -3242,7 +3885,7 @@ function salvarPergunta(){
     desc:document.getElementById('pq-desc').value.trim(),
     placeholder:document.getElementById('pq-placeholder').value.trim(),
     obrig:document.getElementById('pq-obrig').value==='1',
-    opcoes:['radio','checkbox','select'].includes(tipo)?document.getElementById('pq-opcoes').value.split('\n').map(l=>l.trim()).filter(Boolean):[],
+    opcoes:['radio','checkbox','select','financeiro'].includes(tipo)?document.getElementById('pq-opcoes').value.split('\n').map(l=>l.trim()).filter(Boolean):[],
     imagemUrl:tipo==='imagem'?document.getElementById('pq-imagem-url').value.trim():'',
   };
   const perguntas=[...getPerguntas()];
@@ -3272,7 +3915,7 @@ function renderPreviewCampo(p){
   if(['texto','numero'].includes(p.tipo))return'<div style="'+st+'">'+(p.placeholder||'　')+'</div>';
   if(p.tipo==='textarea')return'<div style="'+st+';height:46px;">'+(p.placeholder||'　')+'</div>';
   if(p.tipo==='select')return'<div style="'+st+';display:flex;justify-content:space-between;">Selecione... <span>▾</span></div>';
-  if(['radio','checkbox'].includes(p.tipo))return(p.opcoes||[]).slice(0,3).map(o=>'<div style="display:flex;align-items:center;gap:.4rem;padding:.2rem 0;font-size:.72rem;color:var(--texto);"><div style="width:13px;height:13px;border-radius:'+(p.tipo==='radio'?'50%':'3px')+';border:1.5px solid var(--borda);flex-shrink:0;"></div>'+o+'</div>').join('')+(p.opcoes?.length>3?'<div style="font-size:.63rem;color:var(--suave);">+'+(p.opcoes.length-3)+' mais...</div>':'');
+  if(['radio','checkbox','financeiro'].includes(p.tipo))return(p.opcoes||[]).slice(0,3).map(o=>'<div style="display:flex;align-items:center;gap:.4rem;padding:.2rem 0;font-size:.72rem;color:var(--texto);"><div style="width:13px;height:13px;border-radius:'+(p.tipo==='radio'?'50%':'3px')+';border:1.5px solid var(--borda);flex-shrink:0;"></div>'+o+'</div>').join('')+(p.opcoes?.length>3?'<div style="font-size:.63rem;color:var(--suave);">+'+(p.opcoes.length-3)+' mais...</div>':'');
   return'';
 }
 
@@ -3283,6 +3926,8 @@ function initFormularios(){
   document.getElementById('fview-editor').style.display='none';
   _formAtualId=null;
   renderListaForms();
+  // Atualiza do Firebase em segundo plano (outros aparelhos/edições)
+  _formsPullFb().then(ok => { if (ok && !_formAtualId) renderListaForms(); });
 }
 
 // Fechar modal ao clicar fora
@@ -3791,6 +4436,131 @@ function getCanticos() {
   return CANTICOS_DEFAULT;
 }
 
+// ══ GALERIA & MÍDIAS ══════════════════════════════════════════
+// Fotos comprimidas localmente (Canvas) + vídeos por link (YouTube/Vimeo).
+// Tudo na coleção `galeria` do Firestore; o site público lê de lá.
+let _gmItens = [];
+
+async function initGaleriaMidias() {
+  gmSubTab('fotos');
+  try {
+    const snap = await db.collection('galeria').get();
+    _gmItens = snap.docs.map(d => ({ fbId: d.id, ...d.data() })).sort((a,b) => (b.ts||0) - (a.ts||0));
+  } catch (e) { _gmItens = []; toast('⚠️ Não foi possível carregar a galeria (offline?)'); }
+  gmRender();
+}
+
+function gmSubTab(qual) {
+  document.getElementById('gm-painel-fotos').style.display  = qual === 'fotos'  ? '' : 'none';
+  document.getElementById('gm-painel-videos').style.display = qual === 'videos' ? '' : 'none';
+  const on  = 'background:var(--verde-mid);color:#fff;border:1px solid var(--verde-mid);';
+  const off = 'border:1px solid var(--borda);';
+  document.getElementById('gm-tab-fotos').style.cssText  = qual === 'fotos'  ? on : off;
+  document.getElementById('gm-tab-videos').style.cssText = qual === 'videos' ? on : off;
+}
+
+// Compressão local: redimensiona (máx. 1600px) e re-encoda JPEG q=0.8.
+// Se ainda ficar grande para o Firestore (~1MB/doc), aperta mais.
+function gmComprimir(file, maxDim = 1600, q = 0.8) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const esc = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * esc), hgt = Math.round(img.height * esc);
+        const c = document.createElement('canvas'); c.width = w; c.height = hgt;
+        c.getContext('2d').drawImage(img, 0, 0, w, hgt);
+        res(c.toDataURL('image/jpeg', q));
+      };
+      img.onerror = rej; img.src = fr.result;
+    };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+
+async function gmUploadFotos(files) {
+  if (!files || !files.length) return;
+  const st = document.getElementById('gm-upload-status');
+  let totalAntes = 0, totalDepois = 0, n = 0;
+  for (const file of files) {
+    st.textContent = `Comprimindo ${++n} de ${files.length}…`;
+    try {
+      let dataUrl = await gmComprimir(file);
+      if (dataUrl.length > 950 * 1024) dataUrl = await gmComprimir(file, 1200, 0.6);  // aperta se passar do limite do doc
+      if (dataUrl.length > 980 * 1024) { toast(`⚠️ ${file.name}: grande demais mesmo comprimida — pulada.`); continue; }
+      totalAntes += file.size; totalDepois += Math.round(dataUrl.length * 0.75);
+      const doc = { tipo: 'foto', data: dataUrl, legenda: '', ts: Date.now(),
+                    criado_em: firebase.firestore.FieldValue.serverTimestamp() };
+      const ref = await db.collection('galeria').add(doc);
+      _gmItens.unshift({ fbId: ref.id, ...doc });
+    } catch (e) { toast(`Erro em ${file.name}: ${e.message}`); }
+  }
+  const kb = v => (v/1024).toFixed(0) + ' KB';
+  st.textContent = totalAntes ? `✅ Enviadas. Compressão: ${kb(totalAntes)} → ${kb(totalDepois)} (economia de ${(100 - totalDepois/totalAntes*100).toFixed(0)}%).` : '';
+  document.getElementById('gm-input-fotos').value = '';
+  gmRender();
+}
+
+// Extrai o ID do vídeo (YouTube ou Vimeo) de qualquer formato de link
+function gmParseVideo(url) {
+  url = String(url||'').trim();
+  let m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
+  if (m) return { provider: 'youtube', video_id: m[1], thumb: `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`,
+                  embed: `https://www.youtube.com/embed/${m[1]}` };
+  m = url.match(/vimeo\.com\/(\d+)/);
+  if (m) return { provider: 'vimeo', video_id: m[1], thumb: '',
+                  embed: `https://player.vimeo.com/video/${m[1]}` };
+  return null;
+}
+
+async function gmAddVideo() {
+  const url = document.getElementById('gm-video-url').value.trim();
+  const legenda = document.getElementById('gm-video-legenda').value.trim();
+  const info = gmParseVideo(url);
+  if (!info) { toast('⚠️ Link não reconhecido. Use YouTube ou Vimeo.'); return; }
+  const doc = { tipo: 'video', url, legenda, ...info, ts: Date.now(),
+                criado_em: firebase.firestore.FieldValue.serverTimestamp() };
+  try {
+    const ref = await db.collection('galeria').add(doc);
+    _gmItens.unshift({ fbId: ref.id, ...doc });
+    document.getElementById('gm-video-url').value = '';
+    document.getElementById('gm-video-legenda').value = '';
+    toast('🎬 Vídeo adicionado à galeria.');
+    gmRender();
+  } catch (e) { toast('Erro ao salvar: ' + e.message); }
+}
+
+async function gmExcluir(fbId) {
+  if (!confirm('Remover este item da galeria do site?')) return;
+  try {
+    await db.collection('galeria').doc(fbId).delete();
+    _gmItens = _gmItens.filter(i => i.fbId !== fbId);
+    gmRender();
+    toast('🗑 Item removido.');
+  } catch (e) { toast('Erro ao remover: ' + e.message); }
+}
+
+function gmRender() {
+  const fotos  = _gmItens.filter(i => i.tipo === 'foto');
+  const videos = _gmItens.filter(i => i.tipo === 'video');
+  const gf = document.getElementById('gm-grid-fotos');
+  const gv = document.getElementById('gm-grid-videos');
+  if (gf) gf.innerHTML = fotos.length ? fotos.map(f => `
+    <div style="position:relative;border:1px solid var(--borda);border-radius:8px;overflow:hidden;background:var(--card2);">
+      <img src="${f.data}" style="width:100%;height:120px;object-fit:cover;display:block;" />
+      <button onclick="gmExcluir('${f.fbId}')" title="Remover" style="position:absolute;top:.35rem;right:.35rem;background:rgba(239,68,68,.85);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:.75rem;">✕</button>
+    </div>`).join('') : '<p style="color:var(--suave);font-size:.82rem;grid-column:1/-1;">Nenhuma foto ainda — envie acima.</p>';
+  if (gv) gv.innerHTML = videos.length ? videos.map(v => `
+    <div style="position:relative;border:1px solid var(--borda);border-radius:8px;overflow:hidden;background:var(--card2);">
+      ${v.thumb ? `<img src="${v.thumb}" style="width:100%;height:120px;object-fit:cover;display:block;" />`
+                 : `<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:2rem;">🎬</div>`}
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2rem;pointer-events:none;text-shadow:0 2px 8px rgba(0,0,0,.6);">▶</div>
+      ${v.legenda ? `<div style="padding:.4rem .5rem;font-size:.7rem;color:var(--suave);">${v.legenda}</div>` : ''}
+      <button onclick="gmExcluir('${v.fbId}')" title="Remover" style="position:absolute;top:.35rem;right:.35rem;background:rgba(239,68,68,.85);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:.75rem;">✕</button>
+    </div>`).join('') : '<p style="color:var(--suave);font-size:.82rem;grid-column:1/-1;">Nenhum vídeo ainda — cole um link acima.</p>';
+}
+
 function initGestaoCanticos() {
   renderCanticosAdmin();
 }
@@ -3970,7 +4740,7 @@ window.addEventListener('online',  atualizarAdminSyncBadge);
 window.addEventListener('offline', atualizarAdminSyncBadge);
 document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarAdminSyncBadge, 1500));
 </script>
-<button onclick="toggleTheme()" id="theme-btn" title="Tema claro/escuro" style="position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--borda,rgba(64,145,108,.2));background:var(--card,#0F1E17);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 14px rgba(0,0,0,.35);transition:transform .2s;" onmouseover="this.style.transform='scale(1.12)'" onmouseout="this.style.transform=''">☀️</button>
+
 
 <!-- SheetJS para leitura de XLSX -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

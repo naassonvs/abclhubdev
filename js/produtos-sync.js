@@ -18,26 +18,32 @@
   // ────────────────────────────────────────────────────────────────────────────
   async function carregarDoFirebase(colecao, lsKey) {
     try {
+      // 1. Empurra pendências locais ANTES de puxar (não perde edições/exclusões offline)
+      await sincronizarPendentes();
+      const pendentesDestaColecao = JSON.parse(localStorage.getItem(LS_SYNC_KEY) || '[]')
+        .filter(op => op.colecao === colecao);
+
+      // 2. Puxa o snapshot completo do Firebase
       const snap = await db().collection(colecao).get();
+
+      // 3. Firebase vazio → NÃO sobrescreve (protege o seed inicial / evita zerar catálogo)
       if (snap.empty) return null;
 
-      const produtosFirebase = snap.docs.map(d => ({ ...d.data(), _fbId: d.id }));
-
-      // Comparar timestamp com o que está no localStorage
-      const lsTimestamp = parseInt(localStorage.getItem(lsKey + '_ts') || '0');
-      const fbTimestamp  = Math.max(...produtosFirebase.map(p => p.atualizado_em?.seconds || 0)) * 1000;
-
-      if (fbTimestamp > lsTimestamp) {
-        // Firebase tem dados mais recentes — atualiza localStorage
-        const normalizados = produtosFirebase.map(p => _normalizarProduto(p, colecao));
-        localStorage.setItem(lsKey, JSON.stringify(normalizados));
-        localStorage.setItem(lsKey + '_ts', String(Date.now()));
-        console.log(`[ProdutosSync] ✅ ${colecao}: ${normalizados.length} produtos carregados do Firebase`);
-        return normalizados;
+      // 4. Se restam pendências desta coleção (flush falhou, ex.: offline) → mantém o localStorage
+      if (pendentesDestaColecao.length > 0) {
+        console.warn(`[ProdutosSync] ${colecao}: pendências não sincronizadas — mantém localStorage`);
+        return null;
       }
 
-      console.log(`[ProdutosSync] ℹ️ ${colecao}: localStorage já está atualizado`);
-      return null; // localStorage está ok
+      // 5. Firebase é a FONTE DA VERDADE: sobrescreve o localStorage com o snapshot.
+      //    Faz a exclusão feita em outro aparelho propagar (o produto some daqui porque
+      //    não está mais no Firebase) — corrige o "item ressuscitado".
+      const produtosFirebase = snap.docs.map(d => ({ ...d.data(), _fbId: d.id }));
+      const normalizados = produtosFirebase.map(p => _normalizarProduto(p, colecao));
+      localStorage.setItem(lsKey, JSON.stringify(normalizados));
+      localStorage.setItem(lsKey + '_ts', String(Date.now()));
+      console.log(`[ProdutosSync] ✅ ${colecao}: ${normalizados.length} produtos (Firebase = fonte da verdade)`);
+      return normalizados;
     } catch (err) {
       console.warn(`[ProdutosSync] ⚠️ ${colecao}: offline ou erro — usando localStorage`, err.message);
       return null;

@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL — Formulário</title>
   <meta name="description" content="Formulário do Acampamento Bíblico de Conselheiro Lafaiete." />
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
+  <script>
+  const firebaseConfig = {
+    apiKey:            "AIzaSyAGENra-_4GMgwhk-C7d26hEMCqmuQcecU",
+    authDomain:        "abcl-hub-dev.firebaseapp.com",
+    projectId:         "abcl-hub-dev",
+    storageBucket:     "abcl-hub-dev.firebasestorage.app",
+    messagingSenderId: "243573406078",
+    appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
+  };
+  try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch(e) {}
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider('6LcYAyUtAAAAAJj1yYLnrmo-MThtvjoXAKiLMiGr'), true); } catch(e) { console.warn('[AppCheck] nao ativado:', (e && (e.code||e.message)) || e); }
+  window._fdb = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -299,18 +316,21 @@ function getDefaultPerguntas() {
 
 
 // ── Carregar formulário pelo ?id= da URL ──
+// 1) Carrega localmente (instantâneo). 2) Busca a versão publicada no Firebase
+// (coleção `forms`) e re-renderiza — é assim que o formulário criado no Admin
+// chega aos visitantes em qualquer aparelho.
+function _escolherForm(lista, urlId) {
+  if (urlId) return lista.find(f => String(f.id) === String(urlId)) || null;
+  return lista.find(f => f.id === 'perfil') || lista.find(f => f.ativo) || lista[0] || null;
+}
+
 (function carregarFormulario() {
   const urlId = new URLSearchParams(window.location.search).get('id');
   let formData = null;
 
   try {
     const lista = JSON.parse(localStorage.getItem('abcl-forms-lista') || '[]');
-    if (urlId) {
-      formData = lista.find(f => f.id === urlId) || null;
-    } else {
-      // Sem ID: pegar o primeiro formulário ativo, ou o de perfil
-      formData = lista.find(f => f.id === 'perfil') || lista.find(f => f.ativo) || lista[0] || null;
-    }
+    formData = _escolherForm(lista, urlId);
   } catch(e) {}
 
   if (!formData) {
@@ -330,6 +350,28 @@ function getDefaultPerguntas() {
   window.PERGUNTAS = (formData.perguntas && formData.perguntas.length > 0)
     ? formData.perguntas
     : getDefaultPerguntas();
+
+  // 2) Versão publicada no Firebase (fonte da verdade para visitantes)
+  if (window._fdb) (async () => {
+    try {
+      let remoto = null;
+      if (urlId) {
+        const doc = await _fdb.collection('forms').doc(String(urlId)).get();
+        if (doc.exists && !doc.data().excluido) remoto = doc.data();
+      } else {
+        const snap = await _fdb.collection('forms').get();
+        const vivos = snap.docs.map(d => d.data()).filter(f => !f.excluido);
+        remoto = _escolherForm(vivos, null);
+      }
+      // Só re-renderiza se achou algo e o visitante ainda não começou a responder
+      if (remoto && Object.keys(respostas).length === 0) {
+        window.CONFIG    = remoto;
+        window.PERGUNTAS = (remoto.perguntas && remoto.perguntas.length > 0) ? remoto.perguntas : getDefaultPerguntas();
+        montarFormulario();
+        atualizarTotalFinanceiro();
+      }
+    } catch (e) { console.warn('[Form] usando versão local (Firebase indisponível)', e.message); }
+  })();
 })();
 
 // ── Respostas coletadas ──
@@ -425,7 +467,52 @@ function renderCampo(p) {
         </label>`).join('')}
     </div>`;
   }
+  if (p.tipo === 'financeiro') {
+    return `<div class="opcoes" id="opc-${p.id}">
+      ${(p.opcoes||[]).map(o => { const v = _valorBRL(o); return `
+        <label class="opcao-item" data-opt="${escapar(o)}" onclick="selecionarOpcao(${p.id},'${escapar(o)}',this,'financeiro')" style="display:flex;align-items:center;gap:.6rem;">
+          <div class="opcao-box"></div>
+          <span style="flex:1;">${_rotuloSemValor(o)}</span>
+          ${v > 0 ? `<span style="font-weight:700;color:var(--verde-cl);white-space:nowrap;">R$ ${_fmtBRL(v)}</span>` : ''}
+        </label>`; }).join('')}
+    </div>`;
+  }
   return '';
+}
+
+// ── Valores monetários (tipo "Vínculo financeiro") ──
+function _valorBRL(s) {
+  const m = String(s||'').match(/R\$\s*([\d.]+(?:,\d{1,2})?)/);
+  if (!m) return 0;
+  return parseFloat(m[1].replace(/\./g,'').replace(',','.')) || 0;
+}
+function _rotuloSemValor(s) { return String(s||'').replace(/\s*[—–\-]*\s*R\$\s*[\d.,]+\s*$/,'').trim(); }
+function _fmtBRL(v) { return (v||0).toFixed(2).replace('.',','); }
+
+function _totalFinanceiro() {
+  let t = 0;
+  PERGUNTAS.forEach(p => {
+    if (p.tipo !== 'financeiro') return;
+    String(respostas[p.id]||'').split(', ').filter(Boolean).forEach(o => { t += _valorBRL(o); });
+  });
+  return t;
+}
+
+// Barra "Total selecionado" acima do botão de envio (só se houver pergunta financeira)
+function atualizarTotalFinanceiro() {
+  if (!PERGUNTAS.some(p => p.tipo === 'financeiro')) return;
+  let bar = document.getElementById('fin-total-bar');
+  if (!bar) {
+    const sa = document.getElementById('submit-area');
+    if (!sa) return;
+    sa.insertAdjacentHTML('beforebegin', `
+      <div id="fin-total-bar" style="display:flex;justify-content:space-between;align-items:center;background:rgba(64,145,108,.1);border:1px solid rgba(64,145,108,.3);border-radius:10px;padding:.85rem 1.1rem;margin:1rem 0;">
+        <span style="font-size:.85rem;color:var(--suave);">💰 Total selecionado</span>
+        <strong id="fin-total-valor" style="font-size:1.15rem;color:var(--verde-cl);">R$ 0,00</strong>
+      </div>`);
+    bar = document.getElementById('fin-total-bar');
+  }
+  document.getElementById('fin-total-valor').textContent = 'R$ ' + _fmtBRL(_totalFinanceiro());
 }
 
 function escapar(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
@@ -444,10 +531,12 @@ function selecionarOpcao(id, val, el, tipo) {
     respostas[id] = val;
   } else {
     el.classList.toggle('sel');
-    const selecionados = [...wrap.querySelectorAll('.opcao-item.sel')].map(i => i.textContent.trim());
+    const selecionados = [...wrap.querySelectorAll('.opcao-item.sel')]
+      .map(i => i.dataset.opt || i.textContent.trim());
     respostas[id] = selecionados.join(', ');
     const box = el.querySelector('.opcao-box');
     if (box) box.textContent = el.classList.contains('sel') ? '✓' : '';
+    if (tipo === 'financeiro') atualizarTotalFinanceiro();
   }
   const campo = document.getElementById(`campo-${id}`);
   if (campo) campo.classList.remove('erro');
@@ -540,32 +629,22 @@ function mostrarLotado() {
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function enviarComoFila() {
-  // Registra como fila e envia mensagem diferenciada
-  const linhas = [`📋 *${CONFIG.titulo} — FILA DE ESPERA*`, ''];
-  PERGUNTAS.forEach(p => {
-    if (p.tipo === 'secao' || p.tipo === 'imagem') return;
-    const r = respostas[p.id];
-    if (r && String(r).trim()) linhas.push(`• *${p.label}:* ${r}`);
-  });
-  linhas.push('', `⏳ _Esta inscrição entrou na fila de espera_`, `_${CONFIG.filaMsg || 'Você está na fila de espera. Entraremos em contato caso uma vaga se abra.'}_`);
-
-  // Salvar com flag de fila
+async function enviarComoFila() {
+  // Registra no sistema com status de fila de espera (sem WhatsApp)
   _salvarInsight(true);
-  window.open(`https://wa.me/${CONFIG.whats||'5531988262599'}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener');
-
-  const s = document.getElementById('sucesso');
-  document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
-  s.classList.add('show');
-  s.innerHTML = `
-    <div style="font-size:3rem;margin-bottom:1rem;">⏳</div>
-    <div style="font-family:'Cinzel',serif;font-size:1.2rem;color:#fbbf24;margin-bottom:.6rem;">Você está na fila de espera</div>
-    <p style="font-size:.85rem;color:var(--suave);line-height:1.7;max-width:380px;margin:0 auto;">
-      ${CONFIG.filaMsg || 'Suas informações foram enviadas. Você será avisado pelo WhatsApp caso uma vaga se abra.'}
-    </p>
-    <a href="index.html" style="display:block;margin-top:1.25rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
-  `;
-  window.scrollTo({top:0,behavior:'smooth'});
+  const reg = _montarRegistroInscricao();
+  let online = true;
+  try { await _gravarNoFirebase(reg, 'fila'); }
+  catch (e) {
+    online = false;
+    console.error('[Form] Falha ao gravar (fila) no Firebase:', (e && (e.code || e.message)) || e, e);
+    try {
+      const fila = JSON.parse(localStorage.getItem('abcl-inscricoes-pendentes') || '[]');
+      fila.push({ reg, status: 'fila', em: Date.now() });
+      localStorage.setItem('abcl-inscricoes-pendentes', JSON.stringify(fila));
+    } catch (_) {}
+  }
+  _mostrarSucesso(reg, online, true);
 }
 
 function _salvarInsight(filaEspera = false) {
@@ -576,28 +655,170 @@ function _salvarInsight(filaEspera = false) {
   } catch(e) {}
 }
 
-function _executarEnvio() {
-  const linhas = [`📋 *${CONFIG.titulo || 'Formulário ABCL 2026'}*`, ''];
+// ══════════════════════════════════════════════════════════════
+// GRAVAÇÃO NO FIREBASE — coleções `acampantes` (pessoa, permanente)
+// e `inscricoes` (resposta deste formulário). O WhatsApp segue como
+// canal de confirmação; o banco é o registro oficial.
+// ══════════════════════════════════════════════════════════════
+function _soDigitos(s){ return String(s||'').replace(/\D/g,''); }
+function _slug(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40); }
+
+// Extrai um campo das respostas procurando palavras-chave no rótulo da pergunta
+function _respostaPorLabel(regex) {
+  const p = PERGUNTAS.find(p => p.label && regex.test(p.label.toLowerCase()));
+  return p ? String(respostas[p.id] || '').trim() : '';
+}
+
+function _montarRegistroInscricao() {
+  const nome     = _respostaPorLabel(/nome/);
+  const telefone = _soDigitos(_respostaPorLabel(/telefone|whatsapp|celular/));
+  const email    = _respostaPorLabel(/e-?mail/);
+  const sexo     = _respostaPorLabel(/sexo/);
+
+  // Mapa legível: rótulo → resposta (sobrevive a mudanças de ids entre edições)
+  const mapa = {};
   PERGUNTAS.forEach(p => {
-    if (p.tipo === 'secao') { linhas.push(`\n*${p.label.toUpperCase()}*`); return; }
-    if (p.tipo === 'imagem') return;
+    if (p.tipo === 'secao' || p.tipo === 'imagem') return;
     const r = respostas[p.id];
-    if (r && String(r).trim()) linhas.push(`• *${p.label}:* ${r}`);
-    else if (!p.obrig) return;
+    if (r !== undefined && String(r).trim() !== '') mapa[p.label] = r;
   });
-  linhas.push('', `_Enviado via ABCL 2026_`);
 
-  const whats = CONFIG.whats || '5531988262599';
-  window.open(`https://wa.me/${whats}?text=${encodeURIComponent(linhas.join('\n'))}`, '_blank', 'noopener,noreferrer');
+  // Itens com valor (perguntas do tipo "Vínculo financeiro") → vão para o Financeiro
+  const itens_financeiros = [];
+  let valor_total = 0;
+  PERGUNTAS.forEach(p => {
+    if (p.tipo !== 'financeiro') return;
+    String(respostas[p.id]||'').split(', ').filter(Boolean).forEach(o => {
+      const v = _valorBRL(o);
+      itens_financeiros.push({ descricao: _rotuloSemValor(o), valor: v });
+      valor_total += v;
+    });
+  });
+
+  // Código curto da inscrição (referência para o inscrito e a organização)
+  const codigo = 'ABCL-' + Date.now().toString(36).toUpperCase().slice(-5) + Math.floor(Math.random()*10);
+
+  // Chave do acampante: telefone + nome (telefone pode ser compartilhado — ex.: menor usa o do responsável)
+  const acampanteId = (telefone || nome) ? `a${telefone || 'x'}_${_slug(nome) || 'sem-nome'}` : null;
+
+  return { nome, telefone, email, sexo, mapa, acampanteId, itens_financeiros, valor_total, codigo };
+}
+
+async function _gravarNoFirebase(reg, status) {
+  if (!window._fdb) return;
+  const FV = firebase.firestore.FieldValue;
+
+  // 1) INSCRIÇÃO primeiro — registro oficial da resposta.
+  //    Se ESTA falhar (offline/permissão), o erro propaga → o chamador põe na
+  //    fila offline e tenta de novo. Assim a resposta nunca se perde.
+  await _fdb.collection('inscricoes').add({
+    codigo: reg.codigo || null,
+    form_id: String(CONFIG.id || 'sem-id'),
+    form_titulo: CONFIG.titulo || '',
+    acampante_id: reg.acampanteId || null,
+    nome: reg.nome, telefone: reg.telefone, email: reg.email || null, sexo: reg.sexo || null,
+    respostas: reg.mapa,
+    itens_financeiros: reg.itens_financeiros || [],
+    valor_total: reg.valor_total || 0,
+    status_pagamento: 'pendente',
+    forma_pagamento: (reg.mapa['Pagamento - Dinheiro ou PIX?'] || _respostaPorLabel(/pagamento/) || null),
+    status_inscricao: status || 'confirmada',   // 'confirmada' | 'fila'
+    origem: 'formulario',
+    criado_em: FV.serverTimestamp(),
+  });
+
+  // 2) ACAMPANTE — upsert do cadastro permanente, SÓ com identificador (nome/telefone)
+  //    e em BEST-EFFORT: se falhar, a inscrição já está salva — apenas loga, sem
+  //    derrubar o envio nem reprocessar (evita inscrição duplicada na fila).
+  if (reg.acampanteId) {
+    try {
+      await _fdb.collection('acampantes').doc(reg.acampanteId).set({
+        nome: reg.nome, nome_busca: _slug(reg.nome),
+        telefone: reg.telefone, email: reg.email || null, sexo: reg.sexo || null,
+        dados: reg.mapa,
+        atualizado_em: FV.serverTimestamp(),
+      }, { merge: true });
+    } catch (e) {
+      console.error('[Form] Inscrição gravada, mas falhou ao atualizar o cadastro do acampante:', (e && (e.code || e.message)) || e);
+    }
+  }
+}
+
+// Reenvia pendências ao abrir a página
+(function _retomarPendentes() {
+  if (!window._fdb) return;
+  let fila = [];
+  try { fila = JSON.parse(localStorage.getItem('abcl-inscricoes-pendentes') || '[]'); } catch(_) {}
+  if (!fila.length) return;
+  (async () => {
+    const restantes = [];
+    for (const item of fila) {
+      try { await _gravarNoFirebase(item.reg, item.status); }
+      catch (e) { console.error('[Form] Pendente ainda falhando:', (e && (e.code || e.message)) || e); restantes.push(item); }
+    }
+    localStorage.setItem('abcl-inscricoes-pendentes', JSON.stringify(restantes));
+    if (restantes.length < fila.length) console.log(`[Form] ${fila.length - restantes.length} inscrição(ões) pendente(s) enviada(s).`);
+  })();
+})();
+
+async function _executarEnvio() {
   _salvarInsight(false);
+  const reg = _montarRegistroInscricao();
+  const btn = document.querySelector('#submit-area button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  let online = true;
+  try { await _gravarNoFirebase(reg, 'confirmada'); }
+  catch (e) {
+    online = false;
+    console.error('[Form] Falha ao gravar no Firebase:', (e && (e.code || e.message)) || e, e);
+    if (e && e.code === 'permission-denied') console.error('[Form] ⚠️ permission-denied: as regras do Firestore não permitem escrita pública em acampantes/inscricoes.');
+    try {
+      const fila = JSON.parse(localStorage.getItem('abcl-inscricoes-pendentes') || '[]');
+      fila.push({ reg, status: 'confirmada', em: Date.now() });
+      localStorage.setItem('abcl-inscricoes-pendentes', JSON.stringify(fila));
+    } catch (_) {}
+  }
+  _mostrarSucesso(reg, online, false);
+}
 
-  document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
-  document.getElementById('sucesso').classList.add('show');
+// Tela de confirmação (a inscrição agora vai para o sistema, não para o WhatsApp)
+function _mostrarSucesso(reg, online, ehFila) {
+  document.querySelectorAll('.form-secao, .form-header, #submit-area, #fin-total-bar').forEach(el => el.style.display = 'none');
+  const s = document.getElementById('sucesso');
+  const temValor = (reg.valor_total || 0) > 0;
+  s.classList.add('show');
+  s.innerHTML = `
+    <div style="font-size:3rem;margin-bottom:1rem;">${ehFila ? '⏳' : '✅'}</div>
+    <h2 style="font-family:'Cinzel',serif;color:var(--verde-cl);margin-bottom:.5rem;">
+      ${ehFila ? 'Você está na fila de espera' : 'Inscrição registrada!'}</h2>
+    <p style="color:var(--suave);font-size:.9rem;margin-bottom:1.25rem;">
+      ${ehFila
+        ? (CONFIG.filaMsg || 'As vagas se esgotaram, mas sua inscrição ficou registrada na fila. Entraremos em contato caso uma vaga se abra.')
+        : `Obrigado, <b style="color:var(--texto);">${reg.nome || 'acampante'}</b>! Recebemos sua inscrição.`}</p>
+    <div style="display:inline-block;background:rgba(64,145,108,.1);border:1px dashed rgba(64,145,108,.45);border-radius:10px;padding:.8rem 1.4rem;margin-bottom:1.25rem;">
+      <div style="font-size:.68rem;letter-spacing:.12em;color:var(--suave);text-transform:uppercase;">Código da inscrição</div>
+      <div style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--verde-cl);letter-spacing:.06em;">${reg.codigo}</div>
+      <div style="font-size:.68rem;color:var(--suave);margin-top:.2rem;">guarde este código</div>
+    </div>
+    ${temValor ? `
+    <div style="display:flex;justify-content:space-between;max-width:300px;margin:0 auto 1.25rem;background:var(--card2,rgba(255,255,255,.04));border:1px solid rgba(64,145,108,.25);border-radius:8px;padding:.7rem 1rem;">
+      <span style="color:var(--suave);font-size:.85rem;">Total da inscrição</span>
+      <b style="color:var(--verde-cl);">R$ ${_fmtBRL(reg.valor_total)}</b>
+    </div>
+    <p style="color:var(--suave);font-size:.78rem;margin-bottom:1.25rem;">A organização entrará em contato para confirmar o pagamento.</p>` : ''}
+    ${!online ? `
+    <p style="color:var(--amarelo);font-size:.78rem;max-width:340px;margin:0 auto 1.25rem;">📡 Sem conexão no momento — sua inscrição foi <b>salva neste aparelho</b> e será enviada automaticamente quando você abrir esta página com internet.</p>` : ''}
+    ${CONFIG.whats ? `
+    <a href="https://wa.me/${CONFIG.whats}" target="_blank" rel="noopener"
+       style="display:inline-block;background:rgba(64,145,108,.15);border:1px solid rgba(64,145,108,.4);color:var(--verde-cl);padding:.6rem 1.2rem;border-radius:8px;text-decoration:none;font-size:.85rem;">💬 Falar com a organização</a>` : ''}
+    <a href="index.html" style="display:block;margin-top:1rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
+  `;
   document.getElementById('prog-fill').style.width = '100%';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 montarFormulario();
+atualizarTotalFinanceiro();
 </script>
 </body>
 </html>
