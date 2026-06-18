@@ -1109,6 +1109,25 @@
               <div id="form-agenda-preview" style="margin-top:.5rem;"></div>
               <button class="btn btn-ghost btn-sm" onclick="limparAgendamentoEditor()" style="margin-top:.5rem;">✕ Limpar agendamento</button>
             </div>
+            <!-- Termo de aceite / Regulamento (opcional) -->
+            <div style="margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--borda);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
+                <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);">📜 Termo de aceite / Regulamento</div>
+                <label class="tgl">
+                  <input type="checkbox" class="tgl-input" id="form-termo-ativo" onchange="_toggleTermoEditor()" />
+                  <span class="tgl-label" data-on="ON" data-off="OFF"></span>
+                  <span class="tgl-handle"></span>
+                </label>
+              </div>
+              <div id="form-termo-campos" style="display:none;">
+                <div class="field"><label>Texto do regulamento (aparece no fim do formulário)</label>
+                  <textarea id="form-termo-texto" rows="5" placeholder="Cole aqui o regulamento / termos. As quebras de linha são preservadas."></textarea>
+                </div>
+                <div class="field"><label>Texto do checkbox de aceite</label>
+                  <input type="text" id="form-termo-label" placeholder="Li e concordo com os termos e o regulamento." />
+                </div>
+              </div>
+            </div>
             <button class="btn btn-solid btn-sm" onclick="salvarConfigFormulario()" style="margin-top:.75rem;">💾 Salvar configurações</button>
           </div>
 
@@ -3403,6 +3422,12 @@ function editarFormulario(id) {
   if (fIni) fIni.value = f.agendaInicio ? f.agendaInicio.slice(0,16) : '';
   if (fFim) fFim.value = f.agendaFim    ? f.agendaFim.slice(0,16)    : '';
   _atualizarPreviewAgendamento(f);
+  // Termo de aceite
+  const tAtivo = document.getElementById('form-termo-ativo');
+  if (tAtivo) tAtivo.checked = !!f.termoAtivo;
+  if (document.getElementById('form-termo-texto')) document.getElementById('form-termo-texto').value = f.termoTexto || '';
+  if (document.getElementById('form-termo-label')) document.getElementById('form-termo-label').value = f.termoLabel || '';
+  if (typeof _toggleTermoEditor === 'function') _toggleTermoEditor();
   atualizarToggleAtivo(f.ativo);
   renderFormPerguntas();
   renderPreview();
@@ -3743,6 +3768,12 @@ function limparAgendamentoEditor() {
   toast('✅ Agendamento removido.');
 }
 
+function _toggleTermoEditor() {
+  const on = !!document.getElementById('form-termo-ativo')?.checked;
+  const campos = document.getElementById('form-termo-campos');
+  if (campos) campos.style.display = on ? '' : 'none';
+}
+
 function salvarConfigFormulario() {
   if (!_formAtualId) return;
   const lista = getTodosForms();
@@ -3765,6 +3796,10 @@ function salvarConfigFormulario() {
   f.agendaInicio = ini ? new Date(ini).toISOString() : '';
   f.agendaFim    = fim ? new Date(fim).toISOString() : '';
   if (f.agendaInicio || f.agendaFim) f.ativo = (_statusAgendamento(f) === 'ativo');
+  // Termo de aceite
+  f.termoAtivo = !!document.getElementById('form-termo-ativo')?.checked;
+  f.termoTexto = (document.getElementById('form-termo-texto')?.value || '').trim();
+  f.termoLabel = (document.getElementById('form-termo-label')?.value || '').trim();
   setTodosForms(lista);
   document.getElementById('feditor-titulo-header').textContent    = f.titulo;
   document.getElementById('feditor-subtitulo-header').textContent = f.subtitulo;

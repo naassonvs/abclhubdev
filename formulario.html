@@ -258,10 +258,10 @@
   <!-- Submit -->
   <div class="submit-area" id="submit-area">
     <button class="btn-submit" id="btn-submit" onclick="enviarFormulario()">
-      💬 <span id="btn-label">Enviar pelo WhatsApp</span>
+      📋 <span id="btn-label">Enviar inscrição</span>
     </button>
     <p style="font-size:.72rem;color:var(--suave);margin-top:.75rem;line-height:1.6;">
-      Suas respostas serão enviadas pelo WhatsApp para a coordenação.
+      Suas respostas serão enviadas para a coordenação.
     </p>
   </div>
 
@@ -270,7 +270,7 @@
     <div class="sucesso-icon">✅</div>
     <div class="sucesso-titulo">Enviado com sucesso!</div>
     <p class="sucesso-msg">
-      Suas respostas foram enviadas pelo WhatsApp.<br>
+      Sua inscrição foi registrada com sucesso.<br>
       A coordenação entrará em contato em breve.
     </p>
     <a href="index.html" style="display:inline-block;margin-top:1.25rem;color:var(--verde-cl);font-size:.82rem;text-decoration:none;">← Voltar ao site</a>
@@ -339,7 +339,7 @@ function _escolherForm(lista, urlId) {
       titulo: 'Perfil do Acampante',
       subtitulo: 'Conte um pouco mais sobre você 🏕️',
       whats: '5531988262599',
-      btnLabel: 'Enviar pelo WhatsApp',
+      btnLabel: 'Enviar inscrição',
       capa: '',
       perguntas: getDefaultPerguntas(),
     };
@@ -382,12 +382,29 @@ function montarFormulario() {
   document.getElementById('f-titulo').textContent    = CONFIG.titulo    || 'Formulário';
   document.getElementById('f-subtitulo').textContent = CONFIG.subtitulo || '';
   document.getElementById('top-titulo').textContent  = CONFIG.titulo    || 'ABCL';
-  document.getElementById('btn-label').textContent   = CONFIG.btnLabel  || 'Enviar pelo WhatsApp';
+  document.getElementById('btn-label').textContent   = CONFIG.btnLabel  || 'Enviar inscrição';
 
   if (CONFIG.capa) {
     const img = document.createElement('img');
     img.src = CONFIG.capa; img.className = 'capa-img';
     document.getElementById('form-header').insertAdjacentElement('beforebegin', img);
+  }
+
+  // Janela de agendamento: fora dela, bloqueia e nem monta o formulário
+  if (_bloquearForaDeJanela()) return;
+
+  // Formulário real (com id) mas sem nenhuma pergunta → em construção (não cai nos padrões)
+  if (CONFIG.id && (!CONFIG.perguntas || CONFIG.perguntas.length === 0)) {
+    document.querySelectorAll('.form-secao, .form-header, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
+    const s = document.getElementById('sucesso');
+    s.classList.add('show');
+    s.innerHTML = `
+      <div style="font-size:3rem;margin-bottom:1rem;">🚧</div>
+      <div style="font-family:'Cinzel',serif;font-size:1.25rem;color:var(--verde-cl);margin-bottom:.6rem;">Formulário em construção</div>
+      <p style="font-size:.88rem;color:var(--suave);line-height:1.7;max-width:380px;margin:0 auto;">Este formulário ainda não tem perguntas configuradas. Volte em breve.</p>
+      <a href="index.html" style="display:block;margin-top:1.25rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
+    `;
+    return;
   }
 
   const body = document.getElementById('form-body');
@@ -430,7 +447,39 @@ function montarFormulario() {
     body.appendChild(secao);
   });
 
+  _renderTermo(body);
   atualizarProgresso();
+}
+
+// Renderiza o bloco fixo de Termo de aceite / Regulamento (opcional, no fim do formulário)
+function _renderTermo(body) {
+  if (!CONFIG.termoAtivo) return;
+  const box = document.createElement('div');
+  box.className = 'campo'; box.id = 'campo-termo';
+  box.style.cssText = 'border:1px solid var(--borda,#2a3a32);border-radius:10px;padding:1rem;background:rgba(0,0,0,.12);border-radius:10px;';
+
+  const titulo = document.createElement('div');
+  titulo.style.cssText = "font-family:'Cinzel',serif;color:var(--verde-cl);font-size:1rem;margin-bottom:.6rem;";
+  titulo.textContent = '📜 Termos e Regulamento';
+
+  const texto = document.createElement('div');
+  texto.style.cssText = 'white-space:pre-wrap;max-height:240px;overflow:auto;font-size:.82rem;line-height:1.6;color:var(--suave);background:rgba(0,0,0,.18);border:1px solid var(--borda,#2a3a32);border-radius:8px;padding:.8rem;';
+  texto.textContent = CONFIG.termoTexto || '';
+
+  const lbl = document.createElement('label');
+  lbl.style.cssText = 'display:flex;gap:.6rem;align-items:flex-start;margin-top:.85rem;cursor:pointer;';
+  const chk = document.createElement('input');
+  chk.type = 'checkbox'; chk.id = 'termo-aceite-check'; chk.style.marginTop = '.2rem';
+  chk.addEventListener('change', () => {
+    box.style.outline = ''; atualizarProgresso();
+  });
+  const span = document.createElement('span');
+  span.style.fontSize = '.85rem';
+  span.textContent = CONFIG.termoLabel || 'Li e concordo com os termos e o regulamento.';
+  lbl.appendChild(chk); lbl.appendChild(span);
+
+  box.appendChild(titulo); box.appendChild(texto); box.appendChild(lbl);
+  body.appendChild(box);
 }
 
 function renderCampo(p) {
@@ -562,47 +611,126 @@ function validar() {
       ok = false;
     }
   });
+  // Termo de aceite (quando ativo, é obrigatório marcar)
+  if (CONFIG.termoAtivo) {
+    const chk = document.getElementById('termo-aceite-check');
+    if (!chk || !chk.checked) {
+      const box = document.getElementById('campo-termo');
+      if (box) { box.style.outline = '2px solid #EF4444'; box.style.outlineOffset = '2px'; box.classList.add('erro'); }
+      ok = false;
+    }
+  }
   return ok;
 }
 
+// ── Janela de agendamento (ativar/desativar) — espelha _statusAgendamento do admin ──
+function _statusFormulario() {
+  // 'ativo' | 'agendado' | 'expirado' | 'inativo'
+  const agora = new Date();
+  const ini = CONFIG.agendaInicio ? new Date(CONFIG.agendaInicio) : null;
+  const fim = CONFIG.agendaFim    ? new Date(CONFIG.agendaFim)    : null;
+  if (ini && agora < ini) return 'agendado';
+  if (fim && agora > fim)  return 'expirado';
+  if (ini && agora >= ini && (!fim || agora <= fim)) return 'ativo';
+  // Sem janela definida: só bloqueia se o formulário foi explicitamente desativado
+  return (CONFIG.ativo === false) ? 'inativo' : 'ativo';
+}
+
+function _fmtDataAgenda(iso) {
+  try { return new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+  catch (e) { return ''; }
+}
+
+// Bloqueia a tela quando fora da janela. Retorna true se bloqueou.
+function _bloquearForaDeJanela() {
+  const s = _statusFormulario();
+  if (s === 'ativo') return false;
+
+  let icone, titulo, msg;
+  if (s === 'agendado') {
+    icone = '🗓️'; titulo = 'As inscrições ainda não abriram';
+    msg = CONFIG.agendaInicio ? `As inscrições abrem em <strong>${_fmtDataAgenda(CONFIG.agendaInicio)}</strong>.` : 'Volte em breve.';
+  } else if (s === 'expirado') {
+    icone = '⏳'; titulo = 'Inscrições encerradas';
+    msg = CONFIG.agendaFim ? `O prazo terminou em <strong>${_fmtDataAgenda(CONFIG.agendaFim)}</strong>.` : 'O prazo para este formulário já passou.';
+  } else {
+    icone = '🔒'; titulo = 'Inscrições indisponíveis';
+    msg = 'Este formulário não está aberto no momento.';
+  }
+
+  document.querySelectorAll('.form-secao, .form-header, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
+  const prog = document.getElementById('prog-fill'); if (prog) prog.style.width = '100%';
+  const el = document.getElementById('sucesso');
+  el.classList.add('show');
+  el.innerHTML = `
+    <div style="font-size:3rem;margin-bottom:1rem;">${icone}</div>
+    <div style="font-family:'Cinzel',serif;font-size:1.25rem;color:var(--verde-cl);margin-bottom:.6rem;">${titulo}</div>
+    <p style="font-size:.88rem;color:var(--suave);line-height:1.7;max-width:380px;margin:0 auto;">${msg}</p>
+    ${CONFIG.whats ? `<a href="https://wa.me/${CONFIG.whats}" target="_blank" rel="noopener"
+      style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;background:#25D366;color:#fff;padding:.7rem 1.4rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.86rem;">💬 Falar com a organização</a>` : ''}
+    <a href="index.html" style="display:block;margin-top:1rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
+  `;
+  return true;
+}
+
 // ── Envio ──
-function enviarFormulario() {
+let _enviando = false;
+async function enviarFormulario() {
+  if (_enviando) return;                  // trava reentrada (duplo-clique durante a checagem)
+  if (_bloquearForaDeJanela()) return;    // janela de agendamento (defesa no submit)
   if (!validar()) {
     const primeiro = document.querySelector('.campo.erro');
     if (primeiro) primeiro.scrollIntoView({ behavior:'smooth', block:'center' });
     return;
   }
 
-  // ── Verificar vagas disponíveis ──
-  const vagasStatus = verificarVagas();
+  _enviando = true;
+  const btn = document.querySelector('#submit-area button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando…'; }
+
+  // ── Verificar vagas disponíveis (contagem global no Firestore) ──
+  let vagasStatus = 'ok';
+  try { vagasStatus = await verificarVagas(); }
+  catch (e) { console.warn('[Form] checagem de vagas falhou, prosseguindo:', (e && e.message) || e); vagasStatus = 'ok'; }
+
   if (vagasStatus === 'lotado') {
-    mostrarLotado(); return;
+    mostrarLotado(); return;              // tela terminal
   }
   if (vagasStatus === 'fila') {
-    enviarComoFila(); return;
+    enviarComoFila(); return;             // mantém botão travado e mostra sucesso
   }
 
   _executarEnvio();
 }
 
-function verificarVagas() {
+async function verificarVagas() {
   if (!CONFIG.vagasMasc && !CONFIG.vagasFem && !CONFIG.vagasGeral) return 'ok';
-  const respostas_salvas = JSON.parse(localStorage.getItem('abcl-insights') || '[]');
-  const deste = respostas_salvas.filter(r => r.formId === (_formData?.id || ''));
+  // Sem Firestore ou sem id não há como contar globalmente → não bloqueia (admin reconcilia).
+  if (!window._fdb || !CONFIG.id) return 'ok';
 
-  // Detectar sexo da resposta atual
+  let confirmadas;
+  try {
+    // Uma leitura simples por form_id (sem índice composto); filtra a fila no cliente.
+    const snap = await _fdb.collection('inscricoes').where('form_id', '==', String(CONFIG.id)).get();
+    confirmadas = snap.docs.map(d => d.data()).filter(r => (r.status_inscricao || 'confirmada') !== 'fila');
+  } catch (e) {
+    console.warn('[Form] não foi possível checar vagas no Firebase, prosseguindo:', (e && (e.code || e.message)) || e);
+    return 'ok';
+  }
+
+  const total = confirmadas.length;
   const pSexo = PERGUNTAS.find(p => p.label && p.label.toLowerCase().includes('sexo'));
   const sexoAtual = pSexo ? respostas[pSexo.id] : '';
 
-  if (CONFIG.vagasGeral > 0 && deste.length >= CONFIG.vagasGeral) {
+  if (CONFIG.vagasGeral > 0 && total >= CONFIG.vagasGeral) {
     return CONFIG.filaEspera ? 'fila' : 'lotado';
   }
   if (CONFIG.vagasMasc > 0 && sexoAtual === 'Masculino') {
-    const masc = deste.filter(r => r[pSexo?.id] === 'Masculino').length;
+    const masc = confirmadas.filter(r => (r.sexo || '') === 'Masculino').length;
     if (masc >= CONFIG.vagasMasc) return CONFIG.filaEspera ? 'fila' : 'lotado';
   }
   if (CONFIG.vagasFem > 0 && sexoAtual === 'Feminino') {
-    const fem = deste.filter(r => r[pSexo?.id] === 'Feminino').length;
+    const fem = confirmadas.filter(r => (r.sexo || '') === 'Feminino').length;
     if (fem >= CONFIG.vagasFem) return CONFIG.filaEspera ? 'fila' : 'lotado';
   }
   return 'ok';
@@ -633,6 +761,8 @@ async function enviarComoFila() {
   // Registra no sistema com status de fila de espera (sem WhatsApp)
   _salvarInsight(true);
   const reg = _montarRegistroInscricao();
+  const btn = document.querySelector('#submit-area button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   let online = true;
   try { await _gravarNoFirebase(reg, 'fila'); }
   catch (e) {
@@ -650,7 +780,7 @@ async function enviarComoFila() {
 function _salvarInsight(filaEspera = false) {
   try {
     const lista = JSON.parse(localStorage.getItem('abcl-insights') || '[]');
-    lista.unshift({ ts: Date.now(), data: new Date().toLocaleDateString('pt-BR'), formId: _formData?.id || '', filaEspera, ...respostas });
+    lista.unshift({ ts: Date.now(), data: new Date().toLocaleDateString('pt-BR'), formId: (CONFIG && CONFIG.id) || '', filaEspera, ...respostas });
     localStorage.setItem('abcl-insights', JSON.stringify(lista.slice(0, 500)));
   } catch(e) {}
 }
@@ -701,7 +831,10 @@ function _montarRegistroInscricao() {
   // Chave do acampante: telefone + nome (telefone pode ser compartilhado — ex.: menor usa o do responsável)
   const acampanteId = (telefone || nome) ? `a${telefone || 'x'}_${_slug(nome) || 'sem-nome'}` : null;
 
-  return { nome, telefone, email, sexo, mapa, acampanteId, itens_financeiros, valor_total, codigo };
+  // Aceite do termo (quando o formulário tem termo ativo)
+  const aceiteTermo = CONFIG.termoAtivo ? !!document.getElementById('termo-aceite-check')?.checked : null;
+
+  return { nome, telefone, email, sexo, mapa, acampanteId, itens_financeiros, valor_total, codigo, aceiteTermo };
 }
 
 async function _gravarNoFirebase(reg, status) {
@@ -724,6 +857,7 @@ async function _gravarNoFirebase(reg, status) {
     forma_pagamento: (reg.mapa['Pagamento - Dinheiro ou PIX?'] || _respostaPorLabel(/pagamento/) || null),
     status_inscricao: status || 'confirmada',   // 'confirmada' | 'fila'
     origem: 'formulario',
+    aceite_termo: (reg.aceiteTermo === undefined ? null : reg.aceiteTermo),
     criado_em: FV.serverTimestamp(),
   });
 
