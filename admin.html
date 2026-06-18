@@ -24,10 +24,12 @@
     appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
   };
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-  // App Check (reCAPTCHA v3) — verifica que a requisição vem do app real. Debug token só em localhost.
+  // App Check (reCAPTCHA v3) — ativado após DOMContentLoaded para evitar erro de appendChild em null.
   if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-  try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider('6LcYAyUtAAAAAJj1yYLnrmo-MThtvjoXAKiLMiGr'), true); }
-  catch (e) { console.warn('[AppCheck] nao ativado:', (e && (e.code || e.message)) || e); }
+  document.addEventListener('DOMContentLoaded', function() {
+    try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider('6LcYAyUtAAAAAJj1yYLnrmo-MThtvjoXAKiLMiGr'), true); }
+    catch (e) { console.warn('[AppCheck] nao ativado:', (e && (e.code || e.message)) || e); }
+  });
   </script>
   <!-- Módulos ABCL -->
   <script src="js/offline-sync.js"></script>
@@ -1311,8 +1313,8 @@
         </div>
 
         <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-sm" id="gm-tab-fotos"  onclick="gmSubTab('fotos')"  style="border:1px solid var(--borda);">📷 Fotos</button>
-          <button class="btn btn-sm" id="gm-tab-videos" onclick="gmSubTab('videos')" style="border:1px solid var(--borda);">🎬 Vídeos</button>
+          <button class="btn btn-sm" id="gm-tab-fotos"  onclick="gmSubTab('fotos')"  style="border:1px solid var(--borda);">📷 Fotos <span id="gm-count-fotos" style="opacity:.6;font-size:.75em;"></span></button>
+          <button class="btn btn-sm" id="gm-tab-videos" onclick="gmSubTab('videos')" style="border:1px solid var(--borda);">🎬 Vídeos <span id="gm-count-videos" style="opacity:.6;font-size:.75em;"></span></button>
           <button class="btn btn-sm btn-ghost" id="gm-link-canticos" onclick="switchTab('gestao-canticos', document.querySelector('[data-tela=galeria-midias]'))" style="border:1px solid var(--borda);">🎵 Gerir Cânticos →</button>
         </div>
 
@@ -4517,22 +4519,60 @@ function gmComprimir(file, maxDim = 1600, q = 0.8) {
 async function gmUploadFotos(files) {
   if (!files || !files.length) return;
   const st = document.getElementById('gm-upload-status');
-  let totalAntes = 0, totalDepois = 0, n = 0;
-  for (const file of files) {
-    st.textContent = `Comprimindo ${++n} de ${files.length}…`;
+  const total = files.length;
+  let ok = 0, fail = 0;
+
+  // Barra de progresso
+  st.innerHTML = `<div style="margin-bottom:.4rem;">Enviando <b id="gm-prog-ok">0</b>/${total} fotos…</div>
+    <div style="background:var(--borda);border-radius:99px;height:6px;overflow:hidden;">
+      <div id="gm-prog-bar" style="height:6px;background:var(--verde-mid);border-radius:99px;transition:width .3s;width:0%"></div>
+    </div>`;
+
+  function atualizarProg() {
+    const pct = Math.round((ok + fail) / total * 100);
+    const bar = document.getElementById('gm-prog-bar');
+    const lbl = document.getElementById('gm-prog-ok');
+    if (bar) bar.style.width = pct + '%';
+    if (lbl) lbl.textContent = ok;
+  }
+
+  async function processarUma(file) {
     try {
       let dataUrl = await gmComprimir(file);
-      if (dataUrl.length > 950 * 1024) dataUrl = await gmComprimir(file, 1200, 0.6);  // aperta se passar do limite do doc
-      if (dataUrl.length > 980 * 1024) { toast(`⚠️ ${file.name}: grande demais mesmo comprimida — pulada.`); continue; }
-      totalAntes += file.size; totalDepois += Math.round(dataUrl.length * 0.75);
+      // Se ainda grande, comprime mais agressivamente
+      if (dataUrl.length > 950 * 1024) dataUrl = await gmComprimir(file, 1200, 0.6);
+      if (dataUrl.length > 980 * 1024) {
+        toast(`⚠️ ${file.name}: grande demais mesmo comprimida — pulada.`);
+        fail++;
+        atualizarProg();
+        return null;
+      }
       const doc = { tipo: 'foto', data: dataUrl, legenda: '', ts: Date.now(),
                     criado_em: firebase.firestore.FieldValue.serverTimestamp() };
       const ref = await db.collection('galeria').add(doc);
-      _gmItens.unshift({ fbId: ref.id, ...doc });
-    } catch (e) { toast(`Erro em ${file.name}: ${e.message}`); }
+      ok++;
+      atualizarProg();
+      return { fbId: ref.id, ...doc };
+    } catch (e) {
+      toast(`Erro em ${file.name}: ${e.message}`);
+      fail++;
+      atualizarProg();
+      return null;
+    }
   }
-  const kb = v => (v/1024).toFixed(0) + ' KB';
-  st.textContent = totalAntes ? `✅ Enviadas. Compressão: ${kb(totalAntes)} → ${kb(totalDepois)} (economia de ${(100 - totalDepois/totalAntes*100).toFixed(0)}%).` : '';
+
+  // Paralelo em lotes de 3 para não sobrecarregar o Firestore
+  const LOTE = 3;
+  const fileArr = Array.from(files);
+  for (let i = 0; i < fileArr.length; i += LOTE) {
+    const lote = fileArr.slice(i, i + LOTE);
+    const resultados = await Promise.all(lote.map(processarUma));
+    resultados.filter(Boolean).forEach(item => _gmItens.unshift(item));
+    gmRender(); // atualiza grid progressivamente a cada lote
+  }
+
+  const erroTxt = fail > 0 ? ` | ${fail} com erro` : '';
+  st.textContent = `✅ ${ok} foto${ok !== 1 ? 's' : ''} enviada${ok !== 1 ? 's' : ''}${erroTxt}.`;
   document.getElementById('gm-input-fotos').value = '';
   gmRender();
 }
@@ -4579,6 +4619,13 @@ async function gmExcluir(fbId) {
 function gmRender() {
   const fotos  = _gmItens.filter(i => i.tipo === 'foto');
   const videos = _gmItens.filter(i => i.tipo === 'video');
+
+  // Atualiza contadores nos botões
+  const cf = document.getElementById('gm-count-fotos');
+  const cv = document.getElementById('gm-count-videos');
+  if (cf) cf.textContent = fotos.length ? `(${fotos.length})` : '';
+  if (cv) cv.textContent = videos.length ? `(${videos.length})` : '';
+
   const gf = document.getElementById('gm-grid-fotos');
   const gv = document.getElementById('gm-grid-videos');
   if (gf) gf.innerHTML = fotos.length ? fotos.map(f => `
