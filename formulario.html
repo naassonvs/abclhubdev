@@ -2,6 +2,7 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%230b1f17'/%3E%3Cpath d='M7 47 L25 22 L34 34 L42 24 L57 47 Z' fill='%234c9a6a'/%3E%3C/svg%3E" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL — Formulário</title>
   <meta name="description" content="Formulário do Acampamento Bíblico de Conselheiro Lafaiete." />
@@ -395,7 +396,7 @@ function montarFormulario() {
 
   // Formulário real (com id) mas sem nenhuma pergunta → em construção (não cai nos padrões)
   if (CONFIG.id && (!CONFIG.perguntas || CONFIG.perguntas.length === 0)) {
-    document.querySelectorAll('.form-secao, .form-header, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
+    document.querySelectorAll('#form-body, .form-header, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
     const s = document.getElementById('sucesso');
     s.classList.add('show');
     s.innerHTML = `
@@ -456,25 +457,26 @@ function _renderTermo(body) {
   if (!CONFIG.termoAtivo) return;
   const box = document.createElement('div');
   box.className = 'campo'; box.id = 'campo-termo';
-  box.style.cssText = 'border:1px solid var(--borda,#2a3a32);border-radius:10px;padding:1rem;background:rgba(0,0,0,.12);border-radius:10px;';
+  box.style.cssText = 'font-family:inherit;border:1px solid var(--borda,#2a3a32);border-radius:12px;padding:1.1rem;background:rgba(0,0,0,.12);';
 
   const titulo = document.createElement('div');
-  titulo.style.cssText = "font-family:'Cinzel',serif;color:var(--verde-cl);font-size:1rem;margin-bottom:.6rem;";
+  titulo.style.cssText = "font-family:inherit;font-size:.82rem;font-weight:600;color:var(--verde-cl);margin-bottom:.7rem;letter-spacing:.01em;";
   titulo.textContent = '📜 Termos e Regulamento';
 
   const texto = document.createElement('div');
-  texto.style.cssText = 'white-space:pre-wrap;max-height:240px;overflow:auto;font-size:.82rem;line-height:1.6;color:var(--suave);background:rgba(0,0,0,.18);border:1px solid var(--borda,#2a3a32);border-radius:8px;padding:.8rem;';
+  texto.style.cssText = 'font-family:inherit;white-space:pre-wrap;height:300px;min-height:160px;max-height:70vh;overflow:auto;resize:vertical;font-size:.85rem;line-height:1.65;color:var(--texto);background:rgba(0,0,0,.2);border:1px solid var(--borda,#2a3a32);border-radius:8px;padding:.9rem 1rem;';
   texto.textContent = CONFIG.termoTexto || '';
 
   const lbl = document.createElement('label');
-  lbl.style.cssText = 'display:flex;gap:.6rem;align-items:flex-start;margin-top:.85rem;cursor:pointer;';
+  lbl.style.cssText = 'display:flex;gap:.55rem;align-items:center;justify-content:center;margin-top:1rem;cursor:pointer;text-align:left;';
   const chk = document.createElement('input');
-  chk.type = 'checkbox'; chk.id = 'termo-aceite-check'; chk.style.marginTop = '.2rem';
+  chk.type = 'checkbox'; chk.id = 'termo-aceite-check';
+  chk.style.cssText = 'width:18px;height:18px;min-width:18px;flex:0 0 auto;margin:0;accent-color:var(--verde-mid);cursor:pointer;';
   chk.addEventListener('change', () => {
     box.style.outline = ''; atualizarProgresso();
   });
   const span = document.createElement('span');
-  span.style.fontSize = '.85rem';
+  span.style.cssText = 'font-family:inherit;font-size:.85rem;color:var(--texto);';
   span.textContent = CONFIG.termoLabel || 'Li e concordo com os termos e o regulamento.';
   lbl.appendChild(chk); lbl.appendChild(span);
 
@@ -658,7 +660,7 @@ function _bloquearForaDeJanela() {
     msg = 'Este formulário não está aberto no momento.';
   }
 
-  document.querySelectorAll('.form-secao, .form-header, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
+  document.querySelectorAll('#form-body, .form-header, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
   const prog = document.getElementById('prog-fill'); if (prog) prog.style.width = '100%';
   const el = document.getElementById('sucesso');
   el.classList.add('show');
@@ -667,7 +669,7 @@ function _bloquearForaDeJanela() {
     <div style="font-family:'Cinzel',serif;font-size:1.25rem;color:var(--verde-cl);margin-bottom:.6rem;">${titulo}</div>
     <p style="font-size:.88rem;color:var(--suave);line-height:1.7;max-width:380px;margin:0 auto;">${msg}</p>
     ${CONFIG.whats ? `<a href="https://wa.me/${CONFIG.whats}" target="_blank" rel="noopener"
-      style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;background:#25D366;color:#fff;padding:.7rem 1.4rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.86rem;">💬 Falar com a organização</a>` : ''}
+      style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;background:var(--verde-mid);color:#fff;padding:.7rem 1.4rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.86rem;">💬 Falar com a organização</a>` : ''}
     <a href="index.html" style="display:block;margin-top:1rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
   `;
   return true;
@@ -737,7 +739,7 @@ async function verificarVagas() {
 }
 
 function mostrarLotado() {
-  document.querySelectorAll('.form-secao, .form-header, #submit-area').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('#form-body, .form-header, #submit-area').forEach(el => el.style.display = 'none');
   document.getElementById('prog-fill').style.width = '100%';
   const s = document.getElementById('sucesso');
   s.classList.add('show');
@@ -749,7 +751,7 @@ function mostrarLotado() {
       Entre em contato pelo WhatsApp para mais informações.
     </p>
     <a href="https://wa.me/${CONFIG.whats||'5531988262599'}" target="_blank" rel="noopener"
-      style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;background:#25D366;color:#fff;padding:.75rem 1.5rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.88rem;">
+      style="display:inline-flex;align-items:center;gap:.5rem;margin-top:1.25rem;background:var(--verde-mid);color:#fff;padding:.75rem 1.5rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:.88rem;">
       💬 Falar pelo WhatsApp
     </a>
     <a href="index.html" style="display:block;margin-top:1rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
@@ -828,13 +830,20 @@ function _montarRegistroInscricao() {
   // Código curto da inscrição (referência para o inscrito e a organização)
   const codigo = 'ABCL-' + Date.now().toString(36).toUpperCase().slice(-5) + Math.floor(Math.random()*10);
 
+  // Chave de IDEMPOTÊNCIA: id único e imprevisível do documento da inscrição.
+  // Usada como id do doc no Firestore → reenvio (após timeout) sobrescreve o
+  // MESMO doc em vez de criar duplicata. Gerada uma vez e preservada na fila offline.
+  const idem = (self.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : ('i-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,12) + Math.random().toString(36).slice(2,12));
+
   // Chave do acampante: telefone + nome (telefone pode ser compartilhado — ex.: menor usa o do responsável)
   const acampanteId = (telefone || nome) ? `a${telefone || 'x'}_${_slug(nome) || 'sem-nome'}` : null;
 
   // Aceite do termo (quando o formulário tem termo ativo)
   const aceiteTermo = CONFIG.termoAtivo ? !!document.getElementById('termo-aceite-check')?.checked : null;
 
-  return { nome, telefone, email, sexo, mapa, acampanteId, itens_financeiros, valor_total, codigo, aceiteTermo };
+  return { nome, telefone, email, sexo, mapa, acampanteId, itens_financeiros, valor_total, codigo, idem, aceiteTermo };
 }
 
 async function _gravarNoFirebase(reg, status) {
@@ -842,9 +851,12 @@ async function _gravarNoFirebase(reg, status) {
   const FV = firebase.firestore.FieldValue;
 
   // 1) INSCRIÇÃO primeiro — registro oficial da resposta.
-  //    Se ESTA falhar (offline/permissão), o erro propaga → o chamador põe na
-  //    fila offline e tenta de novo. Assim a resposta nunca se perde.
-  await _fdb.collection('inscricoes').add({
+  //    Id determinístico (idem) → se ESTA falhar (offline/permissão), o erro
+  //    propaga e o chamador põe na fila; ao reenviar, sobrescreve o MESMO doc
+  //    em vez de duplicar. Itens legados (sem idem) usam uma chave estável.
+  const idDoc = reg.idem || ('legacy-' + (reg.codigo || Date.now()) + '-' + (reg.telefone || 'x'));
+  await _fdb.collection('inscricoes').doc(idDoc).set({
+    idem: idDoc,
     codigo: reg.codigo || null,
     form_id: String(CONFIG.id || 'sem-id'),
     form_titulo: CONFIG.titulo || '',
@@ -917,35 +929,58 @@ async function _executarEnvio() {
 
 // Tela de confirmação (a inscrição agora vai para o sistema, não para o WhatsApp)
 function _mostrarSucesso(reg, online, ehFila) {
-  document.querySelectorAll('.form-secao, .form-header, #submit-area, #fin-total-bar').forEach(el => el.style.display = 'none');
+  // Esconde TODO o formulário: cabeçalho, perguntas, termo, barra de total e botão.
+  document.querySelectorAll('.form-header, #form-body, #submit-area, #fin-total-bar').forEach(el => { if (el) el.style.display = 'none'; });
   const s = document.getElementById('sucesso');
   const temValor = (reg.valor_total || 0) > 0;
   s.classList.add('show');
+
+  const check = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const relogio = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
   s.innerHTML = `
-    <div style="font-size:3rem;margin-bottom:1rem;">${ehFila ? '⏳' : '✅'}</div>
-    <h2 style="font-family:'Cinzel',serif;color:var(--verde-cl);margin-bottom:.5rem;">
-      ${ehFila ? 'Você está na fila de espera' : 'Inscrição registrada!'}</h2>
-    <p style="color:var(--suave);font-size:.9rem;margin-bottom:1.25rem;">
-      ${ehFila
-        ? (CONFIG.filaMsg || 'As vagas se esgotaram, mas sua inscrição ficou registrada na fila. Entraremos em contato caso uma vaga se abra.')
-        : `Obrigado, <b style="color:var(--texto);">${reg.nome || 'acampante'}</b>! Recebemos sua inscrição.`}</p>
-    <div style="display:inline-block;background:rgba(64,145,108,.1);border:1px dashed rgba(64,145,108,.45);border-radius:10px;padding:.8rem 1.4rem;margin-bottom:1.25rem;">
-      <div style="font-size:.68rem;letter-spacing:.12em;color:var(--suave);text-transform:uppercase;">Código da inscrição</div>
-      <div style="font-family:'Cinzel',serif;font-size:1.3rem;color:var(--verde-cl);letter-spacing:.06em;">${reg.codigo}</div>
-      <div style="font-size:.68rem;color:var(--suave);margin-top:.2rem;">guarde este código</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1.1rem;max-width:380px;margin:0 auto;">
+
+      <div style="width:60px;height:60px;border-radius:50%;background:rgba(64,145,108,.18);display:flex;align-items:center;justify-content:center;color:var(--verde-cl);">
+        ${ehFila ? relogio : check}
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--suave);margin-bottom:.35rem;">
+          ${ehFila ? 'Fila de espera' : 'Inscrição registrada'}</div>
+        <div style="font-family:'Cinzel',serif;font-size:1.35rem;color:var(--texto);line-height:1.25;">
+          ${ehFila ? 'Você está na fila' : (reg.nome || 'Acampante')}</div>
+      </div>
+
+      ${ehFila ? `
+      <p style="color:var(--suave);font-size:.85rem;line-height:1.6;margin:0;">
+        ${CONFIG.filaMsg || 'As vagas se esgotaram, mas sua inscrição ficou registrada na fila. Entraremos em contato caso uma vaga se abra.'}</p>` : ''}
+
+      <div style="width:100%;background:var(--card2);border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:.25rem;">
+        <div style="font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--suave);">Código da inscrição</div>
+        <div style="font-size:1.5rem;font-weight:600;letter-spacing:.12em;color:var(--verde-cl);font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;">${reg.codigo}</div>
+        <div style="font-size:.7rem;color:var(--suave);">Guarde este código para consultas</div>
+      </div>
+
+      ${temValor ? `
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center;background:var(--card2);border-radius:10px;padding:.75rem 1rem;">
+        <span style="color:var(--suave);font-size:.85rem;">Total da inscrição</span>
+        <b style="color:var(--texto);font-size:1.05rem;">R$ ${_fmtBRL(reg.valor_total)}</b>
+      </div>
+      <p style="color:var(--suave);font-size:.78rem;margin:-.4rem 0 0;line-height:1.5;">A organização entrará em contato para confirmar o pagamento.</p>` : ''}
+
+      ${!online ? `
+      <p style="color:var(--amarelo,#E0A500);font-size:.78rem;line-height:1.55;margin:0;">📡 Sem conexão no momento — sua inscrição foi <b>salva neste aparelho</b> e será enviada automaticamente quando você abrir esta página com internet.</p>` : ''}
+
+      <div style="width:100%;display:flex;flex-direction:column;gap:.5rem;margin-top:.25rem;">
+        ${CONFIG.whats ? `
+        <a href="https://wa.me/${CONFIG.whats}" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;box-sizing:border-box;background:var(--verde-mid);color:#fff;padding:.8rem;border-radius:10px;text-decoration:none;font-size:.9rem;font-weight:600;">💬 Falar com a organização</a>` : ''}
+        <a href="index.html"
+           style="display:flex;align-items:center;justify-content:center;gap:.4rem;color:var(--suave);font-size:.82rem;text-decoration:none;padding:.4rem;">← Voltar ao site</a>
+      </div>
+
     </div>
-    ${temValor ? `
-    <div style="display:flex;justify-content:space-between;max-width:300px;margin:0 auto 1.25rem;background:var(--card2,rgba(255,255,255,.04));border:1px solid rgba(64,145,108,.25);border-radius:8px;padding:.7rem 1rem;">
-      <span style="color:var(--suave);font-size:.85rem;">Total da inscrição</span>
-      <b style="color:var(--verde-cl);">R$ ${_fmtBRL(reg.valor_total)}</b>
-    </div>
-    <p style="color:var(--suave);font-size:.78rem;margin-bottom:1.25rem;">A organização entrará em contato para confirmar o pagamento.</p>` : ''}
-    ${!online ? `
-    <p style="color:var(--amarelo);font-size:.78rem;max-width:340px;margin:0 auto 1.25rem;">📡 Sem conexão no momento — sua inscrição foi <b>salva neste aparelho</b> e será enviada automaticamente quando você abrir esta página com internet.</p>` : ''}
-    ${CONFIG.whats ? `
-    <a href="https://wa.me/${CONFIG.whats}" target="_blank" rel="noopener"
-       style="display:inline-block;background:rgba(64,145,108,.15);border:1px solid rgba(64,145,108,.4);color:var(--verde-cl);padding:.6rem 1.2rem;border-radius:8px;text-decoration:none;font-size:.85rem;">💬 Falar com a organização</a>` : ''}
-    <a href="index.html" style="display:block;margin-top:1rem;color:var(--verde-cl);font-size:.78rem;text-decoration:none;">← Voltar ao site</a>
   `;
   document.getElementById('prog-fill').style.width = '100%';
   window.scrollTo({ top: 0, behavior: 'smooth' });

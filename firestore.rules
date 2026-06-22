@@ -1,80 +1,87 @@
 rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ABCL — Regras do Firestore (escopo: vendinha + livraria + autenticação)
+//
+// Realidade do projeto: o PDV autentica de forma ANÔNIMA (firebase-auth-patch.js).
+// Isso significa que "exigir autenticação" é uma barreira FRACA — qualquer pessoa
+// consegue criar uma sessão anônima. A proteção real, hoje, é:
+//   1) manter a URL do projeto privada;
+//   2) PROIBIR exclusões e leituras em massa de dados sensíveis (feito abaixo);
+//   3) (recomendado p/ depois do acampamento) trocar o login anônimo por contas
+//      reais com perfil, e então usar isAdmin()/isOperador() de verdade.
+//
+// Como publicar: Firebase Console → Firestore → Regras → cole isto → Publicar.
+// ─────────────────────────────────────────────────────────────────────────────
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Vendas: autenticados escrevem tudo; loja pode escrever sem login
-    match /vendas/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        || (request.resource.data.tipo == 'loja'
-            && request.resource.data.keys().hasAll(['tipo','total','forma_pagamento','status']));
+    function autenticado() { return request.auth != null; }
+
+    // Perfil do usuário (usado pelo Admin). Anônimo NÃO tem doc em /usuarios.
+    function ehAdmin() {
+      return autenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil_tipo == 'admin';
     }
 
-    // Estoque loja: loja pública pode subtrair; autenticados controlam tudo
-    match /loja_estoque/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null
-        || request.resource.data.keys().hasAll(['estoque','nome','atualizado_em']);
+    // VENDAS — o caixa cria e atualiza (quitar fiado/editar). Excluir: só admin.
+    match /vendas/{id} {
+      allow read, create, update: if autenticado();
+      allow delete: if ehAdmin();   // impede que uma sessão anônima apague vendas
     }
 
-    // Produtos Vendinha
-    match /produtos_vendinha/{document=**} {
-      allow read, write: if request.auth != null;
+    // CATÁLOGO/ESTOQUE — espelhado pelo aparelho do caixa (sessão anônima).
+    match /produtos_vendinha/{id} { allow read: if true; allow write: if autenticado(); }
+    match /produtos_livraria/{id} { allow read: if true; allow write: if autenticado(); }
+
+    // RESUMO FINANCEIRO — leitura autenticada; escrita só admin (recálculo no financeiro).
+    match /financeiro/{id} {
+      allow read:  if autenticado();
+      allow write: if ehAdmin();
     }
-    // Produtos Livraria
-    match /produtos_livraria/{document=**} {
-      allow read, write: if request.auth != null;
+
+    // INSCRIÇÕES — o PDV lê para listar acampantes. Criar é público (formulário).
+    // Atualizar/excluir: só admin. (Inscrições serão concluídas após o acampamento.)
+    match /inscricoes/{id} {
+      allow read:   if autenticado();
+      allow create: if true;
+      // Idempotência do formulário público: permite o REENVIO sobrescrever a
+      // própria inscrição (o id é um UUID imprevisível, e a coleção não é
+      // listável publicamente — não dá pra mirar a inscrição de outra pessoa).
+      // Exige que continue sendo um registro de formulário.
+      allow update: if ehAdmin()
+                    || (resource.data.origem == 'formulario'
+                        && request.resource.data.origem == 'formulario');
+      allow delete: if ehAdmin();
     }
-    // Produtos Loja
-    match /produtos_loja/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    // Usuarios
+
+    // USUÁRIOS — cada um lê/escreve o próprio; admin gerencia. Sem listagem aberta.
     match /usuarios/{uid} {
-      allow read, write: if request.auth != null;
-    }
-    // Configs
-    match /configs/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if autenticado() && (request.auth.uid == uid || ehAdmin());
     }
 
-    // ── INSCRIÇÕES ─────────────────────────────────────────────
-    // Admin (autenticado) cria livre (ex.: import CSV).
-    // Formulário público só cria se o payload tiver a forma de uma inscrição real.
-    match /inscricoes/{document=**} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        || ( request.resource.data.form_id is string
-          && request.resource.data.respostas is map
-          && request.resource.data.origem == 'formulario' );
-      allow update, delete: if request.auth != null;
+    // Conteúdos públicos do site (cânticos, configs, links): leitura livre, escrita admin.
+    match /canticos/{id}  { allow read: if true; allow write: if ehAdmin(); }
+    match /hinos/{id}     { allow read: if true; allow write: if ehAdmin(); }
+    match /configs/{id}   { allow read: if true; allow write: if ehAdmin(); }
+    match /hub_links/{id} { allow read: if true; allow write: if ehAdmin(); }
+
+    // FORMULÁRIOS — config dos formulários publicados. Leitura pública (a página
+    // do formulário precisa carregar sem login); escrita só admin.
+    match /forms/{id} { allow read: if true; allow write: if ehAdmin(); }
+
+    // ACAMPANTES — cadastro permanente da pessoa (reuso entre edições).
+    // O formulário público faz upsert (create/update). Leitura: autenticado (PDV/admin).
+    // Exclusão: só admin. Mesma postura de risco já documentada em /inscricoes.
+    match /acampantes/{id} {
+      allow read: if autenticado();
+      allow create, update: if true;
+      allow delete: if ehAdmin();
     }
 
-    // ── ACAMPANTES ─────────────────────────────────────────────
-    // Upsert público (form), mas validando a forma. Leitura/exclusão só autenticado.
-    // (nome pode ser '' — telefone-only é válido; validamos TIPO, não tamanho.)
-    match /acampantes/{document=**} {
-      allow read: if request.auth != null;
-      allow create, update: if request.auth != null
-        || ( request.resource.data.nome is string
-          && request.resource.data.dados is map );
-      allow delete: if request.auth != null;
-    }
-
-    // Hinos / Cânticos
-    match /canticos/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    // Financeiro
-    match /financeiro_resumo/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    // Tudo mais: leitura pública, escrita autenticada
-    match /{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
+    // Negação por padrão para qualquer outra coleção.
+    match /{document=**} { allow read, write: if false; }
   }
 }

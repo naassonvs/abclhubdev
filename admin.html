@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ABCL Admin</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%230b1f17'/%3E%3Cpath d='M7 47 L25 22 L34 34 L42 24 L57 47 Z' fill='%234c9a6a'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -523,17 +524,17 @@
     .login-box.shake { animation: shake 0.4s ease; }
 
     /* ── Toggle slider On/Off reutilizável (verde=ativo / vermelho=inativo) ── */
-    .tgl { position: relative; display: inline-block; vertical-align: middle; width: 64px; height: 28px; cursor: pointer; flex-shrink: 0; }
+    .tgl { position: relative; display: inline-block; vertical-align: middle; width: 82px; height: 28px; cursor: pointer; flex-shrink: 0; }
     .tgl-input { position: absolute; opacity: 0; width: 0; height: 0; }
     .tgl-label { position: relative; display: block; height: 100%; border-radius: 99px; background: #b54b4b; transition: background .2s ease; box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
-    .tgl-label::before, .tgl-label::after { position: absolute; top: 50%; transform: translateY(-50%); font-size: .6rem; font-weight: 700; letter-spacing: .04em; line-height: 1; }
+    .tgl-label::before, .tgl-label::after { position: absolute; top: 50%; transform: translateY(-50%); font-size: .53rem; font-weight: 700; letter-spacing: .02em; line-height: 1; }
     .tgl-label::before { content: attr(data-off); right: 9px;  color: rgba(255,255,255,.92); }
     .tgl-label::after  { content: attr(data-on);  left: 9px;   color: #fff; opacity: 0; }
     .tgl-input:checked + .tgl-label { background: #3f9e57; }
     .tgl-input:checked + .tgl-label::before { opacity: 0; }
     .tgl-input:checked + .tgl-label::after  { opacity: 1; }
     .tgl-handle { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: left .2s ease; }
-    .tgl-input:checked ~ .tgl-handle { left: 39px; }
+    .tgl-input:checked ~ .tgl-handle { left: 57px; }
 
     /* ── Gráficos de respostas (barras) ── */
     .rb-row { display:flex; align-items:center; gap:.6rem; margin:.4rem 0; font-size:.78rem; }
@@ -546,8 +547,19 @@
 <body>
 
 <!-- Splash: cobre a tela até decidirmos login x admin (evita "piscar") -->
-<div id="splash-screen" style="position:fixed;inset:0;z-index:10000;background:var(--fundo);display:flex;align-items:center;justify-content:center;">
-  <img src="assets/logo-abcl.svg" alt="" style="width:56px;height:56px;opacity:.85;" onerror="this.style.display='none'"/>
+<style>
+  @keyframes splashPulse { 0%,100%{ transform:scale(1); opacity:.82; } 50%{ transform:scale(1.09); opacity:1; } }
+  @keyframes splashBar   { 0%{ transform:translateX(-170%); } 100%{ transform:translateX(430%); } }
+  @keyframes splashFade  { 0%,100%{ opacity:.4; } 50%{ opacity:1; } }
+  #splash-screen .sp-logo { width:64px; height:64px; animation: splashPulse 1.8s ease-in-out infinite; filter: drop-shadow(0 3px 10px rgba(0,0,0,.45)); }
+  #splash-screen .sp-bar  { position:relative; width:150px; height:3px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+  #splash-screen .sp-bar i{ position:absolute; top:0; left:0; width:38%; height:100%; border-radius:99px; background:linear-gradient(90deg, transparent, var(--verde-mid,#40916C), var(--verde-cl,#74C69D), transparent); animation: splashBar 1.15s ease-in-out infinite; }
+  #splash-screen .sp-txt  { font-family:'Cinzel',serif; font-size:.66rem; letter-spacing:.3em; text-transform:uppercase; color:var(--suave,#9fb3a8); animation: splashFade 1.8s ease-in-out infinite; padding-left:.3em; }
+</style>
+<div id="splash-screen" style="position:fixed;inset:0;z-index:10000;background:var(--fundo);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.3rem;">
+  <img src="assets/logo-abcl.svg" alt="" class="sp-logo" onerror="this.style.display='none'"/>
+  <div class="sp-bar"><i></i></div>
+  <div class="sp-txt">Carregando…</div>
 </div>
 
 <!-- ══ LOGIN ══════════════════════════════════════════════════ -->
@@ -1023,15 +1035,12 @@
               </div>
             </div>
             <div style="display:flex;gap:.5rem;align-items:center;">
-              <!-- Toggle ativo/inativo -->
-              <div style="display:flex;align-items:center;gap:.5rem;">
-                <span style="font-size:.72rem;color:var(--suave);">Ativo</span>
-                <div id="form-toggle-wrap" onclick="toggleFormAtivo()"
-                  style="width:44px;height:24px;border-radius:99px;cursor:pointer;transition:background .2s;position:relative;flex-shrink:0;">
-                  <div id="form-toggle-dot"
-                    style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;transition:left .2s;"></div>
-                </div>
-              </div>
+              <!-- Toggle ativo/inativo (estilo DesignBombs) -->
+              <label class="tgl" title="Ativar / desativar formulário">
+                <input type="checkbox" class="tgl-input" id="form-ativo-input" onchange="toggleFormAtivo()" />
+                <span class="tgl-label" data-on="ATIVO" data-off="INATIVO"></span>
+                <span class="tgl-handle"></span>
+              </label>
               <button class="btn btn-ghost btn-sm" id="feditor-ver-btn" onclick="verFormulario()">👁 Ver</button>
               <button class="btn btn-solid btn-sm" onclick="abrirModalPergunta()">+ Pergunta</button>
             </div>
@@ -1117,7 +1126,7 @@
                 <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--suave);">📜 Termo de aceite / Regulamento</div>
                 <label class="tgl">
                   <input type="checkbox" class="tgl-input" id="form-termo-ativo" onchange="_toggleTermoEditor()" />
-                  <span class="tgl-label" data-on="ON" data-off="OFF"></span>
+                  <span class="tgl-label" data-on="ATIVO" data-off="INATIVO"></span>
                   <span class="tgl-handle"></span>
                 </label>
               </div>
@@ -2014,9 +2023,21 @@ async function verificarPerfilUsuario(user, nomeManual) {
 }
 
 // ── ENTRAR NO SISTEMA ──
+// Tempo mínimo que o splash fica visível (evita o "flash" quando o Firebase
+// decide rápido). Se a decisão demorar mais que isso, some na hora.
+const SPLASH_MIN_MS = 500;
+window._splashStart = window._splashStart || performance.now();
+let _splashHidden = false;
 function hideSplash() {
+  if (_splashHidden) return;
+  const restante = SPLASH_MIN_MS - (performance.now() - window._splashStart);
+  if (restante > 0) { setTimeout(hideSplash, restante); return; }
+  _splashHidden = true;
   const s = document.getElementById('splash-screen');
-  if (s) s.style.display = 'none';
+  if (!s) return;
+  s.style.transition = 'opacity .25s ease';
+  s.style.opacity = '0';
+  setTimeout(() => { s.style.display = 'none'; }, 260);
 }
 
 async function entrarNoSistema(nomeUsuario, firebaseUser) {
@@ -2618,7 +2639,7 @@ function renderSecoesSite() {
       <span style="font-size:.9rem;">${s.icon} ${s.nome}</span>
       <label class="tgl">
         <input type="checkbox" class="tgl-input" ${on ? 'checked' : ''} onchange="toggleSecaoSite('${s.id}', this.checked)" />
-        <span class="tgl-label" data-on="ON" data-off="OFF"></span>
+        <span class="tgl-label" data-on="ATIVO" data-off="INATIVO"></span>
         <span class="tgl-handle"></span>
       </label>
     </div>`;
@@ -3443,11 +3464,8 @@ function voltarListaForms() {
 }
 
 function atualizarToggleAtivo(ativo) {
-  const wrap = document.getElementById('form-toggle-wrap');
-  const dot  = document.getElementById('form-toggle-dot');
-  if (!wrap) return;
-  wrap.style.background = ativo ? 'var(--verde-mid)' : 'rgba(255,255,255,.15)';
-  dot.style.left = ativo ? '23px' : '3px';
+  const inp = document.getElementById('form-ativo-input');
+  if (inp) inp.checked = !!ativo;
 }
 
 function toggleFormAtivo() {
