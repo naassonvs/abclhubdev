@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%230b1f17'/%3E%3Cpath d='M7 47 L25 22 L34 34 L42 24 L57 47 Z' fill='%234c9a6a'/%3E%3C/svg%3E" />
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -20,6 +21,8 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </script>
 
 <!-- Módulos ABCL -->
+<script src="js/xlsx.full.min.js"></script>
+<script src="js/export.js"></script>
 <script src="js/offline-sync.js"></script>
 <script src="js/vendas-firebase.js"></script>
 
@@ -43,6 +46,22 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
       --amarelo:     #F59E0B;
       --vermelho:    #EF4444;
       --azul:        #3B82F6;
+    }
+
+    /* Tema claro — mesma paleta calibrada usada em admin/vendinha/formulario/loja.
+       --verde-cl (#74C69D) é usado como cor de texto (título, valores, tags —
+       17 ocorrências) e precisa virar um verde escuro para ficar legível
+       sobre fundo claro; sem essa troca ficaria em ~2:1 de contraste. */
+    [data-theme="light"] {
+      --fundo:    #F5F4F1;
+      --card:     #FFFFFF;
+      --card2:    #F0EFE9;
+      --texto:    #1A1917;
+      --suave:    #5A6660;
+      --borda:    rgba(45,106,79,.18);
+      --amarelo:  #A06800;
+      --vermelho: #C0392B;
+      --verde-cl: #2D6A4F;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; }
@@ -172,6 +191,22 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     .insc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: .75rem; margin-bottom: 1.25rem; }
     .insc-card { background: var(--card2); border: 1px solid var(--borda); border-radius: 10px; padding: .85rem 1rem; }
     .insc-card .ic-cat { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); margin-bottom: .3rem; }
+    .qty-btn { width: 30px; height: 30px; border-radius: 50%; background: rgba(64,145,108,.15); border: none; color: var(--verde-cl,#74c69d); font-size: 1.1rem; font-weight: 700; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, transform .1s; user-select: none; }
+    .qty-btn:hover  { background: rgba(64,145,108,.3); }
+    .qty-btn:active { transform: scale(.88); }
+    .qty-num { font-size: 1rem; font-weight: 700; min-width: 30px; text-align: center; color: var(--texto); }
+    .cfg-card { background: var(--card2); border: 1px solid var(--borda); border-radius: 8px; padding: .75rem; }
+    .cfg-cat { font-size: .7rem; color: var(--suave); margin-bottom: .5rem; }
+    .cfg-rs { color: var(--suave); font-size: .8rem; margin-right: .2rem; }
+    /* remove a setinha (spinner) do campo de valor monetário e de vagas */
+    .cfg-valor-input::-webkit-inner-spin-button,
+    .cfg-valor-input::-webkit-outer-spin-button,
+    .cfg-vagas-input::-webkit-inner-spin-button,
+    .cfg-vagas-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .cfg-valor-input, .cfg-vagas-input { -moz-appearance: textfield; appearance: textfield; }
+    .cfg-vagas-input { width: 56px; text-align: center; background: rgba(255,255,255,.04); border: 1px solid var(--borda); border-radius: 6px; padding: .3rem; font-size: 1rem; font-weight: 700; color: var(--texto); }
+    .cfg-view-val { font-size: 1rem; font-weight: 700; color: var(--texto); }
+    .cfg-view-vagas { font-size: .85rem; color: var(--texto); }
     .insc-card .ic-val { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--verde-cl); }
     .insc-card .ic-det { font-size: .7rem; color: var(--suave); margin-top: .2rem; }
 
@@ -198,7 +233,10 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     </div>
   </div>
   <div class="top-bar-actions">
-    <button class="btn btn-ghost btn-sm" onclick="exportarCSV()">📥 CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleTheme()" id="theme-btn" title="Alternar tema">☀️</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarFinanceiro('xlsx')">📥 XLSX</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarFinanceiro('csv')">📄 CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarFinanceiro('pdf')">🖨 PDF</button>
     <button class="btn btn-ghost btn-sm" onclick="window.location='admin.html'">⚙ Admin</button>
   </div>
 </div>
@@ -211,7 +249,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     <button class="tab" onclick="switchTab('vendas-pdv',this);carregarVendasPDV()">🛒 Vendas PDV</button>
     <button class="tab" onclick="switchTab('despesas',this)">📤 Despesas</button>
     <button class="tab" onclick="switchTab('receitas',this)">📥 Receitas</button>
-    <button class="tab" onclick="switchTab('inscricoes',this)">👥 Inscrições</button>
+    <button class="tab" onclick="switchTab('inscricoes',this);carregarConfigVagas();carregarInscricoesReais()">👥 Inscrições</button>
     <button class="tab" onclick="switchTab('comparativo',this)">📈 Comparativo</button>
     <button class="tab" onclick="switchTab('projecao',this)">🔮 Projeção</button>
   </div>
@@ -436,9 +474,11 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   <!-- ═══════════════════════════════════════════════ INSCRIÇÕES -->
   <div class="panel" id="panel-inscricoes">
     <div class="section-card">
-      <h3><span>⚙️</span> Configurar vagas e valores</h3>
+      <h3 style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+        <span><span>⚙️</span> Vagas e valores</span>
+        <span style="font-size:.72rem;color:var(--suave);font-weight:400;">✏️ Gerencie em <a href="admin.html#formularios" style="color:var(--verde-cl,#74c69d);text-decoration:underline;">Admin → Formulários</a></span>
+      </h3>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;" id="insc-config-grid"></div>
-      <button class="btn btn-solid btn-sm" onclick="saveInscConfig()" style="margin-top:.75rem;">💾 Salvar configuração</button>
     </div>
     <div class="section-card">
       <h3><span>👥</span> Situação das inscrições</h3>
@@ -447,6 +487,18 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         <div class="prog-bar" id="insc-prog" style="background:var(--verde-mid);"></div>
       </div>
       <div style="font-size:.72rem;color:var(--suave);text-align:right;" id="insc-prog-label"></div>
+    </div>
+    <div class="section-card">
+      <h3 style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;">
+        <span><span>📥</span> Inscrições recebidas (do formulário)</span>
+        <button class="btn btn-ghost btn-sm" onclick="carregarInscricoesReais()">🔄 Atualizar</button>
+      </h3>
+      <div class="insc-grid" id="insc-reais-resumo" style="margin-bottom:.75rem;"></div>
+      <div id="insc-reais-status" style="font-size:.78rem;color:var(--suave);margin-bottom:.5rem;"></div>
+      <table>
+        <thead><tr><th>Nome</th><th>Código</th><th>Inscrição</th><th style="text-align:right">Valor</th><th>Pagamento</th><th></th></tr></thead>
+        <tbody id="insc-reais-list"></tbody>
+      </table>
     </div>
     <div class="section-card">
       <h3><span>➕</span> Registrar entrada de inscrição</h3>
@@ -563,7 +615,31 @@ const PROJ_CONFIG_DEFAULT = { saldoCaixa: 13678.87, vendinha: 1042.92, camisas: 
 function getDespesas()   { return get('abcl-fin-despesas')   || []; }
 function getReceitas()   { return get('abcl-fin-receitas')   || []; }
 function getInscricoes() { return get('abcl-fin-inscricoes') || []; }
-function getInscConfig() { return get('abcl-fin-insc-config') || INSC_CONFIG_DEFAULT; }
+function getInscConfig() {
+  const cfg = get('abcl-fin-insc-config') || INSC_CONFIG_DEFAULT;
+  return cfg.map(c => ({ ativo: true, ...c })); // categorias antigas (sem 'ativo') contam como ativas
+}
+
+// ── Fase 0: config de vagas no Firestore (fonte única entre dispositivos) ──
+// O localStorage 'abcl-fin-insc-config' vira apenas CACHE OFFLINE. A verdade fica
+// em configuracoes/inscricoes_vagas. Lemos ao abrir a aba; o cache mantém tudo
+// funcionando offline e o getInscConfig() continua síncrono.
+const CFG_VAGAS_COL = 'configs';
+const CFG_VAGAS_DOC = 'inscricoes_vagas';
+
+async function carregarConfigVagas() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.apps.length) return;
+    const snap = await firebase.firestore().collection(CFG_VAGAS_COL).doc(CFG_VAGAS_DOC).get();
+    if (snap.exists && Array.isArray(snap.data().categorias)) {
+      set('abcl-fin-insc-config', snap.data().categorias);   // atualiza o cache local
+      if (!_inscConfigEdit) { renderInscConfig(); renderInscCards(); } // não atropela edição em curso
+    }
+  } catch (e) {
+    console.warn('[Financeiro] config de vagas: usando cache local (Firestore indisponível):', (e && (e.code || e.message)) || e);
+  }
+}
+const _escCfg = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function getProjConfig() { return get('abcl-fin-proj-config') || PROJ_CONFIG_DEFAULT; }
 
 const fmt = v => `R$ ${Number(v).toFixed(2).replace('.',',')}`;
@@ -793,32 +869,139 @@ function renderReceitas() {
 // ══════════════════════════════════════════════════
 // INSCRIÇÕES
 // ══════════════════════════════════════════════════
+// Config de vagas: modo visualização (travado) → "Editar" libera os campos.
+// Vagas usam botões + / − (estilo vendinha); valor tem prefixo R$.
+let _inscConfigEdit = false;
+let _inscConfigTmp  = null;
+
 function renderInscConfig() {
-  const cfg = getInscConfig();
-  document.getElementById('insc-config-grid').innerHTML = cfg.map((c,i) => `
-    <div style="background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.75rem;">
-      <div style="font-size:.7rem;color:var(--suave);margin-bottom:.5rem;">${c.cat}</div>
-      <div style="display:flex;gap:.5rem;align-items:center;">
-        <input type="number" value="${c.vagas}" id="icfg-vagas-${i}" placeholder="Vagas" style="width:60px;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:5px;padding:.35rem .5rem;font-size:1rem;color:var(--texto);text-align:center;" />
-        <span style="color:var(--suave);font-size:.72rem;">vagas</span>
-        <input type="number" value="${c.valor}" id="icfg-valor-${i}" placeholder="R$" style="width:80px;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:5px;padding:.35rem .5rem;font-size:1rem;color:var(--texto);text-align:right;" step="0.01" />
-      </div>
-    </div>`).join('');
+  const cfg     = (_inscConfigEdit && _inscConfigTmp) ? _inscConfigTmp : getInscConfig();
+  const grid    = document.getElementById('insc-config-grid');
+  const btnEdit = document.getElementById('btn-cfg-editar');
+  const rodape  = document.getElementById('insc-config-rodape');
+  if (!grid) return;
+
+  if (_inscConfigEdit) {
+    grid.innerHTML = cfg.map((c,i) => `
+      <div class="cfg-card" style="${c.ativo === false ? 'opacity:.5;' : ''}">
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.55rem;">
+          <input value="${_escCfg(c.cat)}" id="icfg-cat-${i}" placeholder="Nome da categoria"
+                 oninput="if(_inscConfigTmp)_inscConfigTmp[${i}].cat=this.value"
+                 style="flex:1;min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:5px;padding:.35rem .5rem;font-size:.82rem;color:var(--texto);" />
+          <button onclick="deletarCardInsc(${i})" title="Excluir categoria"
+                  style="width:26px;height:26px;flex:none;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.12);color:#fca5a5;cursor:pointer;font-size:.8rem;line-height:1;">✕</button>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.55rem;">
+          <button class="qty-btn" onclick="ajustarVaga(${i},-1)">−</button>
+          <input type="number" class="cfg-vagas-input" id="icfg-vagas-${i}" value="${c.vagas}" min="0"
+                 oninput="if(_inscConfigTmp)_inscConfigTmp[${i}].vagas=Math.max(0,parseInt(this.value)||0)" />
+          <button class="qty-btn" onclick="ajustarVaga(${i},1)">+</button>
+          <span style="color:var(--suave);font-size:.72rem;">vagas</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;">
+            <span class="cfg-rs">R$</span>
+            <input type="number" value="${Number(c.valor).toFixed(2)}" id="icfg-valor-${i}" class="cfg-valor-input" step="0.01" min="0"
+                   oninput="if(_inscConfigTmp)_inscConfigTmp[${i}].valor=parseFloat(this.value)||0"
+                   style="width:90px;background:rgba(255,255,255,.04);border:1px solid var(--borda);border-radius:5px;padding:.35rem .5rem;font-size:1rem;color:var(--texto);text-align:right;" />
+          </div>
+          <button onclick="toggleAtivoCardInsc(${i})"
+                  style="flex:none;border-radius:20px;padding:.3rem .7rem;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid ${c.ativo === false ? 'rgba(239,68,68,.4);background:rgba(239,68,68,.12);color:#fca5a5;' : 'rgba(64,145,108,.4);background:rgba(64,145,108,.15);color:var(--verde-cl,#74c69d);'}">
+            ${c.ativo === false ? '✕ Inativo' : '✓ Ativo'}</button>
+        </div>
+      </div>`).join('') + `
+      <button onclick="adicionarCardInsc()"
+              style="border:1px dashed var(--borda);border-radius:8px;background:transparent;color:var(--suave);cursor:pointer;padding:.75rem;font-size:.85rem;display:flex;align-items:center;justify-content:center;gap:.4rem;min-height:60px;">
+        ➕ Adicionar categoria</button>`;
+    if (btnEdit) btnEdit.style.display = 'none';
+    if (rodape)  rodape.style.display  = 'flex';
+  } else {
+    grid.innerHTML = cfg.map(c => `
+      <div class="cfg-card" style="${c.ativo === false ? 'opacity:.5;' : ''}">
+        <div class="cfg-cat">${_escCfg(c.cat)}${c.ativo === false ? ' <span style="color:#f59e0b;">• inativo</span>' : ''}</div>
+        <div class="cfg-view-vagas" style="margin-bottom:.25rem;"><strong>${c.vagas}</strong> vagas</div>
+        <div class="cfg-view-val">${fmt(c.valor)}</div>
+      </div>`).join('');
+    if (btnEdit) btnEdit.style.display = '';
+    if (rodape)  rodape.style.display  = 'none';
+  }
 }
 
-function saveInscConfig() {
-  const cfg = getInscConfig();
-  cfg.forEach((c,i) => {
-    c.vagas = parseInt(document.getElementById(`icfg-vagas-${i}`)?.value) || c.vagas;
-    c.valor = parseFloat(document.getElementById(`icfg-valor-${i}`)?.value) || c.valor;
+function editarInscConfig() {
+  _inscConfigTmp  = getInscConfig().map(c => ({ ...c })); // cópia editável
+  _inscConfigEdit = true;
+  renderInscConfig();
+}
+
+function cancelarInscConfig() {
+  _inscConfigEdit = false;
+  _inscConfigTmp  = null;
+  renderInscConfig();
+}
+
+function ajustarVaga(i, delta) {
+  if (!_inscConfigTmp) return;
+  _inscConfigTmp[i].vagas = Math.max(0, (parseInt(_inscConfigTmp[i].vagas) || 0) + delta);
+  const el = document.getElementById(`icfg-vagas-${i}`);
+  if (el) el.value = _inscConfigTmp[i].vagas;
+}
+
+function adicionarCardInsc() {
+  if (!_inscConfigTmp) _inscConfigTmp = getInscConfig().map(c => ({ ...c }));
+  _inscConfigTmp.push({ cat: 'Nova categoria', vagas: 0, valor: 0, ativo: true });
+  renderInscConfig();
+  // foca o nome do card recém-criado para o usuário digitar
+  const el = document.getElementById(`icfg-cat-${_inscConfigTmp.length - 1}`);
+  if (el) { el.focus(); el.select(); }
+}
+
+function deletarCardInsc(i) {
+  if (!_inscConfigTmp || !_inscConfigTmp[i]) return;
+  const nome = _inscConfigTmp[i].cat || 'esta categoria';
+  if (!confirm(`Excluir a categoria "${nome}"? A exclusão é definitiva ao salvar a configuração.`)) return;
+  _inscConfigTmp.splice(i, 1);
+  renderInscConfig();
+}
+
+function toggleAtivoCardInsc(i) {
+  if (!_inscConfigTmp || !_inscConfigTmp[i]) return;
+  _inscConfigTmp[i].ativo = _inscConfigTmp[i].ativo === false; // alterna (inativo→ativo / ativo→inativo)
+  renderInscConfig();
+}
+
+async function saveInscConfig() {
+  if (!_inscConfigTmp) _inscConfigTmp = getInscConfig().map(c => ({ ...c }));
+  _inscConfigTmp.forEach((c,i) => {              // garante nome, vagas e valor finais dos inputs
+    const cEl = document.getElementById(`icfg-cat-${i}`);
+    if (cEl) c.cat = cEl.value.trim() || c.cat || 'Categoria';
+    const gEl = document.getElementById(`icfg-vagas-${i}`);
+    if (gEl) c.vagas = Math.max(0, parseInt(gEl.value) || 0);
+    const vEl = document.getElementById(`icfg-valor-${i}`);
+    if (vEl) c.valor = parseFloat(vEl.value) || 0;
   });
-  set('abcl-fin-insc-config', cfg);
+  const cfg = _inscConfigTmp;
+  set('abcl-fin-insc-config', cfg);   // cache local imediato (resposta instantânea, offline-first)
+  _inscConfigEdit = false;
+  _inscConfigTmp  = null;
+  renderInscConfig();
   renderInscCards();
-  toast('✅ Configuração salva!');
+  // Sincroniza com o Firestore (fonte única para toda a comissão)
+  try {
+    const user = await aguardarAuth();
+    if (!user) { toast('💾 Salvo neste aparelho. Entre no Admin para sincronizar com a equipe.'); return; }
+    await firebase.firestore().collection(CFG_VAGAS_COL).doc(CFG_VAGAS_DOC).set({
+      categorias: cfg,
+      atualizado_em: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    toast('✅ Configuração salva e sincronizada!');
+  } catch (e) {
+    console.error('[Financeiro] erro ao sincronizar config de vagas:', e);
+    toast('⚠️ Salvo neste aparelho, mas falhou ao sincronizar: ' + ((e && (e.message || e.code)) || e));
+  }
 }
 
 function renderInscCards() {
-  const cfg  = getInscConfig();
+  const cfg  = getInscConfig().filter(c => c.ativo !== false); // categorias inativas ficam fora da contagem
   const insc = getInscricoes();
   const cards = cfg.map(c => {
     const reg   = insc.filter(i => i.categoria === c.cat);
@@ -879,6 +1062,128 @@ function renderInscricoesList() {
           <td><button class="btn btn-danger btn-sm" onclick="removeInscricao(${i.id})">✕</button></td>
         </tr>`).join('')
     : '<tr><td colspan="5" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhuma inscrição registrada.</td></tr>';
+}
+
+// ══════════════════════════════════════════════════
+// INSCRIÇÕES REAIS (Firestore) — fonte única da verdade
+// Lê a coleção 'inscricoes' (mesma do formulário e do admin) e permite
+// confirmar/estornar pagamento. A sessão de auth é compartilhada entre as
+// páginas do mesmo domínio, então quem está logado no Admin já tem acesso aqui.
+// ══════════════════════════════════════════════════
+let _inscricoesReais = [];
+
+// Aguarda o Firebase restaurar a sessão (assíncrono) antes de ler dados protegidos.
+function aguardarAuth(timeoutMs = 4000) {
+  return new Promise(resolve => {
+    let auth;
+    try { auth = firebase.auth(); } catch { return resolve(null); }
+    if (auth.currentUser) return resolve(auth.currentUser);
+    let done = false;
+    const unsub = auth.onAuthStateChanged(u => { if (done) return; done = true; try{unsub();}catch{} resolve(u); });
+    setTimeout(() => { if (!done) { done = true; try{unsub();}catch{} resolve(auth.currentUser || null); } }, timeoutMs);
+  });
+}
+
+async function carregarInscricoesReais() {
+  const statusEl = document.getElementById('insc-reais-status');
+  const listEl   = document.getElementById('insc-reais-list');
+  if (statusEl) statusEl.textContent = 'Carregando inscrições do banco de dados…';
+  try {
+    if (typeof firebase === 'undefined' || !firebase.apps.length) throw new Error('Firebase indisponível');
+    // As inscrições têm dados sensíveis → as regras exigem usuário autenticado.
+    // Esperamos a sessão (compartilhada com o Admin, mesma origem) restaurar.
+    const user = await aguardarAuth();
+    if (!user) {
+      if (statusEl) statusEl.innerHTML = '⚠️ Você não está autenticado. <a href="admin.html" style="color:var(--verde-cl);text-decoration:underline;">Entre no Admin</a> (mesmo navegador) e volte a esta página.';
+      if (listEl) listEl.innerHTML = '';
+      return;
+    }
+    const snap = await firebase.firestore().collection('inscricoes').get();
+    _inscricoesReais = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    renderInscricoesReais();
+    if (statusEl) statusEl.textContent = '';
+  } catch (e) {
+    console.error('[Financeiro] Erro ao carregar inscrições:', e);
+    if (statusEl) statusEl.textContent = (e && e.code === 'permission-denied')
+      ? '⚠️ Sem permissão para ler as inscrições. Entre no Admin nesta sessão (mesmo navegador) e recarregue esta página.'
+      : '⚠️ Não foi possível carregar as inscrições: ' + ((e && (e.message || e.code)) || e);
+    if (listEl) listEl.innerHTML = '';
+  }
+}
+
+function renderInscricoesReais() {
+  const lista = _inscricoesReais.slice()
+    .sort((a,b) => (b.criado_em?.seconds || 0) - (a.criado_em?.seconds || 0));
+  // Só "confirmada" conta como recebida (exclui a fila de espera)
+  const confirmadas = lista.filter(r => (r.status_inscricao || 'confirmada') !== 'fila');
+  const pagos       = confirmadas.filter(r => r.status_pagamento === 'pago');
+  const arrecadado  = pagos.reduce((s,r) => s + (Number(r.valor_total) || 0), 0);
+  const aReceber    = confirmadas.filter(r => r.status_pagamento !== 'pago')
+                                 .reduce((s,r) => s + (Number(r.valor_total) || 0), 0);
+
+  const resumo = [
+    { cat: 'Inscritos',  val: String(confirmadas.length),               det: '' },
+    { cat: 'Pagos',      val: pagos.length + ' / ' + confirmadas.length, det: '' },
+    { cat: 'Arrecadado', val: fmt(arrecadado),                          det: 'pagamentos confirmados' },
+    { cat: 'A receber',  val: fmt(aReceber),                            det: 'pagamentos pendentes' },
+  ];
+  const resumoEl = document.getElementById('insc-reais-resumo');
+  if (resumoEl) resumoEl.innerHTML = resumo.map(c => `
+    <div class="insc-card"><div class="ic-cat">${c.cat}</div><div class="ic-val">${c.val}</div><div class="ic-det">${c.det}</div></div>`).join('');
+
+  const listEl = document.getElementById('insc-reais-list');
+  if (!listEl) return;
+  listEl.innerHTML = lista.length ? lista.map(r => {
+    const pago = r.status_pagamento === 'pago';
+    const fila = (r.status_inscricao || 'confirmada') === 'fila';
+    const badge = pago
+      ? '<span style="color:var(--verde-cl);">● pago</span>'
+      : (fila ? '<span style="color:var(--suave);">● fila</span>'
+              : '<span style="color:#f59e0b;">● pendente</span>');
+    const acao = pago
+      ? `<button class="btn btn-ghost btn-sm" onclick="estornarPagamentoInsc('${r._id}')">Estornar</button>`
+      : `<button class="btn btn-solid btn-sm" onclick="confirmarPagamentoInsc('${r._id}')">✓ Confirmar</button>`;
+    return `<tr>
+      <td>${r.nome || '—'}</td>
+      <td style="color:var(--suave);font-size:.72rem;font-family:monospace;">${r.codigo || '—'}</td>
+      <td style="color:var(--suave);font-size:.72rem;">${fila ? 'Fila' : 'Confirmada'}</td>
+      <td class="td-valor rc-verde">${fmt(Number(r.valor_total) || 0)}</td>
+      <td style="font-size:.78rem;white-space:nowrap;">${badge}</td>
+      <td style="text-align:right;">${acao}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--suave);padding:1.5rem;font-size:.78rem;">Nenhuma inscrição recebida ainda.</td></tr>';
+}
+
+async function confirmarPagamentoInsc(id) {
+  const r = _inscricoesReais.find(x => x._id === id);
+  const nome = (r && r.nome) || 'esta inscrição';
+  if (!confirm(`Confirmar o pagamento de ${nome}?`)) return;
+  try {
+    await firebase.firestore().collection('inscricoes').doc(id).update({
+      status_pagamento: 'pago',
+      pago_em: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    if (r) r.status_pagamento = 'pago';
+    renderInscricoesReais();
+    toast('✅ Pagamento confirmado!');
+  } catch (e) {
+    console.error('[Financeiro] confirmar pagamento:', e);
+    toast('⚠️ Não foi possível confirmar: ' + ((e && (e.message || e.code)) || e));
+  }
+}
+
+async function estornarPagamentoInsc(id) {
+  const r = _inscricoesReais.find(x => x._id === id);
+  if (!confirm('Estornar este pagamento? A inscrição volta para "pendente".')) return;
+  try {
+    await firebase.firestore().collection('inscricoes').doc(id).update({ status_pagamento: 'pendente' });
+    if (r) r.status_pagamento = 'pendente';
+    renderInscricoesReais();
+    toast('Pagamento estornado.');
+  } catch (e) {
+    console.error('[Financeiro] estornar pagamento:', e);
+    toast('⚠️ Não foi possível estornar: ' + ((e && (e.message || e.code)) || e));
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -998,16 +1303,25 @@ function renderProjecao() {
 // ══════════════════════════════════════════════════
 // EXPORTAR CSV
 // ══════════════════════════════════════════════════
-function exportarCSV() {
-  const desp = getDespesas().map(d => `Despesa,${d.data||''},${d.descricao},${d.categoria||''},${d.status},${d.valor}`);
-  const rec  = getReceitas().map(r => `Receita,${r.data||''},${r.descricao},${r.categoria||''},${r.status},${r.valor}`);
-  const insc = getInscricoes().map(i => `Inscrição,—,${i.nome||''},${i.categoria},Recebido,${Number(i.valor)*Number(i.qtd)}`);
-  const csv  = ['Tipo,Data,Descrição,Categoria,Status,Valor', ...desp, ...rec, ...insc].join('\n');
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = `ABCL_Financeiro_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  toast('📥 CSV exportado!');
+function _dadosFinanceiro() {
+  const linhas = [];
+  const brl = v => Number(v) || 0;
+  getDespesas().forEach(d => linhas.push(['Despesa',   d.data || '—', d.descricao || '', d.categoria || '', d.status || '', brl(d.valor)]));
+  getReceitas().forEach(r => linhas.push(['Receita',   r.data || '—', r.descricao || '', r.categoria || '', r.status || '', brl(r.valor)]));
+  getInscricoes().forEach(i => linhas.push(['Inscrição', '—',         i.nome || '',      i.categoria || '', 'Recebido', brl(i.valor) * brl(i.qtd)]));
+  return {
+    nome: 'financeiro',
+    titulo: 'Relatório Financeiro',
+    colunas: ['Tipo', 'Data', 'Descrição', 'Categoria', 'Status', 'Valor'],
+    linhas,
+    moeda: [5],
+  };
+}
+
+function exportarFinanceiro(formato) {
+  const r = exportarDados({ ..._dadosFinanceiro(), formato });
+  if (!r.ok) { toast('Nada para exportar.'); return; }
+  if (formato !== 'pdf') toast('📥 Arquivo exportado!');
 }
 
 // ══════════════════════════════════════════════════
@@ -1318,6 +1632,25 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ══════════════════════════════════════════════════
+// TEMA CLARO / ESCURO
+// Chave 'abcl-theme' unificada com o resto do sistema (admin usava
+// 'abcl-admin-theme' à parte — a preferência agora atravessa todas as telas).
+// ══════════════════════════════════════════════════
+(function initTheme() {
+  const saved = localStorage.getItem('abcl-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = saved === 'light' ? '🌙' : '☀️';
+})();
+
+function toggleTheme() {
+  const novo = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', novo);
+  localStorage.setItem('abcl-theme', novo);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = novo === 'light' ? '🌙' : '☀️';
+}
 </script>
 </body>
 </html>

@@ -2,6 +2,7 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%230b1f17'/%3E%3Cpath d='M7 47 L25 22 L34 34 L42 24 L57 47 Z' fill='%234c9a6a'/%3E%3C/svg%3E" />
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -21,6 +22,8 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 </script>
 
 <!-- Módulos ABCL -->
+<script src="js/xlsx.full.min.js"></script>
+<script src="js/export.js"></script>
 <script src="js/offline-sync.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="js/vendas-firebase.js"></script>
@@ -2358,14 +2361,18 @@ var qrcode = function() {
       --r:          8px;
     }
     [data-theme="light"] {
-      --fundo:    #F2F7F3;
+      /* --suave era rgba(...,.50) => 3.01:1 sobre branco (só passava em texto
+         grande). --verde-cl era o tom mint do escuro (#74C69D), usado 40x como
+         cor de texto (preço, total, títulos) => 2.04:1 sobre branco. */
+      --fundo:    #F5F4F1;
       --card:     #FFFFFF;
-      --card2:    #E8F2EA;
-      --texto:    #1A2E22;
-      --suave:    rgba(26,46,34,.5);
-      --borda:    rgba(45,106,79,.16);
+      --card2:    #F0EFE9;
+      --texto:    #1A1917;
+      --suave:    #5A6660;
+      --borda:    rgba(45,106,79,.18);
       --amarelo:  #A06800;
       --vermelho: #C0392B;
+      --verde-cl: #2D6A4F;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2880,7 +2887,9 @@ var qrcode = function() {
         <div class="section-h">
           <span>Histórico de vendas</span>
           <div style="display:flex;gap:.4rem;">
-            <button class="btn btn-ghost btn-sm" onclick="exportCSVHistorico()">📥 CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('xlsx')">📥 XLSX</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('csv')">📄 CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('pdf')">🖨 PDF</button>
             <button class="btn btn-danger btn-sm" onclick="if(confirm('Limpar todo o histórico?')){ clearAllSales(); }">🗑 Limpar</button>
           </div>
         </div>
@@ -4773,17 +4782,26 @@ function limparFiltrosHistorico() {
   renderHistorico();
 }
 
-function exportCSVHistorico() {
-  const sales = getSales();
-  const rows  = ['Data,Hora,Cliente,Período,Pagamento,Itens,Total'];
-  sales.forEach(s => rows.push(
-    `${s.data},${s.hora},"${s.pessoa}",${s.periodo},${s.pagamento},"${s.itens.map(i=>i.nome+'x'+i.qtd).join('|')}",${s.total.toFixed(2)}`
-  ));
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.join('\n'));
-  a.download = `Vendinha_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  toast('📥 CSV exportado!');
+function _dadosVendinha() {
+  return {
+    nome: 'vendinha',
+    titulo: 'Vendas · Vendinha',
+    // Colunas vindas da versão que estava órfã no arquivo: inclui subtotal e
+    // desconto, que o histórico antigo não exportava.
+    colunas: ['Data', 'Hora', 'Pessoa', 'Período', 'Pagamento', 'Itens', 'Subtotal', 'Desconto', 'Total'],
+    linhas: getSales().map(s => [
+      s.data || '', s.hora || '', s.pessoa || '', s.periodo || '', s.pagamento || '',
+      (s.itens || []).map(i => i.nome + ' x' + i.qtd).join('; '),
+      Number(s.subtotal) || 0, Number(s.desconto) || 0, Number(s.total) || 0,
+    ]),
+    moeda: [6, 7, 8],
+  };
+}
+
+function exportarVendinha(formato) {
+  const r = exportarDados({ ..._dadosVendinha(), formato });
+  if (!r.ok) { toast('Nenhuma venda para exportar.'); return; }
+  if (formato !== 'pdf') toast('📥 Arquivo exportado!');
 }
 
 // ══════════════════════════════════════════════════
@@ -5540,22 +5558,7 @@ function renderResumo() {
 // ══════════════════════════════════════════════════
 // EXPORT CSV
 // ══════════════════════════════════════════════════
-function exportCSV() {
-  const sales = getSales();
-  if (sales.length === 0) { toast('Nenhuma venda para exportar.'); return; }
-
-  const header = 'Data,Hora,Pessoa,Período,Pagamento,Itens,Subtotal,Desconto,Total\n';
-  const rows = sales.map(s =>
-    `${s.data},${s.hora},${s.pessoa},${s.periodo},${s.pagamento},"${s.itens.map(i=>i.nome+'×'+i.qtd).join('; ')}",${s.subtotal.toFixed(2)},${s.desconto.toFixed(2)},${s.total.toFixed(2)}`
-  ).join('\n');
-
-  const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `vendas-abcl-${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;
-  a.click();
-  toast('CSV exportado!');
-}
+// (exportação unificada em exportarVendinha — ver js/export.js)
 
 // ══════════════════════════════════════════════════
 // UI UTILS
@@ -5742,12 +5745,30 @@ window.addEventListener('offline', atualizarSyncBar);
 document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarSyncBar, 1000));
 
 // toggleTheme (caso não esteja definido no escopo global ainda)
+// Antes só trocava o atributo em memória — recarregar a página perdia a
+// escolha. Agora persiste em 'abcl-theme', a mesma chave usada em todo o
+// sistema, e atualiza o ícone do botão.
 if (typeof toggleTheme === 'undefined') {
   window.toggleTheme = function() {
     const html = document.documentElement;
-    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+    const novo = html.dataset.theme === 'light' ? 'dark' : 'light';
+    html.dataset.theme = novo;
+    try { localStorage.setItem('abcl-theme', novo); } catch (e) {}
+    document.querySelectorAll('[onclick="toggleTheme()"]').forEach(b => {
+      b.textContent = novo === 'light' ? '🌙' : '☀️';
+    });
   };
 }
+(function _restaurarTemaVendinha() {
+  let t = 'dark';
+  try { t = localStorage.getItem('abcl-theme') || 'dark'; } catch (e) {}
+  document.documentElement.dataset.theme = t;
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[onclick="toggleTheme()"]').forEach(b => {
+      b.textContent = t === 'light' ? '🌙' : '☀️';
+    });
+  });
+})();
 </script>
 
 

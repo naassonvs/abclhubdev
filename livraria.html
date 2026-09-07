@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
 <head>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%230b1f17'/%3E%3Cpath d='M7 47 L25 22 L34 34 L42 24 L57 47 Z' fill='%234c9a6a'/%3E%3C/svg%3E" />
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -2322,6 +2323,8 @@ var qrcode = function() {
 </script>
 
 <!-- Módulos ABCL -->
+<script src="js/xlsx.full.min.js"></script>
+<script src="js/export.js"></script>
 <script src="js/offline-sync.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="js/vendas-firebase.js"></script>
@@ -2361,15 +2364,23 @@ var qrcode = function() {
       --amarelo:  #F59E0B;
     }
     [data-theme="light"] {
+      /* --suave era rgba(...,.5) => 3.08:1 sobre branco, 2.94:1 sobre card2
+         (reprovava nos dois). --azul-cl era o tom claro do escuro (#93C5FD),
+         usado 23x como cor de texto (título, preço, tags) => 1.80:1 sobre
+         branco — praticamente ilegível. --verde-cl é resíduo do template da
+         vendinha (4 usos) e herdava o mesmo problema do mint claro. */
       --bg:       #EFF4FB;
       --bg2:      #E2EBF7;
       --card:     #FFFFFF;
       --card2:    #E2EBF7;
       --texto:    #1A2640;
-      --suave:    rgba(26,38,64,.5);
-      --borda:    rgba(37,99,235,.16);
+      --suave:    #425374;
+      --borda:    rgba(37,99,235,.18);
       --amarelo:  #A06800;
       --vermelho: #C0392B;
+      --azul-cl:  #1D4ED8;
+      --azul-mid: #2563EB;
+      --verde-cl: #2D6A4F;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; }
@@ -2882,7 +2893,9 @@ var qrcode = function() {
   <div class="view-panel" id="vp-historico">
     <div class="section-h">
       <span>Histórico de vendas</span>
-      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportarLivraria('xlsx')">📥 XLSX</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportarLivraria('csv')">📄 CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportarLivraria('pdf')">🖨 PDF</button>
     </div>
     <div style="overflow-x:auto;">
       <table class="hist-tabela">
@@ -4191,14 +4204,24 @@ function executarImport() {
 // ══════════════════════════════════════════════════
 // EXPORT CSV HISTÓRICO
 // ══════════════════════════════════════════════════
-function exportCSV() {
-  const sales = getSales();
-  const rows = ['Data,Hora,Cliente,Período,Pagamento,Itens,Total'];
-  sales.forEach(s => rows.push(`${s.data},${s.hora},"${s.cliente}",${s.periodo},${s.pagamento},"${s.itens.map(i=>i.titulo+'x'+i.qtd).join('|')}",${s.total.toFixed(2)}`));
-  const a = document.createElement('a');
-  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(rows.join('\n'));
-  a.download = `ABCL_Livraria_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
+function _dadosLivraria() {
+  return {
+    nome: 'livraria',
+    titulo: 'Vendas · Livraria',
+    colunas: ['Data', 'Hora', 'Cliente', 'Período', 'Pagamento', 'Itens', 'Total'],
+    linhas: getSales().map(s => [
+      s.data || '', s.hora || '', s.cliente || '', s.periodo || '', s.pagamento || '',
+      (s.itens || []).map(i => i.titulo + ' x' + i.qtd).join('; '),
+      Number(s.total) || 0,
+    ]),
+    moeda: [6],
+  };
+}
+
+function exportarLivraria(formato) {
+  const r = exportarDados({ ..._dadosLivraria(), formato });
+  if (!r.ok) { toast('Nenhuma venda para exportar.'); return; }
+  if (formato !== 'pdf') toast('📥 Arquivo exportado!');
 }
 
 // ══════════════════════════════════════════════════
@@ -4394,10 +4417,28 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(atualizarSyncBarL
 </script>
 
 <script>
+// Antes só trocava o atributo em memória — recarregar a página perdia a
+// escolha. Agora persiste em 'abcl-theme', a mesma chave usada em todo o
+// sistema, e atualiza o ícone do botão.
 window.toggleTheme = function() {
   const html = document.documentElement;
-  html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  const novo = html.dataset.theme === 'light' ? 'dark' : 'light';
+  html.dataset.theme = novo;
+  try { localStorage.setItem('abcl-theme', novo); } catch (e) {}
+  document.querySelectorAll('[onclick="toggleTheme()"]').forEach(b => {
+    b.textContent = novo === 'light' ? '🌙' : '☀️';
+  });
 };
+(function _restaurarTemaLivraria() {
+  let t = 'dark';
+  try { t = localStorage.getItem('abcl-theme') || 'dark'; } catch (e) {}
+  document.documentElement.dataset.theme = t;
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[onclick="toggleTheme()"]').forEach(b => {
+      b.textContent = t === 'light' ? '🌙' : '☀️';
+    });
+  });
+})();
 
 // ══════════════════════════════════════════════════════════════════
 // PAGAMENTOS DINÂMICOS — LIVRARIA

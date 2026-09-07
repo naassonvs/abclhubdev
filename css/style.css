@@ -20,10 +20,16 @@
 }
 
 [data-theme="light"] {
+  /* --texto-suave (.58) => 4.26:1 sobre branco — abaixo do mínimo AA (4.5:1)
+     para texto de tamanho normal. As demais opacidades secundárias do arquivo
+     (.50 a .65, usadas em org-sub, hero-verse cite, cd-label, footer) ficavam
+     entre 3.12:1 e 3.87:1 — reprovando. --verde-claro (#1A5C38) já estava
+     correto (7.98:1) e é preservado. */
   --fundo:        #EFF5F1;
   --fundo-card:   #FFFFFF;
   --texto:        #0E1F15;
-  --texto-suave:  rgba(14, 31, 21, 0.58);
+  --texto-suave:  rgba(14, 31, 21, 0.66);
+  --texto-secundario: rgba(14, 31, 21, 0.66);
   --borda:        rgba(45, 106, 79, 0.2);
   --verde-claro:  #1A5C38;
 }
@@ -54,7 +60,7 @@
 
 [data-theme="light"] .org-sub,
 [data-theme="light"] .pregador-local,
-[data-theme="light"] .tema-num { color: rgba(14,31,21,.55); }
+[data-theme="light"] .tema-num { color: var(--texto-secundario); }
 
 /* Cards modo claro */
 [data-theme="light"] .tema-card {
@@ -70,11 +76,11 @@
 
 /* Contagem regressiva */
 [data-theme="light"] .cd-num { color: var(--verde); }
-[data-theme="light"] .cd-label { color: rgba(14,31,21,.5); }
+[data-theme="light"] .cd-label { color: var(--texto-secundario); }
 
 /* Formulário */
 [data-theme="light"] .form-card { background: #fff; border-color: rgba(45,106,79,.15); }
-[data-theme="light"] .field label { color: rgba(14,31,21,.6); }
+[data-theme="light"] .field label { color: var(--texto-secundario); }
 [data-theme="light"] .field input,
 [data-theme="light"] .field select,
 [data-theme="light"] .field textarea {
@@ -88,8 +94,8 @@
 /* Hero modo claro */
 [data-theme="light"] .hero { background: linear-gradient(180deg, #DFF0E6 0%, #EFF5F1 100%); }
 [data-theme="light"] .hero-edicao { color: var(--verde); }
-[data-theme="light"] .hero-verse { color: rgba(14,31,21,.65); border-color: rgba(45,106,79,.3); }
-[data-theme="light"] .hero-verse cite { color: rgba(14,31,21,.5); }
+[data-theme="light"] .hero-verse { color: var(--texto-secundario); border-color: rgba(45,106,79,.3); }
+[data-theme="light"] .hero-verse cite { color: var(--texto-secundario); }
 [data-theme="light"] .hero-info-pill { background: rgba(255,255,255,.8); border-color: rgba(45,106,79,.2); color: rgba(14,31,21,.7); }
 [data-theme="light"] .hero-mountains polygon { opacity: .12; }
 
@@ -100,9 +106,9 @@
 /* Footer modo claro */
 [data-theme="light"] footer { background: #D8EAE0; border-top: 1px solid rgba(45,106,79,.15); }
 [data-theme="light"] .footer-verse,
-[data-theme="light"] .footer-copy { color: rgba(14,31,21,.55); }
+[data-theme="light"] .footer-copy { color: var(--texto-secundario); }
 [data-theme="light"] .footer-logo-text { color: #0E1F15; }
-[data-theme="light"] .footer-logo-text small { color: rgba(14,31,21,.5); }
+[data-theme="light"] .footer-logo-text small { color: var(--texto-secundario); }
 
 /* Loja no modo claro */
 [data-theme="light"] #loja { background: #E5EEE8; }
@@ -117,7 +123,7 @@
 /* Local map card */
 [data-theme="light"] .mapa-card { background: #fff; border-color: rgba(45,106,79,.15); }
 [data-theme="light"] .mapa-info h3 { color: #0E1F15; }
-[data-theme="light"] .mapa-info p  { color: rgba(14,31,21,.6); }
+[data-theme="light"] .mapa-info p  { color: var(--texto-secundario); }
 
 /* Botão tema na nav */
 #theme-btn { display: none; }

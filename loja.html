@@ -48,10 +48,12 @@ catch (e) { console.warn('[AppCheck] nao ativado:', (e && (e.code || e.message))
       --shadow:   0 8px 32px rgba(0,0,0,0.5);
     }
     :root[data-theme="light"] {
-      --bg:       #F2EFE8; --bg2:     #EAE5DC;
-      --card:     #FFFFFF; --card2:   #F5F2EB;
-      --texto:    #1C2E24; --suave:   rgba(28,46,36,0.5);
-      --borda:    rgba(45,106,79,0.22);
+      /* --suave era rgba(...,.5) => 3.00:1 sobre branco (só texto grande).
+         --verde-cl já estava correto (#2D6A4F, 6.39:1) — mantido. */
+      --bg:       #F5F4F1; --bg2:     #EDEBE4;
+      --card:     #FFFFFF; --card2:   #F0EFE9;
+      --texto:    #1A1917; --suave:   #5A6660;
+      --borda:    rgba(45,106,79,0.18);
       --verde:    #2D6A4F; --verde-mid:#40916C; --verde-cl:#2D6A4F;
       --dourado:  #9B7B2A; --dourado2: #B8922E;
       --input-bg: rgba(0,0,0,0.04);

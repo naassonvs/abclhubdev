@@ -19,7 +19,7 @@
     appId:             "1:243573406078:web:57c0257a9b7e6bf04b9b2f"
   };
   try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch(e) {}
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') self.FIREBASE_APPCHECK_DEBUG_TOKEN = '1f27432c-c3c1-415c-b880-92bfd85042b2';
   try { firebase.appCheck().activate(new firebase.appCheck.ReCaptchaV3Provider('6LcYAyUtAAAAAJj1yYLnrmo-MThtvjoXAKiLMiGr'), true); } catch(e) { console.warn('[AppCheck] nao ativado:', (e && (e.code||e.message)) || e); }
   window._fdb = (typeof firebase !== 'undefined' && firebase.firestore) ? firebase.firestore() : null;
   </script>
@@ -40,12 +40,14 @@
       --shadow:    0 4px 24px rgba(0,0,0,.45);
     }
     :root[data-theme="light"] {
-      --bg:        #F2EFE8;
+      /* --suave era rgba(...,.5) => 3.00:1 sobre branco (só texto grande).
+         --verde-cl já estava correto aqui (#2D6A4F, 6.39:1) — mantido. */
+      --bg:        #F5F4F1;
       --card:      #FFFFFF;
-      --card2:     #F8F5EF;
-      --texto:     #1C2E24;
-      --suave:     rgba(28,46,36,0.5);
-      --borda:     rgba(45,106,79,0.22);
+      --card2:     #F0EFE9;
+      --texto:     #1A1917;
+      --suave:     #5A6660;
+      --borda:     rgba(45,106,79,0.18);
       --verde-mid: #40916C;
       --verde-cl:  #2D6A4F;
       --input-bg:  rgba(0,0,0,0.035);
@@ -200,6 +202,25 @@
     .erro-msg { font-size: .7rem; color: #EF4444; margin-top: .3rem; display: none; }
     .campo.erro .erro-msg { display: block; }
 
+    /* ── v2: imagem da pergunta ── */
+    /* Sem proporção fixa (como o Google Forms): a imagem se ajusta à largura do
+       campo e tem altura máxima para não empurrar o formulário no celular. */
+    .pq-img-slot:empty { display: none; }
+    .pq-img-slot { margin: .1rem 0 .7rem; }
+    .pq-img {
+      display: block; width: 100%; height: auto; max-height: 320px;
+      object-fit: contain; border-radius: 10px;
+      border: 1px solid var(--borda); background: rgba(0,0,0,.15);
+    }
+
+    /* ── v2: regras de seleção ── */
+    .opcao-item.bloqueada { opacity: .42; }
+    .opcao-item.bloqueada:hover { border-color: var(--borda); background: var(--card2); }
+    .aviso-regra {
+      display: none; font-size: .72rem; color: var(--amarelo, #E9C46A);
+      margin-top: .45rem; line-height: 1.45;
+    }
+
     /* ── Submit ── */
     .submit-area { text-align: center; margin-top: 1.5rem; }
     .btn-submit {
@@ -284,6 +305,161 @@
 </div>
 
 <script>
+
+/* ===== INÍCIO MODELO v2 (compartilhado) ===== */
+// ══════════════════════════════════════════════════════════════
+// MODELO DE PERGUNTAS v2 — normalização e helpers COMPARTILHADOS
+// ⚠ Este bloco é IDÊNTICO em admin.html e formulario.html.
+//   Ao alterar aqui, replique no outro arquivo.
+//
+// O que mudou em relação ao v1:
+//  • `opcoes` deixa de ser string[] e passa a ser objeto[]:
+//      { id, texto, valorCent, exclusiva }
+//    → o preço sai de DENTRO do texto ("Estadia — R$ 200,00") e vira número.
+//    → cada opção ganha id estável (base para financeiro, estatística e vagas).
+//  • `tipo:'financeiro'` deixa de existir: vira `tipo:'checkbox'` + `comValor:true`.
+//    O vínculo financeiro passa a ser ATRIBUTO, aplicável a radio/checkbox/select.
+//  • Novos atributos opcionais em qualquer pergunta:
+//      imagemUrl  → imagem da pergunta ('', http(s), data: legado, ou 'ref:<docId>')
+//      condicao   → { perguntaId, opcoes:[idsOpcao], negar:bool }
+//      regras     → { maxSelecoes:n }
+//
+// Valores em CENTAVOS INTEIROS (valorCent) — evita erro de ponto flutuante
+// em somas do tipo 65,10 + 65,20 + 65,30.
+// ══════════════════════════════════════════════════════════════
+var PQ_MODELO_VERSAO = 2;
+console.log('[FORM] build 2026-09-01 · modelo de perguntas v' + PQ_MODELO_VERSAO);
+
+function pqNovoOpcaoId() {
+  return 'o_' + Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 4);
+}
+
+function pqFmtBRL(cent) {
+  return (Math.round(Number(cent) || 0) / 100).toFixed(2).replace('.', ',');
+}
+
+// "R$ 1.234,56" (string do usuário) → centavos
+function pqParseBRL(str) {
+  const s = String(str || '').replace(/[^\d.,]/g, '');
+  if (!s) return 0;
+  const norm = s.replace(/\./g, '').replace(',', '.');
+  return Math.round((parseFloat(norm) || 0) * 100);
+}
+
+// Migração v1: extrai o valor escrito DENTRO do texto da opção.
+// Cobre "Estadia completa — R$ 200,00", "Diária (…) R$200" e "Item (R$ 65,00)".
+function pqValorLegado(str) {
+  const s = String(str || '');
+  const m = s.match(/R\$\s*([\d.]*\d(?:,\d{1,2})?)/);
+  if (!m) return { texto: s.trim(), valorCent: 0 };
+  const valorCent = Math.round((parseFloat(m[1].replace(/\./g, '').replace(',', '.')) || 0) * 100);
+  let texto = (s.slice(0, m.index) + s.slice(m.index + m[0].length))
+    .replace(/\(\s*\)/g, '')
+    .replace(/[\s—–\-]+$/, '')
+    .trim();
+  return { texto: texto || s.trim(), valorCent: valorCent };
+}
+
+function pqTiposComOpcoes(t) { return ['radio', 'checkbox', 'select', 'financeiro'].indexOf(t) >= 0; }
+function pqPodeTerValor(t)   { return ['radio', 'checkbox', 'select'].indexOf(t) >= 0; }
+function pqEhConteudo(t)     { return t === 'secao' || t === 'imagem'; }
+
+function pqNormalizarOpcoes(p) {
+  const raw = Array.isArray(p.opcoes) ? p.opcoes : [];
+  const temValor = !!p.comValor || p.tipo === 'financeiro';
+  return raw.map(function (o) {
+    if (o && typeof o === 'object') {
+      return {
+        id: o.id || pqNovoOpcaoId(),
+        texto: String(o.texto == null ? '' : o.texto),
+        valorCent: Math.round(Number(o.valorCent) || 0),
+        exclusiva: !!o.exclusiva
+      };
+    }
+    const conv = temValor ? pqValorLegado(o) : { texto: String(o == null ? '' : o).trim(), valorCent: 0 };
+    return { id: pqNovoOpcaoId(), texto: conv.texto, valorCent: conv.valorCent, exclusiva: false };
+  });
+}
+
+// Normaliza UMA pergunta. Retorna { pergunta, mudou }.
+function pqNormalizarPergunta(p) {
+  const q = Object.assign({}, p || {});
+  const antes = JSON.stringify([q.tipo, q.opcoes || [], q.comValor, q.regras || null]);
+
+  if (q.tipo === 'financeiro') { q.tipo = 'checkbox'; q.comValor = true; }
+  q.comValor = !!q.comValor && pqPodeTerValor(q.tipo);
+  if (q.comValor && !q.destinoValor) q.destinoValor = 'inscricao';
+  if (!q.comValor) delete q.destinoValor;
+
+  q.opcoes = pqTiposComOpcoes(q.tipo) ? pqNormalizarOpcoes(q) : [];
+
+  // regras: só fazem sentido em múltipla escolha
+  const max = q.regras && Number(q.regras.maxSelecoes);
+  if (q.tipo === 'checkbox' && max > 0) q.regras = { maxSelecoes: Math.round(max) };
+  else delete q.regras;
+
+  // condição: precisa apontar para uma pergunta
+  if (q.condicao && q.condicao.perguntaId) {
+    q.condicao = {
+      perguntaId: q.condicao.perguntaId,
+      opcoes: Array.isArray(q.condicao.opcoes) ? q.condicao.opcoes.slice() : [],
+      negar: !!q.condicao.negar
+    };
+  } else { delete q.condicao; }
+
+  if (!q.imagemUrl) delete q.imagemUrl;
+
+  const depois = JSON.stringify([q.tipo, q.opcoes, q.comValor, q.regras || null]);
+  return { pergunta: q, mudou: antes !== depois };
+}
+
+// Normaliza a LISTA. Retorna { perguntas, mudou }.
+function pqNormalizarPerguntas(lista) {
+  let mudou = false;
+  const out = (Array.isArray(lista) ? lista : []).map(function (p) {
+    const r = pqNormalizarPergunta(p);
+    if (r.mudou) mudou = true;
+    return r.pergunta;
+  });
+  return { perguntas: out, mudou: mudou };
+}
+
+// ── Imagens em documento separado (coleção `forms_midias`) ──
+// O documento do formulário tem teto de 1 MiB no Firestore e a capa já
+// consome boa parte dele. Cada imagem de pergunta vira um doc próprio e a
+// pergunta guarda apenas a referência 'ref:<docId>'.
+function pqMidiaId(formId, perguntaId) { return String(formId) + '__' + String(perguntaId); }
+function pqEhRef(u) { return typeof u === 'string' && u.indexOf('ref:') === 0; }
+function pqRefId(u) { return pqEhRef(u) ? u.slice(4) : ''; }
+
+// Cache em memória: docId → dataUrl (evita releitura a cada re-render)
+var _pqMidiaCache = {};
+
+async function pqCarregarMidia(dbRef, docId) {
+  if (!docId) return '';
+  if (_pqMidiaCache[docId] !== undefined) return _pqMidiaCache[docId];
+  if (!dbRef) return '';
+  try {
+    const d = await dbRef.collection('forms_midias').doc(docId).get();
+    const url = (d.exists && d.data().dataUrl) || '';
+    _pqMidiaCache[docId] = url;
+    return url;
+  } catch (e) {
+    console.warn('[Midia] falha ao carregar', docId, e && e.message);
+    return '';
+  }
+}
+
+// Resolve o src exibível de uma pergunta ('' | http | data: legado | ref:)
+async function pqResolverImagem(dbRef, p) {
+  const u = (p && p.imagemUrl) || '';
+  if (!u) return '';
+  if (pqEhRef(u)) return await pqCarregarMidia(dbRef, pqRefId(u));
+  return u; // http(s) ou data: legado embutido
+}
+
+/* ===== FIM MODELO v2 ===== */
+
 // ── Tema ──
 (function() {
   const t = localStorage.getItem('abcl-theme') || 'dark';
@@ -348,9 +524,11 @@ function _escolherForm(lista, urlId) {
 
   // Expor como constantes globais usadas pelo restante do código
   window.CONFIG    = formData;
-  window.PERGUNTAS = (formData.perguntas && formData.perguntas.length > 0)
-    ? formData.perguntas
-    : getDefaultPerguntas();
+  // Normalização v2 em memória (o formulário público NUNCA reescreve a config;
+  // a migração persistente acontece no admin ao abrir o formulário).
+  window.PERGUNTAS = pqNormalizarPerguntas(
+    (formData.perguntas && formData.perguntas.length > 0) ? formData.perguntas : getDefaultPerguntas()
+  ).perguntas;
 
   // 2) Versão publicada no Firebase (fonte da verdade para visitantes)
   if (window._fdb) (async () => {
@@ -367,7 +545,9 @@ function _escolherForm(lista, urlId) {
       // Só re-renderiza se achou algo e o visitante ainda não começou a responder
       if (remoto && Object.keys(respostas).length === 0) {
         window.CONFIG    = remoto;
-        window.PERGUNTAS = (remoto.perguntas && remoto.perguntas.length > 0) ? remoto.perguntas : getDefaultPerguntas();
+        window.PERGUNTAS = pqNormalizarPerguntas(
+          (remoto.perguntas && remoto.perguntas.length > 0) ? remoto.perguntas : getDefaultPerguntas()
+        ).perguntas;
         montarFormulario();
         atualizarTotalFinanceiro();
       }
@@ -385,9 +565,13 @@ function montarFormulario() {
   document.getElementById('top-titulo').textContent  = CONFIG.titulo    || 'ABCL';
   document.getElementById('btn-label').textContent   = CONFIG.btnLabel  || 'Enviar inscrição';
 
+  // Capa do topo — idempotente: montarFormulario() roda 2x (cache + Firestore),
+  // então removemos a capa anterior antes de reinserir, senão ela duplica.
+  const capaAntiga = document.getElementById('capa-topo');
+  if (capaAntiga) capaAntiga.remove();
   if (CONFIG.capa) {
     const img = document.createElement('img');
-    img.src = CONFIG.capa; img.className = 'capa-img';
+    img.src = CONFIG.capa; img.className = 'capa-img'; img.id = 'capa-topo';
     document.getElementById('form-header').insertAdjacentElement('beforebegin', img);
   }
 
@@ -426,22 +610,26 @@ function montarFormulario() {
     if (p.tipo === 'imagem') {
       if (!p.imagemUrl) return;
       const el = document.createElement('div');
+      el.id = `wrap-${p.id}`;
       el.style.marginBottom = '1rem';
-      el.innerHTML = `<img src="${p.imagemUrl}" class="capa-img" style="max-height:260px;" />`;
+      el.innerHTML = `<div class="pq-img-slot" id="pq-img-${p.id}"></div>`;
       body.appendChild(el);
       return;
     }
 
     const secao = document.createElement('div');
     secao.className = 'form-secao';
+    secao.id = `wrap-${p.id}`;
     secao.innerHTML = `
       <div class="campo" id="campo-${p.id}">
         <div class="campo-label">
-          ${i+1}. ${p.label}
+          ${p.label}
           ${p.obrig ? '<span class="req">*</span>' : ''}
         </div>
         ${p.desc ? `<div class="campo-desc">${p.desc}</div>` : ''}
+        <div class="pq-img-slot" id="pq-img-${p.id}"></div>
         <div id="input-wrap-${p.id}">${renderCampo(p)}</div>
+        <div class="aviso-regra" id="regra-${p.id}"></div>
         <div class="erro-msg" id="erro-${p.id}">Campo obrigatório.</div>
       </div>
     `;
@@ -449,7 +637,44 @@ function montarFormulario() {
   });
 
   _renderTermo(body);
+  restaurarRespostasNoDom();
+  aplicarCondicionais();
+  atualizarTotalFinanceiro();
   atualizarProgresso();
+  ajustarTopProgresso();
+  carregarImagensPerguntas();
+}
+
+// montarFormulario() pode rodar mais de uma vez (cache local e depois a versao
+// publicada no Firestore). O DOM e reconstruido do zero, entao repintamos o que
+// ja estava respondido — senao a selecao some da tela mas continua no estado.
+function restaurarRespostasNoDom() {
+  PERGUNTAS.forEach(p => {
+    if (pqEhConteudo(p.tipo)) return;
+    if (p.tipo === 'radio' || p.tipo === 'checkbox') { _repintarOpcoes(p); return; }
+    if (p.tipo === 'select') {
+      const el = document.getElementById(`inp-${p.id}`);
+      if (el) el.value = _idsSel(p.id)[0] || '';
+      return;
+    }
+    const el = document.getElementById(`inp-${p.id}`);
+    if (el && respostas[p.id] !== undefined) el.value = respostas[p.id];
+  });
+}
+
+// ── Imagens de pergunta (docs separados em `forms_midias`) ──
+// Carregadas DEPOIS da montagem e em paralelo: o formulário aparece na hora e
+// as imagens entram conforme chegam. Se falhar (offline), o campo funciona igual.
+function carregarImagensPerguntas() {
+  PERGUNTAS.forEach(async p => {
+    if (!p.imagemUrl) return;
+    const slot = document.getElementById(`pq-img-${p.id}`);
+    if (!slot || slot.dataset.pronto === '1') return;
+    const src = await pqResolverImagem(window._fdb, p);
+    if (!src) return;
+    slot.dataset.pronto = '1';
+    slot.innerHTML = `<img src="${src}" alt="" class="pq-img" loading="lazy" />`;
+  });
 }
 
 // Renderiza o bloco fixo de Termo de aceite / Regulamento (opcional, no fim do formulário)
@@ -484,74 +709,231 @@ function _renderTermo(body) {
   body.appendChild(box);
 }
 
+function mascararTelefone(el) {
+  const v = el.value.replace(/\D/g, '').slice(0, 11); // só dígitos, máx 11
+  let out = '';
+  if (v.length === 0)      out = '';
+  else if (v.length <= 2)  out = `(${v}`;
+  else if (v.length <= 6)  out = `(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if (v.length <= 10) out = `(${v.slice(0,2)}) ${v.slice(2,6)}-${v.slice(6)}`;   // fixo (XX) XXXX-XXXX
+  else                     out = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;   // celular (XX) XXXXX-XXXX
+  el.value = out;
+}
+
+// ══════════════════════════════════════════════════════════════
+// NÚCLEO v2 — render de campos, regras de seleção, condicionais e financeiro
+// ══════════════════════════════════════════════════════════════
+
+// `respostas`  → { perguntaId: "Texto A, Texto B" }  (rótulos — vai para o registro)
+// `selecoes`   → { perguntaId: ["o_ab12", ...] }     (ids — base das regras/condicionais)
+const selecoes = {};
+window.respostas = respostas;   // atalho de depuracao no console do navegador
+window.selecoes  = selecoes;
+
+function _pqPorId(id) { return PERGUNTAS.find(p => String(p.id) === String(id)) || null; }
+function _opcPorId(p, oid) { return (p.opcoes || []).find(o => o.id === oid) || null; }
+function _idsSel(pid) { return selecoes[pid] || []; }
+
+function _sincronizarTextos(p) {
+  const textos = _idsSel(p.id).map(oid => (_opcPorId(p, oid) || {}).texto || '').filter(Boolean);
+  respostas[p.id] = textos.join(', ');
+}
+
 function renderCampo(p) {
   if (p.tipo === 'texto') {
-    return `<input type="text" id="inp-${p.id}" placeholder="${p.placeholder||''}"
-      oninput="salvarResposta(${p.id},this.value);atualizarProgresso()" />`;
+    return `<input type="text" id="inp-${p.id}" placeholder="${escapar(p.placeholder||'')}"
+      oninput="salvarResposta(${p.id},this.value);aoMudarResposta()" />`;
   }
   if (p.tipo === 'numero') {
-    return `<input type="number" id="inp-${p.id}" placeholder="${p.placeholder||''}"
-      oninput="salvarResposta(${p.id},this.value);atualizarProgresso()" />`;
+    return `<input type="number" id="inp-${p.id}" placeholder="${escapar(p.placeholder||'')}"
+      oninput="salvarResposta(${p.id},this.value);aoMudarResposta()" />`;
+  }
+  if (p.tipo === 'data') {
+    return `<input type="date" id="inp-${p.id}"
+      oninput="salvarResposta(${p.id},this.value);aoMudarResposta()" />`;
+  }
+  if (p.tipo === 'horario') {
+    return `<input type="time" id="inp-${p.id}"
+      oninput="salvarResposta(${p.id},this.value);aoMudarResposta()" />`;
+  }
+  if (p.tipo === 'telefone') {
+    return `<input type="tel" inputmode="numeric" id="inp-${p.id}" placeholder="${escapar(p.placeholder||'(31) 99999-9999')}"
+      oninput="mascararTelefone(this);salvarResposta(${p.id},this.value);aoMudarResposta()" />`;
   }
   if (p.tipo === 'textarea') {
-    return `<textarea id="inp-${p.id}" placeholder="${p.placeholder||''}"
-      oninput="salvarResposta(${p.id},this.value);atualizarProgresso()"></textarea>`;
+    return `<textarea id="inp-${p.id}" placeholder="${escapar(p.placeholder||'')}"
+      oninput="salvarResposta(${p.id},this.value);aoMudarResposta()"></textarea>`;
   }
   if (p.tipo === 'select') {
-    const opts = (p.opcoes||[]).map(o => `<option value="${o}">${o}</option>`).join('');
-    return `<select id="inp-${p.id}" onchange="salvarResposta(${p.id},this.value);atualizarProgresso()">
+    // value = id da opção (estável); o rótulo é resolvido na hora de salvar
+    const opts = (p.opcoes||[]).map(o =>
+      `<option value="${escapar(o.id)}">${escapar(o.texto)}${o.valorCent ? ` — R$ ${pqFmtBRL(o.valorCent)}` : ''}</option>`).join('');
+    return `<select id="inp-${p.id}" onchange="selecionarSelect(${p.id},this.value)">
       <option value="">Selecione...</option>${opts}</select>`;
   }
-  if (p.tipo === 'radio') {
+  if (p.tipo === 'radio' || p.tipo === 'checkbox') {
+    const marca = p.tipo === 'radio' ? 'opcao-dot' : 'opcao-box';
     return `<div class="opcoes" id="opc-${p.id}">
       ${(p.opcoes||[]).map(o => `
-        <label class="opcao-item" onclick="selecionarOpcao(${p.id},'${escapar(o)}',this,'radio')">
-          <div class="opcao-dot"></div> ${o}
+        <label class="opcao-item" data-oid="${escapar(o.id)}"
+               onclick="selecionarOpcao(${p.id},'${escapar(o.id)}',this)"
+               style="display:flex;align-items:center;gap:.6rem;">
+          <div class="${marca}"></div>
+          <span style="flex:1;">${escapar(o.texto)}</span>
+          ${(p.comValor && o.valorCent > 0)
+            ? `<span style="font-weight:700;color:var(--verde-cl);white-space:nowrap;">R$ ${pqFmtBRL(o.valorCent)}</span>`
+            : ''}
         </label>`).join('')}
-    </div>`;
-  }
-  if (p.tipo === 'checkbox') {
-    return `<div class="opcoes" id="opc-${p.id}">
-      ${(p.opcoes||[]).map(o => `
-        <label class="opcao-item" onclick="selecionarOpcao(${p.id},'${escapar(o)}',this,'checkbox')">
-          <div class="opcao-box"></div> ${o}
-        </label>`).join('')}
-    </div>`;
-  }
-  if (p.tipo === 'financeiro') {
-    return `<div class="opcoes" id="opc-${p.id}">
-      ${(p.opcoes||[]).map(o => { const v = _valorBRL(o); return `
-        <label class="opcao-item" data-opt="${escapar(o)}" onclick="selecionarOpcao(${p.id},'${escapar(o)}',this,'financeiro')" style="display:flex;align-items:center;gap:.6rem;">
-          <div class="opcao-box"></div>
-          <span style="flex:1;">${_rotuloSemValor(o)}</span>
-          ${v > 0 ? `<span style="font-weight:700;color:var(--verde-cl);white-space:nowrap;">R$ ${_fmtBRL(v)}</span>` : ''}
-        </label>`; }).join('')}
     </div>`;
   }
   return '';
 }
 
-// ── Valores monetários (tipo "Vínculo financeiro") ──
-function _valorBRL(s) {
-  const m = String(s||'').match(/R\$\s*([\d.]+(?:,\d{1,2})?)/);
-  if (!m) return 0;
-  return parseFloat(m[1].replace(/\./g,'').replace(',','.')) || 0;
-}
-function _rotuloSemValor(s) { return String(s||'').replace(/\s*[—–\-]*\s*R\$\s*[\d.,]+\s*$/,'').trim(); }
-function _fmtBRL(v) { return (v||0).toFixed(2).replace('.',','); }
+// ── Regras de seleção (exclusividade + máximo) ──
+// exclusiva  : marcar uma opção exclusiva limpa todas as outras;
+//              marcar uma comum limpa as exclusivas.
+// maxSelecoes: teto de opções NÃO exclusivas marcadas simultaneamente.
+function _aplicarRegrasSelecao(p, oid) {
+  const opc  = _opcPorId(p, oid);
+  if (!opc) return { ids: _idsSel(p.id), aviso: '' };
+  let ids = _idsSel(p.id).slice();
+  const jaTinha = ids.indexOf(oid) >= 0;
+  let aviso = '';
 
-function _totalFinanceiro() {
+  if (jaTinha) return { ids: ids.filter(x => x !== oid), aviso: '' };
+
+  if (opc.exclusiva) {
+    ids = [oid];                                   // exclusiva zera o resto
+  } else {
+    ids = ids.filter(x => !((_opcPorId(p, x)||{}).exclusiva));  // limpa exclusivas
+    const max = p.regras && p.regras.maxSelecoes;
+    if (max && ids.length >= max) {
+      aviso = `Você pode selecionar no máximo ${max} ${max === 1 ? 'opção' : 'opções'} nesta pergunta.`;
+      return { ids: _idsSel(p.id), aviso };
+    }
+    ids.push(oid);
+  }
+  return { ids, aviso };
+}
+
+function _repintarOpcoes(p) {
+  const wrap = document.getElementById(`opc-${p.id}`);
+  if (!wrap) return;
+  const ids = _idsSel(p.id);
+  const max = p.regras && p.regras.maxSelecoes;
+  const comuns = ids.filter(x => !((_opcPorId(p, x)||{}).exclusiva)).length;
+  wrap.querySelectorAll('.opcao-item').forEach(el => {
+    const oid = el.dataset.oid;
+    const sel = ids.indexOf(oid) >= 0;
+    el.classList.toggle('sel', sel);
+    const box = el.querySelector('.opcao-box');
+    if (box) box.textContent = sel ? '✓' : '';
+    // Esmaece o que ficou indisponível pelo teto (só sinaliza; o clique ainda avisa)
+    const bloq = !!(max && !sel && comuns >= max && !((_opcPorId(p, oid)||{}).exclusiva));
+    el.classList.toggle('bloqueada', bloq);
+  });
+}
+
+function selecionarOpcao(id, oid, el) {
+  const p = _pqPorId(id);
+  if (!p) return;
+
+  if (p.tipo === 'radio') {
+    selecoes[p.id] = [oid];
+  } else {
+    const r = _aplicarRegrasSelecao(p, oid);
+    selecoes[p.id] = r.ids;
+    const av = document.getElementById(`regra-${p.id}`);
+    if (av) { av.textContent = r.aviso; av.style.display = r.aviso ? 'block' : 'none'; }
+    if (r.aviso) setTimeout(() => { if (av) { av.textContent=''; av.style.display='none'; } }, 3500);
+  }
+
+  _sincronizarTextos(p);
+  _repintarOpcoes(p);
+  document.getElementById(`campo-${p.id}`)?.classList.remove('erro');
+  aoMudarResposta();
+}
+
+function selecionarSelect(id, oid) {
+  const p = _pqPorId(id);
+  if (!p) return;
+  selecoes[p.id] = oid ? [oid] : [];
+  _sincronizarTextos(p);
+  document.getElementById(`campo-${p.id}`)?.classList.remove('erro');
+  aoMudarResposta();
+}
+
+// ── Condicionais ──
+// Uma pergunta com `condicao` só aparece se a pergunta-pai tiver alguma das
+// opções listadas marcada (ou, quando `negar`, se NÃO tiver).
+// Se a pergunta-pai estiver ela própria oculta, a filha também fica oculta.
+function _condicaoAtendida(p, profundidade) {
+  if (!p.condicao || !p.condicao.perguntaId) return true;
+  if ((profundidade || 0) > 10) return true;            // trava anti-ciclo
+  const pai = _pqPorId(p.condicao.perguntaId);
+  if (!pai) return true;                                // pai apagado → não esconde
+  if (!_condicaoAtendida(pai, (profundidade || 0) + 1)) return false;
+
+  const alvo = p.condicao.opcoes || [];
+  let bate;
+  if (alvo.length === 0) {
+    bate = !!(respostas[pai.id] && String(respostas[pai.id]).trim());  // "se respondida"
+  } else {
+    const sel = _idsSel(pai.id);
+    bate = alvo.some(oid => sel.indexOf(oid) >= 0);
+  }
+  return p.condicao.negar ? !bate : bate;
+}
+
+function perguntaVisivel(p) { return _condicaoAtendida(p, 0); }
+
+// Mostra/esconde e LIMPA a resposta do que ficou oculto.
+// Limpar é essencial: sem isso o envio carrega resposta de pergunta que a
+// pessoa não viu — e, se ela for financeira, cobra por ela.
+function aplicarCondicionais() {
+  let limpou = false;
+  PERGUNTAS.forEach(p => {
+    const wrap = document.getElementById(`wrap-${p.id}`);
+    if (!wrap) return;
+    const vis = perguntaVisivel(p);
+    wrap.style.display = vis ? '' : 'none';
+    if (vis) return;
+
+    if (respostas[p.id] !== undefined || (selecoes[p.id] || []).length) limpou = true;
+    delete respostas[p.id];
+    delete selecoes[p.id];
+    const inp = document.getElementById(`inp-${p.id}`);
+    if (inp) inp.value = '';
+    const opc = document.getElementById(`opc-${p.id}`);
+    if (opc) opc.querySelectorAll('.opcao-item').forEach(el => {
+      el.classList.remove('sel', 'bloqueada');
+      const b = el.querySelector('.opcao-box'); if (b) b.textContent = '';
+    });
+    document.getElementById(`campo-${p.id}`)?.classList.remove('erro');
+  });
+  return limpou;
+}
+
+// Ponto único chamado após QUALQUER mudança de resposta.
+function aoMudarResposta() {
+  aplicarCondicionais();
+  atualizarTotalFinanceiro();
+  atualizarProgresso();
+}
+
+// ── Valores monetários ──
+function _totalFinanceiroCent() {
   let t = 0;
   PERGUNTAS.forEach(p => {
-    if (p.tipo !== 'financeiro') return;
-    String(respostas[p.id]||'').split(', ').filter(Boolean).forEach(o => { t += _valorBRL(o); });
+    if (!p.comValor || !perguntaVisivel(p)) return;   // oculta não soma
+    _idsSel(p.id).forEach(oid => { t += (_opcPorId(p, oid) || {}).valorCent || 0; });
   });
   return t;
 }
 
-// Barra "Total selecionado" acima do botão de envio (só se houver pergunta financeira)
+// Barra "Total selecionado" acima do botão de envio (só se houver pergunta com valor)
 function atualizarTotalFinanceiro() {
-  if (!PERGUNTAS.some(p => p.tipo === 'financeiro')) return;
+  if (!PERGUNTAS.some(p => p.comValor)) return;
   let bar = document.getElementById('fin-total-bar');
   if (!bar) {
     const sa = document.getElementById('submit-area');
@@ -563,10 +945,10 @@ function atualizarTotalFinanceiro() {
       </div>`);
     bar = document.getElementById('fin-total-bar');
   }
-  document.getElementById('fin-total-valor').textContent = 'R$ ' + _fmtBRL(_totalFinanceiro());
+  document.getElementById('fin-total-valor').textContent = 'R$ ' + pqFmtBRL(_totalFinanceiroCent());
 }
 
-function escapar(s) { return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function escapar(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function salvarResposta(id, val) {
   respostas[id] = val;
@@ -574,39 +956,36 @@ function salvarResposta(id, val) {
   if (campo) campo.classList.remove('erro');
 }
 
-function selecionarOpcao(id, val, el, tipo) {
-  const wrap = document.getElementById(`opc-${id}`);
-  if (tipo === 'radio') {
-    wrap.querySelectorAll('.opcao-item').forEach(i => i.classList.remove('sel'));
-    el.classList.add('sel');
-    respostas[id] = val;
-  } else {
-    el.classList.toggle('sel');
-    const selecionados = [...wrap.querySelectorAll('.opcao-item.sel')]
-      .map(i => i.dataset.opt || i.textContent.trim());
-    respostas[id] = selecionados.join(', ');
-    const box = el.querySelector('.opcao-box');
-    if (box) box.textContent = el.classList.contains('sel') ? '✓' : '';
-    if (tipo === 'financeiro') atualizarTotalFinanceiro();
-  }
-  const campo = document.getElementById(`campo-${id}`);
-  if (campo) campo.classList.remove('erro');
-  atualizarProgresso();
-}
-
 // ── Progresso ──
+// Conta apenas obrigatórias VISÍVEIS — senão a barra nunca chega a 100%
+// quando existem condicionais que não se aplicam ao respondente.
 function atualizarProgresso() {
-  const obrigatorias = PERGUNTAS.filter(p => p.obrig && p.tipo !== 'secao' && p.tipo !== 'imagem');
+  const obrigatorias = PERGUNTAS.filter(p => p.obrig && !pqEhConteudo(p.tipo) && perguntaVisivel(p));
   const respondidas  = obrigatorias.filter(p => respostas[p.id] && String(respostas[p.id]).trim());
   const pct = obrigatorias.length ? (respondidas.length / obrigatorias.length) * 100 : 0;
-  document.getElementById('prog-fill').style.width = pct.toFixed(0) + '%';
+  const fill = document.getElementById('prog-fill');
+  if (fill) fill.style.width = pct.toFixed(0) + '%';
 }
+
+// A barra de progresso fica colada logo abaixo do top-bar. Como a altura do
+// top-bar varia (fonte/tela), medimos a altura real e ajustamos o "top" da
+// barra — senão, ao rolar, a barra some atrás do top-bar.
+function ajustarTopProgresso() {
+  const tb = document.querySelector('.top-bar');
+  const pb = document.querySelector('.progress-bar');
+  if (tb && pb) pb.style.top = tb.offsetHeight + 'px';
+}
+window.addEventListener('load',   ajustarTopProgresso);
+window.addEventListener('resize', ajustarTopProgresso);
 
 // ── Validação ──
 function validar() {
   let ok = true;
   PERGUNTAS.forEach(p => {
-    if (!p.obrig || p.tipo === 'secao' || p.tipo === 'imagem') return;
+    if (pqEhConteudo(p.tipo)) return;
+    // Pergunta oculta por condicional nao e validada (e nao tem resposta guardada)
+    if (!perguntaVisivel(p)) return;
+    if (!p.obrig) return;
     const val = respostas[p.id];
     if (!val || !String(val).trim()) {
       document.getElementById(`campo-${p.id}`)?.classList.add('erro');
@@ -810,22 +1189,32 @@ function _montarRegistroInscricao() {
   // Mapa legível: rótulo → resposta (sobrevive a mudanças de ids entre edições)
   const mapa = {};
   PERGUNTAS.forEach(p => {
-    if (p.tipo === 'secao' || p.tipo === 'imagem') return;
+    if (pqEhConteudo(p.tipo) || !perguntaVisivel(p)) return;
     const r = respostas[p.id];
     if (r !== undefined && String(r).trim() !== '') mapa[p.label] = r;
   });
 
   // Itens com valor (perguntas do tipo "Vínculo financeiro") → vão para o Financeiro
   const itens_financeiros = [];
-  let valor_total = 0;
+  let totalCent = 0;
   PERGUNTAS.forEach(p => {
-    if (p.tipo !== 'financeiro') return;
-    String(respostas[p.id]||'').split(', ').filter(Boolean).forEach(o => {
-      const v = _valorBRL(o);
-      itens_financeiros.push({ descricao: _rotuloSemValor(o), valor: v });
-      valor_total += v;
+    if (!p.comValor || !perguntaVisivel(p)) return;   // pergunta oculta não cobra
+    _idsSel(p.id).forEach(oid => {
+      const o = _opcPorId(p, oid);
+      if (!o) return;
+      itens_financeiros.push({
+        descricao: o.texto,
+        valor: (o.valorCent || 0) / 100,
+        valor_cent: o.valorCent || 0,
+        opcao_id: o.id,                 // chave estável: sobrevive a edição de rótulo
+        pergunta_id: p.id,
+        pergunta_label: p.label || '',
+        destino: p.destinoValor || 'inscricao',
+      });
+      totalCent += o.valorCent || 0;
     });
   });
+  const valor_total = totalCent / 100;
 
   // Código curto da inscrição (referência para o inscrito e a organização)
   const codigo = 'ABCL-' + Date.now().toString(36).toUpperCase().slice(-5) + Math.floor(Math.random()*10);
