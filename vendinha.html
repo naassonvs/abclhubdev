@@ -2377,6 +2377,21 @@ var qrcode = function() {
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; max-width: 100vw; }
+    /* Oculta a scrollbar só da página; as áreas internas mantêm a sua. */
+    html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+    html, body { scrollbar-width: none; }
+
+    /* Esconder a barra não impedia a página de rolar: dava para arrastar a tela
+       inteira sem nenhum indicador visual. No desktop o layout cabe por inteiro
+       (o grid usa --chrome-h), então a página em si não rola — quem rola é a
+       coluna de produtos. No mobile a página precisa rolar normalmente. */
+    @media (min-width: 769px) {
+      html, body { overflow: hidden; height: 100%; }
+    }
+
+    /* Cada área rolável contém a própria rolagem: ao chegar no fim, o gesto não
+       é repassado ao pai (era isso que abria a faixa vazia embaixo na livraria). */
+    .col-left, .paineis-largos, .pedido-itens { overscroll-behavior: contain; }
     body { font-family: 'Inter', sans-serif; background: var(--fundo); color: var(--texto); min-height: 100vh; }
 
     /* ── LOGIN ── */
@@ -2427,11 +2442,63 @@ var qrcode = function() {
       display: grid;
       grid-template-columns: 1fr 340px;
       gap: 0;
-      height: calc(100vh - 120px);
+      /* Altura medida em tempo real (ajustarAlturaLayout): agora só header +
+         indicadores, já que as abas passaram para dentro da coluna. O valor
+         fixo antigo não batia com a soma real e a sobra virava barra de
+         rolagem da página inteira. */
+      height: calc(100vh - var(--chrome-h, 140px));
+      overflow: hidden;
     }
 
+    /* Fora do Caixa não há pedido em curso: a coluna some e o painel usa a
+       largura toda, sem tirar as abas da tela. */
+    .main-grid.sem-pedido { grid-template-columns: 1fr; }
+    .main-grid.sem-pedido .col-right { display: none; }
+
+    /* Abas agora vivem fora do grid, para que os painéis largos usem a tela toda. */
+    /* A fileira de abas mora DENTRO da coluna esquerda do grid. Assim a coluna
+       do Pedido encosta no topo (logo abaixo dos indicadores) e seu cabeçalho
+       fica na mesma linha das abas — e o filtro já para na borda da grade sem
+       precisar reservar a largura do painel lateral. */
+    .view-tabs-wrap {
+      padding: 1.25rem 0;
+      display: flex; align-items: center; gap: 1rem;
+      position: sticky; top: 0; z-index: 10;
+      background: var(--fundo);
+    }
+    .view-tabs-wrap .view-tabs { flex: 1; min-width: 0; margin-bottom: 0; }
+
+    .tabs-acoes {
+      display: flex; align-items: center; gap: .6rem;
+      flex-shrink: 0;
+    }
+    .filtro-select {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 8px;
+      padding: .5rem .8rem; font-size: .8rem; color: var(--texto);
+      font-family: 'Inter', sans-serif; outline: none; cursor: pointer;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .filtro-select:focus { border-color: var(--verde-cl); box-shadow: 0 0 0 3px rgba(64,145,108,.18); }
+    .tabs-contador { font-size: .72rem; color: var(--suave); white-space: nowrap; }
+
+    @media (max-width: 768px) {
+      .view-tabs-wrap { flex-wrap: wrap; gap: .5rem; position: static; padding: .75rem 0; }
+      .tabs-acoes { width: 100%; }
+      .filtro-select { flex: 1; }
+    }
+
+    /* Painéis que não são o Caixa. Agora vivem dentro da coluna esquerda e
+       herdam a rolagem dela, então não precisam de altura nem scroll próprios. */
+    .paineis-largos { padding: 0 0 1.25rem; }
+
+    /* Alterna a visibilidade sem escrever display inline, para que as media
+       queries continuem mandando no tipo de display de cada elemento. */
+    .oculto { display: none !important; }
+
+
+
     /* Coluna esquerda: produtos + histórico */
-    .col-left { padding: 1.25rem; overflow-y: auto; min-height: 0; scrollbar-width: none; }
+    .col-left { padding: 0 1.25rem 1.25rem; overflow-y: auto; min-height: 0; scrollbar-width: none; }
     .col-left::-webkit-scrollbar { display: none; }
 
     /* Esconder setinhas de inputs number */
@@ -2444,16 +2511,28 @@ var qrcode = function() {
     .view-tabs {
       display: flex; gap: .5rem; margin-bottom: 1.25rem;
       overflow-x: auto; flex-wrap: nowrap; padding-bottom: .25rem;
+      scrollbar-width: none;
     }
-    .view-tab { flex-shrink: 0; }
-
+    .view-tabs::-webkit-scrollbar { display: none;
+    }
+    /* Havia duas declarações separadas de .view-tab; consolidadas aqui. */
     .view-tab {
+      flex-shrink: 0;
       padding: .5rem 1rem; border-radius: 6px; font-size: .78rem; font-weight: 500;
       cursor: pointer; border: 1px solid var(--borda); background: var(--card2); color: var(--suave);
-      transition: background .15s, color .15s;
+      transition: background .18s, color .18s, border-color .18s;
     }
 
     .view-tab.active { background: var(--verde); color: #fff; border-color: var(--verde); }
+
+    /* Realce no hover: contorno marcado + texto sobe de --suave para --texto.
+       É o mesmo par de mudanças que a livraria usa (.view-tab:hover:not(.active));
+       aqui não existia regra de hover nenhuma, então a aba não reagia ao cursor. */
+    .view-tab:hover:not(.active) {
+      border-color: var(--verde-cl);
+      color: var(--texto);
+      background: rgba(64,145,108,.08);
+    }
 
     .view-panel { display: none; }
     .view-panel.active { display: block; }
@@ -2484,20 +2563,22 @@ var qrcode = function() {
     .prod-preco { font-family: 'Cinzel', serif; font-size: .95rem; color: var(--verde-cl); }
     .prod-estoque { font-size: .68rem; color: var(--suave); margin-top: .2rem; }
 
-    .badge-estoque {
-      position: absolute; top: .4rem; right: .4rem;
-      background: rgba(239,68,68,.2); color: #fca5a5;
-      font-size: .58rem; font-weight: 600;
-      border-radius: 4px; padding: .15rem .35rem;
-    }
+    /* Estoque baixo — o aviso vive na borda do card e na linha de estoque,
+       nunca sobreposto à imagem do produto (mesmo padrão da livraria). */
+    .prod-card.estoque-baixo { border-color: rgba(245,158,11,.45); }
+    .prod-card.no-pedido     { opacity: .6; border-color: rgba(64,145,108,.5); }
+
+    .prod-estoque.baixo-txt    { color: var(--amarelo);  font-weight: 600; }
+    .prod-estoque.esgotado-txt { color: var(--vermelho); font-weight: 600; }
+    .prod-estoque.nopedido-txt { color: var(--verde-cl); font-weight: 600; }
 
     /* Coluna direita: pedido */
     .col-right {
       background: var(--card);
       border-left: 1px solid var(--borda);
       display: flex; flex-direction: column;
-      height: calc(100vh - 120px);
-      position: sticky; top: 120px;
+      height: 100%;
+      min-height: 0;
       overflow: hidden;
     }
 
@@ -2534,7 +2615,12 @@ var qrcode = function() {
     .periodo-btn {
       padding: .35rem .75rem; border-radius: 5px; font-size: .72rem; font-weight: 500;
       cursor: pointer; border: 1px solid var(--borda); background: var(--card2); color: var(--suave);
-      transition: background .15s; flex: 1; text-align: center;
+      transition: background .18s, color .18s, border-color .18s; flex: 1; text-align: center;
+    }
+    .periodo-btn:hover:not(.active) {
+      border-color: var(--verde-cl);
+      color: var(--texto);
+      background: rgba(64,145,108,.08);
     }
 
     .periodo-btn.active { background: var(--verde); border-color: var(--verde); color: #fff; }
@@ -2597,7 +2683,12 @@ var qrcode = function() {
     .pag-btn {
       flex: 1; padding: .5rem; border-radius: 6px; font-size: .74rem; font-weight: 500;
       cursor: pointer; border: 1px solid var(--borda); background: var(--card2); color: var(--suave);
-      transition: background .15s; text-align: center;
+      transition: background .18s, color .18s, border-color .18s; text-align: center;
+    }
+    .pag-btn:hover:not(.active) {
+      border-color: var(--verde-cl);
+      color: var(--texto);
+      background: rgba(64,145,108,.08);
     }
 
     .pag-btn.active.pix      { background: var(--verde); border-color: var(--verde); color: #fff; }
@@ -2634,13 +2725,19 @@ var qrcode = function() {
       display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
       font-family: 'Inter', sans-serif; font-size: .78rem; font-weight: 500;
       padding: .65rem 1rem; border-radius: 6px; border: none; cursor: pointer;
-      transition: opacity .2s, transform .15s;
+      transition: color .18s, border-color .18s, background .18s, filter .18s, transform .15s;
     }
 
-    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    /* O hover antigo era `opacity:.85` — deixava o botão MENOS nítido justamente
+       quando o cursor pedia atenção. Trocado pelo comportamento da livraria:
+       o rótulo já nasce legível e o hover realça borda e cor. */
+    .btn:hover { transform: translateY(-1px); }
     .btn-solid  { background: var(--verde); color: #fff; }
-    .btn-ghost  { background: var(--card2); border: 1px solid var(--borda); color: var(--suave); }
+    .btn-solid:hover { filter: brightness(1.12); }
+    .btn-ghost  { background: transparent; border: 1px solid var(--borda); color: var(--texto); }
+    .btn-ghost:hover { border-color: var(--verde-cl); color: var(--verde-cl); background: rgba(64,145,108,.08); }
     .btn-danger { background: rgba(239,68,68,.15); color: #fca5a5; border: 1px solid rgba(239,68,68,.25); }
+    .btn-danger:hover { border-color: var(--vermelho); color: #fecaca; }
     .btn-full   { width: 100%; }
     .btn-sm     { padding: .4rem .8rem; font-size: .72rem; }
     .btn-lg     { padding: .9rem 1.25rem; font-size: .85rem; }
@@ -2821,6 +2918,166 @@ var qrcode = function() {
       -webkit-box-shadow: 0 0 0 1000px var(--card2) inset;
       caret-color: var(--texto);
     }
+
+    /* ══════════════════════════════════════════════════
+       SELECT NATIVO — CONTRASTE
+       O popup do <select> é desenhado pelo sistema operacional. Sem
+       color-scheme ele vem em fundo claro herdando o texto claro do tema
+       escuro, ficando praticamente ilegível. As regras de option cobrem
+       Firefox/Linux, que ignoram color-scheme no popup.
+       ══════════════════════════════════════════════════ */
+    select { color-scheme: dark; }
+    [data-theme="light"] select { color-scheme: light; }
+    select option {
+      background: var(--card);
+      color: var(--texto);
+    }
+    select option:checked { background: rgba(64,145,108,.14); }
+
+    /* ══════════════════════════════════════════════════
+       CAMPOS NUMÉRICOS — setinhas nativas fora, botões −/+ no lugar
+       ══════════════════════════════════════════════════ */
+    input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .num-stepper { display: flex; align-items: stretch; gap: .3rem; }
+    .num-stepper input { flex: 1; min-width: 0; text-align: center; }
+    .num-btn {
+      flex: 0 0 32px; background: var(--card2); border: 1px solid var(--borda);
+      border-radius: 6px; color: var(--texto); font-size: 1.05rem; line-height: 1;
+      cursor: pointer; font-family: 'Inter', sans-serif; user-select: none;
+      transition: border-color .15s, background .15s, transform .1s;
+    }
+    .num-btn:hover  { border-color: var(--verde-cl); background: rgba(64,145,108,.14); }
+    .num-btn:active { transform: scale(.92); }
+
+    /* ══════════════════════════════════════════════════
+       TOGGLE ATIVO/INATIVO (verde = ativo, vermelho = inativo)
+       ══════════════════════════════════════════════════ */
+    .tgl { position: relative; display: inline-block; width: 34px; height: 18px; flex: 0 0 34px; cursor: pointer; }
+    .tgl input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .tgl-track {
+      position: absolute; inset: 0; border-radius: 99px;
+      background: rgba(239,68,68,.3); border: 1px solid rgba(239,68,68,.5);
+      transition: background .18s, border-color .18s;
+    }
+    .tgl-thumb {
+      position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+      border-radius: 50%; background: #fca5a5;
+      transition: transform .18s, background .18s;
+    }
+    .tgl input:checked + .tgl-track { background: rgba(64,145,108,.35); border-color: rgba(64,145,108,.65); }
+    .tgl input:checked + .tgl-track .tgl-thumb { transform: translateX(16px); background: #74C69D; }
+    .tgl input:focus-visible + .tgl-track { outline: 2px solid var(--verde-cl); outline-offset: 2px; }
+
+    /* ══════════════════════════════════════════════════
+       GERENCIADOR DE OPÇÕES (categorias / editoras) — inline no card
+       ══════════════════════════════════════════════════ */
+    .ger-opc {
+      border: 1px solid rgba(64,145,108,.3); border-radius: 10px;
+      background: var(--card2); padding: .75rem; margin-top: .5rem;
+    }
+    .ger-opc-head {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .09em;
+      color: var(--verde-cl); font-weight: 600; margin-bottom: .6rem;
+    }
+    .ger-fechar {
+      background: none; border: none; color: var(--suave); cursor: pointer;
+      font-size: .85rem; padding: 0 .2rem; line-height: 1;
+    }
+    .ger-fechar:hover { color: var(--texto); }
+
+    .ger-opc-add { display: flex; gap: .35rem; margin-bottom: .6rem; }
+    .ger-opc-add input {
+      flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--borda);
+      border-radius: 6px; padding: .45rem .6rem; font-size: .85rem;
+      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+    }
+    .ger-opc-add input:focus { border-color: var(--verde-cl); }
+
+    .ger-opc-list { max-height: 200px; overflow-y: auto; }
+    .ger-opc-row {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .38rem .1rem; border-bottom: 1px solid var(--borda);
+    }
+    .ger-opc-row:last-child { border-bottom: none; }
+    .ger-opc-nome { flex: 1; min-width: 0; font-size: .82rem; color: var(--texto);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ger-opc-row.inativa .ger-opc-nome { color: var(--suave); text-decoration: line-through; }
+    .ger-opc-uso { font-size: .65rem; color: var(--suave); white-space: nowrap; }
+    .ger-del {
+      background: none; border: none; cursor: pointer; font-size: .8rem;
+      opacity: .55; padding: .1rem .2rem; line-height: 1;
+    }
+    .ger-del:hover { opacity: 1; }
+
+    .ger-danger {
+      margin-top: .6rem; padding: .65rem; border-radius: 8px;
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35);
+      font-size: .78rem; color: var(--texto);
+    }
+    .ger-danger strong { display: block; margin-bottom: .3rem; color: var(--vermelho); font-size: .8rem; }
+    .ger-danger p { color: var(--suave); font-size: .72rem; margin-bottom: .5rem; line-height: 1.45; }
+    .ger-danger-acoes { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+    .ger-danger-acoes select {
+      flex: 1; min-width: 120px; background: var(--card); border: 1px solid var(--borda);
+      border-radius: 6px; padding: .35rem .5rem; font-size: .78rem; color: var(--texto);
+      outline: none; font-family: 'Inter', sans-serif;
+    }
+    .ger-mini {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 6px;
+      padding: .35rem .6rem; font-size: .72rem; color: var(--texto);
+      cursor: pointer; font-family: 'Inter', sans-serif; white-space: nowrap;
+    }
+    .ger-mini:hover { border-color: var(--verde-cl); }
+    .ger-mini.perigo { border-color: rgba(239,68,68,.4); color: #fca5a5; }
+    .ger-mini.perigo:hover { border-color: var(--vermelho); }
+
+    .ger-opc-nota {
+      font-size: .66rem; color: var(--suave); line-height: 1.5;
+      margin-top: .55rem; padding-top: .5rem; border-top: 1px solid var(--borda);
+    }
+
+
+    /* ══════════════════════════════════════════════════
+       POLIMENTO VISUAL
+       Aplicado sobre os tokens de tema já existentes — sem hex fixo, para não
+       quebrar o tema claro nem desfazer a calibração de contraste.
+       ══════════════════════════════════════════════════ */
+
+    /* Texto secundário mais nítido no tema escuro (o claro já usa cor sólida). */
+    :root { --suave: rgba(240,237,230,0.62); }
+
+    /* Hierarquia dos títulos de seção. */
+    .section-h {
+      font-size: .82rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* KPIs do topo viram cards de verdade: contorno e leve profundidade. */
+    .stats-bar { gap: .6rem; padding: .75rem 1.25rem; background: transparent; border-bottom: 1px solid var(--borda); }
+    .stat-cell {
+      background: var(--card); border: 1px solid var(--borda); border-right: 1px solid var(--borda);
+      border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+    .stat-cell:last-child { border-right: 1px solid var(--borda); }
+
+    /* Inputs com mais respiro e anel de foco discreto. */
+    .field input, .field select, .field textarea,
+    .busca-input, .filtro-select, .extras-input {
+      padding: .7rem .95rem;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus,
+    .busca-input:focus, .filtro-select:focus, .extras-input:focus {
+      border-color: var(--verde-cl);
+      box-shadow: 0 0 0 3px rgba(64,145,108,.18);
+    }
+
   </style>
 </head>
 <body>
@@ -2859,197 +3116,243 @@ var qrcode = function() {
     <div class="stat-cell"><div class="sl">Recebido</div><div class="sv azul" id="s-recebido">R$ 0</div></div>
   </div>
 
-  <div class="main-grid">
-
-    <!-- Coluna esquerda -->
+  <!-- Área principal: começa logo abaixo dos indicadores, para que a coluna do
+       Pedido encoste no topo e seu cabeçalho fique na mesma linha das abas. -->
+  <div class="main-grid" id="caixa-layout">
     <div class="col-left">
+    <div class="view-tabs-wrap">
       <div class="view-tabs">
-        <button class="view-tab active" onclick="switchView('caixa',this)">🛒 Caixa</button>
-        <button class="view-tab" onclick="switchView('historico',this)">📋 Histórico</button>
-        <button class="view-tab" onclick="switchView('devendo',this)">⚠️ Devendo</button>
-        <button class="view-tab" id="tab-creditos-btn" onclick="switchView('creditos',this)">💰 Créditos</button>
-        <button class="view-tab" onclick="switchView('estoque',this)">📦 Estoque</button>
-        <button class="view-tab" onclick="switchView('config',this)">⚙️ Definições</button>
-        <button class="view-tab" onclick="switchView('resumo',this)">📊 Resumo</button>
+          <button class="view-tab active" onclick="switchView('caixa',this)">🛒 Caixa</button>
+          <button class="view-tab" onclick="switchView('historico',this)">📋 Histórico</button>
+          <button class="view-tab" onclick="switchView('devendo',this)">⚠️ Devendo</button>
+          <button class="view-tab" id="tab-creditos-btn" onclick="switchView('creditos',this)">💰 Créditos</button>
+          <button class="view-tab" onclick="switchView('estoque',this)">📦 Estoque</button>
+          <button class="view-tab" onclick="switchView('config',this)">⚙️ Definições</button>
+          <button class="view-tab" onclick="switchView('resumo',this)">📊 Resumo</button>
       </div>
+
+      <!-- Filtro do Caixa: mesma linha das abas. A margem direita reserva a
+           largura da coluna do Pedido, para o filtro terminar na borda da grade
+           de produtos em vez de flutuar sobre o painel lateral. -->
+      <div class="tabs-acoes" id="caixa-acoes">
+        <select id="filtro-categoria" class="filtro-select" onchange="renderProdutos()">
+          <option value="">Todas as categorias</option>
+        </select>
+        <span class="tabs-contador" id="prod-count">0 itens</span>
+      </div>
+    </div>
 
       <!-- Caixa: produtos -->
       <div class="view-panel active" id="vp-caixa">
-        <div class="section-h">
-          <span>Produtos</span>
-          <span style="font-size:.72rem; color:var(--suave);" id="prod-count">0 itens</span>
-        </div>
         <div class="produtos-grid" id="produtos-grid"></div>
       </div>
 
       <!-- Histórico -->
-      <div class="view-panel" id="vp-historico">
-        <div class="section-h">
-          <span>Histórico de vendas</span>
-          <div style="display:flex;gap:.4rem;">
-            <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('xlsx')">📥 XLSX</button>
-            <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('csv')">📄 CSV</button>
-            <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('pdf')">🖨 PDF</button>
-            <button class="btn btn-danger btn-sm" onclick="if(confirm('Limpar todo o histórico?')){ clearAllSales(); }">🗑 Limpar</button>
-          </div>
-        </div>
 
-        <!-- Filtros avançados -->
-        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
-          <input type="text" id="hist-busca-cliente" placeholder="🔍 Cliente..." oninput="renderHistorico()"
-            style="flex:1;min-width:140px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
-          <input type="text" id="hist-busca-item" placeholder="🔍 Item..." oninput="renderHistorico()"
-            style="width:130px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
-          <select id="hist-filtro-pag" onchange="renderHistorico()"
-            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
-            <option value="">💳 Todos</option>
-            <option value="PIX">📱 PIX</option>
-            <option value="Dinheiro">💵 Dinheiro</option>
-            <option value="Fiado">📒 Fiado</option>
-          </select>
-          <select id="hist-filtro-periodo" onchange="renderHistorico()"
-            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
-            <option value="">🕐 Período</option>
-            <option value="Manhã">Manhã</option>
-            <option value="Tarde">Tarde</option>
-            <option value="Noite">Noite</option>
-          </select>
-          <input type="date" id="hist-filtro-data" onchange="renderHistorico()"
-            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;" />
-          <button onclick="limparFiltrosHistorico()" class="btn btn-ghost btn-sm">✕ Limpar filtros</button>
-        </div>
-
-        <!-- Resumo dos filtros -->
-        <div id="hist-resumo" style="font-size:.72rem;color:var(--suave);margin-bottom:.75rem;display:flex;gap:1rem;flex-wrap:wrap;"></div>
-
-        <div id="hist-list"></div>
-      </div>
-
-      <!-- Devendo (fiado) -->
-      <div class="view-panel" id="vp-devendo">
-        <div class="section-h">
-          <span>Fiado em aberto</span>
-          <span id="devendo-total-badge" style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--amarelo);"></span>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-bottom:.85rem;flex-wrap:wrap;">
-          <input type="text" id="devendo-busca" placeholder="🔍 Buscar por nome..." oninput="renderDevendo()"
-            style="flex:1;min-width:160px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
-          <select id="devendo-ordem" onchange="renderDevendo()"
-            style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
-            <option value="valor">↓ Maior valor</option>
-            <option value="nome">A → Z</option>
-            <option value="recente">Mais recente</option>
-          </select>
-        </div>
-        <div id="devendo-list"></div>
-      </div>
-
-      <!-- ── PAINEL: CRÉDITOS ── -->
-      <div class="view-panel" id="vp-creditos">
-        <div class="section-h">
-          <span>💰 Créditos dos acampantes</span>
-          <span id="creditos-total-badge" style="font-size:.75rem;color:var(--verde-cl);"></span>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap;">
-          <div style="position:relative;flex:1;min-width:160px;">
-            <input type="text" id="creditos-busca" placeholder="🔍 Buscar/filtrar acampante..."
-              autocomplete="off"
-              oninput="filtrarPessoasCredito(this.value); renderCreditos();"
-              onfocus="filtrarPessoasCredito(this.value)"
-              style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.84rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
-            <div id="dropdown-creditos" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--borda);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
-          </div>
-          <button class="btn btn-solid btn-sm" onclick="abrirCreditoManual()">+ Crédito</button>
-        </div>
-        <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.85rem;font-size:.78rem;color:var(--suave);flex-wrap:wrap;">
-          <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
-            <input type="checkbox" id="creditos-show-zerados" onchange="renderCreditos()" style="accent-color:var(--verde);cursor:pointer;" />
-            Mostrar saldo zerado
-          </label>
-          <button onclick="document.getElementById('creditos-busca').value='';_creditoFiltroNome='';renderCreditos();document.getElementById('dropdown-creditos').style.display='none';"
-            style="background:none;border:1px solid var(--borda);border-radius:6px;padding:.25rem .6rem;color:var(--suave);font-size:.72rem;cursor:pointer;">✕ Limpar filtro</button>
-        </div>
-        <div id="creditos-list"></div>
-      </div>
-
-      <!-- ── PAINEL: ESTOQUE ── -->
-      <div class="view-panel" id="vp-estoque">
-        <div class="section-h">
-          <span>Gerenciar estoque</span>
-          <button class="btn btn-solid btn-sm" onclick="saveEstoque()">💾 Salvar</button>
-        </div>
-        <div id="estoque-list"></div>
-        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
-          <div class="section-h"><span>Adicionar produto</span></div>
-          <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:.6rem;align-items:end;">
-            <div class="field" style="margin:0"><label>Nome</label><input type="text" id="np-nome" placeholder="Produto" /></div>
-            <div class="field" style="margin:0"><label>Preço</label><input type="number" id="np-preco" placeholder="5" step="0.5" /></div>
-            <div class="field" style="margin:0"><label>Estoque</label><input type="number" id="np-estoque" placeholder="20" /></div>
-          </div>
-          <div style="display:grid;grid-template-columns:60px 1fr;gap:.6rem;align-items:end;margin-top:.5rem;">
-            <div class="field" style="margin:0"><label>Emoji</label><input type="text" id="np-icon" placeholder="🍫" style="text-align:center;font-size:1.2rem;" /></div>
-            <div class="field" style="margin:0">
-              <label>Imagem (URL ou upload)</label>
-              <div style="display:flex;gap:.35rem;align-items:center;">
-                <input type="text" id="np-img-url" placeholder="https://... ou faça upload →" oninput="previewNpImg()" style="flex:1;" />
-                <label style="background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.35rem .6rem;cursor:pointer;font-size:.72rem;color:var(--suave);white-space:nowrap;">
-                  📁 <input type="file" accept="image/*" onchange="lerNpImg(this)" style="display:none;" />
-                </label>
-                <img id="np-img-preview" src="" style="display:none;width:32px;height:32px;object-fit:cover;border-radius:5px;" />
-              </div>
+    <div class="paineis-largos oculto">
+        <div class="view-panel" id="vp-historico">
+          <div class="section-h">
+            <span>Histórico de vendas</span>
+            <div style="display:flex;gap:.4rem;">
+              <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('xlsx')">📥 XLSX</button>
+              <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('csv')">📄 CSV</button>
+              <button class="btn btn-ghost btn-sm" onclick="exportarVendinha('pdf')">🖨 PDF</button>
+              <button class="btn btn-danger btn-sm" onclick="if(confirm('Limpar todo o histórico?')){ clearAllSales(); }">🗑 Limpar</button>
             </div>
           </div>
-          <button class="btn btn-solid btn-sm" onclick="addProduct()" style="margin-top:.5rem;">+ Adicionar</button>
-        </div>
-      </div>
 
-      <!-- ── PAINEL: DEFINIÇÕES + PAGAMENTOS ── -->
-      <div class="view-panel" id="vp-config" style="display:none;">
-
-        <div class="section-h" style="margin-bottom:1.25rem;"><span>⚙️ Definições da Vendinha</span></div>
-        <div class="field" style="margin-bottom:.75rem;">
-          <label>Chave PIX</label>
-          <input type="text" id="def-pix-chave" placeholder="CPF, telefone, e-mail ou chave aleatória" />
-          <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Usada para gerar o QR Code no pagamento PIX</div>
-        </div>
-        <div class="field" style="margin-bottom:.75rem;">
-          <label>Nome do recebedor (PIX)</label>
-          <input type="text" id="def-pix-nome" placeholder="Ex: Mocidade Casa de Oração" />
-        </div>
-        <div class="field" style="margin-bottom:.75rem;">
-          <label>Cidade (PIX)</label>
-          <input type="text" id="def-pix-cidade" placeholder="Ex: CONSELHEIRO LAFAIETE" />
-          <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Necessário para o payload PIX padrão Banco Central</div>
-        </div>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-solid btn-sm" onclick="saveDefinicoes()">💾 Salvar Definições</button>
-          <button class="btn btn-ghost btn-sm" onclick="mostrarQRPixSemValor()">📱 Gerar QR (sem valor)</button>
-        </div>
-        <div id="def-qr-container" style="margin-top:1rem;"></div>
-
-        <div style="margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
-          <div class="section-h" style="margin-bottom:1rem;">
-            <span>💳 Formas de Pagamento</span>
-            <button class="btn btn-solid btn-sm" onclick="abrirModalNovoPagamento()">+ Nova</button>
+          <!-- Filtros avançados -->
+          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;">
+            <input type="text" id="hist-busca-cliente" placeholder="🔍 Cliente..." oninput="renderHistorico()"
+              style="flex:1;min-width:140px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
+            <input type="text" id="hist-busca-item" placeholder="🔍 Item..." oninput="renderHistorico()"
+              style="width:130px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
+            <select id="hist-filtro-pag" onchange="renderHistorico()"
+              style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
+              <option value="">💳 Todos</option>
+              <option value="PIX">📱 PIX</option>
+              <option value="Dinheiro">💵 Dinheiro</option>
+              <option value="Fiado">📒 Fiado</option>
+            </select>
+            <select id="hist-filtro-periodo" onchange="renderHistorico()"
+              style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
+              <option value="">🕐 Período</option>
+              <option value="Manhã">Manhã</option>
+              <option value="Tarde">Tarde</option>
+              <option value="Noite">Noite</option>
+            </select>
+            <input type="date" id="hist-filtro-data" onchange="renderHistorico()"
+              style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;" />
+            <button onclick="limparFiltrosHistorico()" class="btn btn-ghost btn-sm">✕ Limpar filtros</button>
           </div>
-          <p style="font-size:.78rem;color:var(--suave);margin-bottom:1rem;line-height:1.6;">
-            Gerencie as formas de pagamento disponíveis no caixa. A cor é usada no botão ativo.
-          </p>
-          <div id="pag-lista"></div>
-        </div>
-      </div>
 
-      <!-- Resumo por período -->
-      <div class="view-panel" id="vp-resumo">
-        <div class="section-h">
-          <span>Resumo por período</span>
-          <button class="btn btn-ghost btn-sm" onclick="enviarResumoWhats()">📲 Resumo ao Cliente</button>
+          <!-- Resumo dos filtros -->
+          <div id="hist-resumo" style="font-size:.72rem;color:var(--suave);margin-bottom:.75rem;display:flex;gap:1rem;flex-wrap:wrap;"></div>
+
+          <div id="hist-list"></div>
         </div>
-        <div id="resumo-content"></div>
-      </div>
+
+        <!-- Devendo (fiado) -->
+        <div class="view-panel" id="vp-devendo">
+          <div class="section-h">
+            <span>Fiado em aberto</span>
+            <span id="devendo-total-badge" style="font-family:'Cinzel',serif;font-size:.9rem;color:var(--amarelo);"></span>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-bottom:.85rem;flex-wrap:wrap;">
+            <input type="text" id="devendo-busca" placeholder="🔍 Buscar por nome..." oninput="renderDevendo()"
+              style="flex:1;min-width:160px;background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .75rem;font-size:.85rem;color:var(--texto);outline:none;" />
+            <select id="devendo-ordem" onchange="renderDevendo()"
+              style="background:var(--card2);border:1px solid var(--borda);border-radius:7px;padding:.4rem .65rem;font-size:.8rem;color:var(--texto);outline:none;cursor:pointer;">
+              <option value="valor">↓ Maior valor</option>
+              <option value="nome">A → Z</option>
+              <option value="recente">Mais recente</option>
+            </select>
+          </div>
+          <div id="devendo-list"></div>
+        </div>
+
+        <!-- ── PAINEL: CRÉDITOS ── -->
+        <div class="view-panel" id="vp-creditos">
+          <div class="section-h">
+            <span>💰 Créditos dos acampantes</span>
+            <span id="creditos-total-badge" style="font-size:.75rem;color:var(--verde-cl);"></span>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-bottom:.6rem;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:160px;">
+              <input type="text" id="creditos-busca" placeholder="🔍 Buscar/filtrar acampante..."
+                autocomplete="off"
+                oninput="filtrarPessoasCredito(this.value); renderCreditos();"
+                onfocus="filtrarPessoasCredito(this.value)"
+                style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.5rem .75rem;font-size:.84rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+              <div id="dropdown-creditos" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--borda);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.4);"></div>
+            </div>
+            <button class="btn btn-solid btn-sm" onclick="abrirCreditoManual()">+ Crédito</button>
+          </div>
+          <div style="display:flex;gap:1rem;align-items:center;margin-bottom:.85rem;font-size:.78rem;color:var(--suave);flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+              <input type="checkbox" id="creditos-show-zerados" onchange="renderCreditos()" style="accent-color:var(--verde);cursor:pointer;" />
+              Mostrar saldo zerado
+            </label>
+            <button onclick="document.getElementById('creditos-busca').value='';_creditoFiltroNome='';renderCreditos();document.getElementById('dropdown-creditos').style.display='none';"
+              style="background:none;border:1px solid var(--borda);border-radius:6px;padding:.25rem .6rem;color:var(--suave);font-size:.72rem;cursor:pointer;">✕ Limpar filtro</button>
+          </div>
+          <div id="creditos-list"></div>
+        </div>
+
+        <!-- ── PAINEL: ESTOQUE ── -->
+        <div class="view-panel" id="vp-estoque">
+          <div class="section-h">
+            <span>Gerenciar estoque</span>
+            <button class="btn btn-solid btn-sm" onclick="saveEstoque()">💾 Salvar</button>
+          </div>
+          <div id="estoque-list"></div>
+          <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
+            <div class="section-h"><span>Adicionar produto</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;align-items:end;">
+              <div class="field" style="margin:0"><label>Nome</label><input type="text" id="np-nome" placeholder="Produto" /></div>
+              <div class="field" style="margin:0">
+                <label>Categoria</label>
+                <div style="display:flex;gap:.35rem;">
+                  <select id="np-categoria" style="flex:1;min-width:0;background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.6rem .8rem;font-size:1rem;color:var(--texto);outline:none;font-family:'Inter',sans-serif;"></select>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGerenciador('categoria','gerop-np')" title="Gerenciar categorias">⚙</button>
+                </div>
+              </div>
+            </div>
+            <div id="gerop-np"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.6rem;align-items:end;margin-top:.5rem;">
+              <div class="field" style="margin:0"><label>Preço (R$)</label>
+                <div class="num-stepper">
+                  <button type="button" class="num-btn" onclick="numStep('np-preco',-1)">−</button>
+                  <input type="number" id="np-preco" placeholder="5" step="0.01" data-step-btn="0.5" min="0" />
+                  <button type="button" class="num-btn" onclick="numStep('np-preco',1)">+</button>
+                </div>
+              </div>
+              <div class="field" style="margin:0"><label>Custo (R$)</label>
+                <div class="num-stepper">
+                  <button type="button" class="num-btn" onclick="numStep('np-custo',-1)">−</button>
+                  <input type="number" id="np-custo" placeholder="0" step="0.01" data-step-btn="0.5" min="0" />
+                  <button type="button" class="num-btn" onclick="numStep('np-custo',1)">+</button>
+                </div>
+              </div>
+              <div class="field" style="margin:0"><label>Estoque</label>
+                <div class="num-stepper">
+                  <button type="button" class="num-btn" onclick="numStep('np-estoque',-1)">−</button>
+                  <input type="number" id="np-estoque" placeholder="20" min="0" />
+                  <button type="button" class="num-btn" onclick="numStep('np-estoque',1)">+</button>
+                </div>
+              </div>
+              <div class="field" style="margin:0"><label>Alerta estoque</label>
+                <div class="num-stepper">
+                  <button type="button" class="num-btn" onclick="numStep('np-alerta',-1)">−</button>
+                  <input type="number" id="np-alerta" placeholder="3" min="0" />
+                  <button type="button" class="num-btn" onclick="numStep('np-alerta',1)">+</button>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:60px 1fr;gap:.6rem;align-items:end;margin-top:.5rem;">
+              <div class="field" style="margin:0"><label>Emoji</label><input type="text" id="np-icon" placeholder="🍫" style="text-align:center;font-size:1.2rem;" /></div>
+              <div class="field" style="margin:0">
+                <label>Imagem (URL ou upload)</label>
+                <div style="display:flex;gap:.35rem;align-items:center;">
+                  <input type="text" id="np-img-url" placeholder="https://... ou faça upload →" oninput="previewNpImg()" style="flex:1;" />
+                  <label style="background:var(--card2);border:1px solid var(--borda);border-radius:6px;padding:.35rem .6rem;cursor:pointer;font-size:.72rem;color:var(--suave);white-space:nowrap;">
+                    📁 <input type="file" accept="image/*" onchange="lerNpImg(this)" style="display:none;" />
+                  </label>
+                  <img id="np-img-preview" src="" style="display:none;width:32px;height:32px;object-fit:cover;border-radius:5px;" />
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-solid btn-sm" onclick="addProduct()" style="margin-top:.5rem;">+ Adicionar</button>
+          </div>
+        </div>
+
+        <!-- ── PAINEL: DEFINIÇÕES + PAGAMENTOS ── -->
+        <div class="view-panel" id="vp-config" style="display:none;">
+
+          <div class="section-h" style="margin-bottom:1.25rem;"><span>⚙️ Definições da Vendinha</span></div>
+          <div class="field" style="margin-bottom:.75rem;">
+            <label>Chave PIX</label>
+            <input type="text" id="def-pix-chave" placeholder="CPF, telefone, e-mail ou chave aleatória" />
+            <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Usada para gerar o QR Code no pagamento PIX</div>
+          </div>
+          <div class="field" style="margin-bottom:.75rem;">
+            <label>Nome do recebedor (PIX)</label>
+            <input type="text" id="def-pix-nome" placeholder="Ex: Mocidade Casa de Oração" />
+          </div>
+          <div class="field" style="margin-bottom:.75rem;">
+            <label>Cidade (PIX)</label>
+            <input type="text" id="def-pix-cidade" placeholder="Ex: CONSELHEIRO LAFAIETE" />
+            <div style="font-size:.68rem;color:var(--suave);margin-top:.3rem;">Necessário para o payload PIX padrão Banco Central</div>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <button class="btn btn-solid btn-sm" onclick="saveDefinicoes()">💾 Salvar Definições</button>
+            <button class="btn btn-ghost btn-sm" onclick="mostrarQRPixSemValor()">📱 Gerar QR (sem valor)</button>
+          </div>
+          <div id="def-qr-container" style="margin-top:1rem;"></div>
+
+          <div style="margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--borda);">
+            <div class="section-h" style="margin-bottom:1rem;">
+              <span>💳 Formas de Pagamento</span>
+              <button class="btn btn-solid btn-sm" onclick="abrirModalNovoPagamento()">+ Nova</button>
+            </div>
+            <p style="font-size:.78rem;color:var(--suave);margin-bottom:1rem;line-height:1.6;">
+              Gerencie as formas de pagamento disponíveis no caixa. A cor é usada no botão ativo.
+            </p>
+            <div id="pag-lista"></div>
+          </div>
+        </div>
+
+        <!-- Resumo por período -->
+        <div class="view-panel" id="vp-resumo">
+          <div class="section-h">
+            <span>Resumo por período</span>
+            <button class="btn btn-ghost btn-sm" onclick="enviarResumoWhats()">📲 Resumo ao Cliente</button>
+          </div>
+          <div id="resumo-content"></div>
+        </div>
+    </div>
     </div>
 
-    <!-- Coluna direita: pedido -->
     <div class="col-right">
       <div class="pedido-header">
         <h2>🧾 Pedido</h2>
@@ -3112,6 +3415,7 @@ var qrcode = function() {
       </div>
     </div>
   </div>
+
 </div>
 
 <!-- ══ MODAL QUITAR FIADO ══ -->
@@ -3349,7 +3653,7 @@ var qrcode = function() {
 <div class="toast" id="toast"></div>
 
 <script>
-console.log('%c[ABCL] vendinha build: credito-fix-18 ✅', 'color:#40916C;font-weight:bold');
+console.log('%c[ABCL] vendinha build: hover-abas-26 ✅', 'color:#40916C;font-weight:bold');
 // ══════════════════════════════════════════════════
 // IMG CACHE — IndexedDB offline image cache
 // Versão 1.0 — abclhub
@@ -4139,6 +4443,9 @@ function initApp() {
       .catch(() => {});
   }
   renderPessoas();
+  ajustarAlturaLayout();
+  renderFiltroCategoria();
+  renderDropdown('np-categoria', 'categoria', '');
   renderProdutos();
   renderCart();
   renderStats();
@@ -4238,12 +4545,307 @@ document.addEventListener('click', e => {
 // ══════════════════════════════════════════════════
 // PRODUTOS
 // ══════════════════════════════════════════════════
+
+// Ajusta um campo numérico pelos botões −/+ (as setinhas nativas foram removidas
+// via CSS). data-step-btn permite um passo de clique diferente do step do campo:
+// em dinheiro o step é 0,01 para digitação livre, mas o botão anda de 0,50.
+function numStep(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const passo = parseFloat(el.dataset.stepBtn) || parseFloat(el.step) || 1;
+  const min   = el.min !== '' && el.min !== undefined ? parseFloat(el.min) : null;
+  const max   = el.max !== '' && el.max !== undefined ? parseFloat(el.max) : null;
+  let v = (parseFloat(el.value) || 0) + delta * passo;
+  if (min !== null && !isNaN(min) && v < min) v = min;
+  if (max !== null && !isNaN(max) && v > max) v = max;
+  el.value = (passo % 1 === 0) ? String(Math.round(v)) : v.toFixed(2);
+  el.dispatchEvent(new Event('input',  { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+// ══════════════════════════════════════════════════
+// OPÇÕES DINÂMICAS — categorias de produto
+// ══════════════════════════════════════════════════
+// Modelo: [{ nome, ativo }]. As listas antigas eram arrays de strings; a
+// migração acontece na leitura (getOpcoes), sem passo manual — mesmo padrão
+// usado nas opções de pergunta do sistema de formulários.
+//
+// Regras de ciclo de vida, decididas para nunca deixar item órfão:
+//   • INATIVAR  → some da lista de escolha, mas quem já usa MANTÉM o rótulo.
+//                 Reversível a qualquer momento.
+//   • EXCLUIR   → só permitido quando ninguém usa. Com uso, o operador precisa
+//                 escolher: inativar, ou reatribuir os itens e então excluir.
+// Nada é apagado silenciosamente por baixo dos dados existentes.
+
+const OPC_LABEL = {
+  categoria: {
+    singular: 'categoria', plural: 'categorias', item: 'produto', itens: 'produtos',
+    campo: 'categoria',
+    padrao: ['Doces','Salgadinhos','Bebidas','Sorvetes','Biscoitos','Chocolates','Higiene','Outros']
+  }
+};
+
+function _opcChave(tipo) { return 'abcl-vendinha-' + tipo; }
+
+function getOpcoes(tipo) {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(_opcChave(tipo)) || 'null'); } catch (e) { raw = null; }
+  if (!Array.isArray(raw)) raw = OPC_LABEL[tipo].padrao;
+  return raw
+    .map(o => typeof o === 'string' ? { nome: o, ativo: true }
+                                    : { nome: String(o.nome || ''), ativo: o.ativo !== false })
+    .filter(o => o.nome);
+}
+
+function setOpcoes(tipo, lista) {
+  localStorage.setItem(_opcChave(tipo), JSON.stringify(lista));
+}
+
+// Quantos itens da base usam esta opção (inclusive os inativos).
+function contarUsoOpcao(tipo, nome) {
+  const campo = OPC_LABEL[tipo].campo;
+  return _opcBase().filter(x => (x[campo] || '') === nome).length;
+}
+
+// Preenche um <select>. Uma opção inativa continua listada SE for o valor atual
+// do item sendo editado — senão, abrir a edição apagaria a categoria em silêncio.
+function renderDropdown(selectId, tipo, valorAtual) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const val   = valorAtual !== undefined && valorAtual !== null ? valorAtual : sel.value;
+  const lista = getOpcoes(tipo).filter(o => o.ativo || o.nome === val);
+  sel.innerHTML = '<option value="">Selecione...</option>' +
+    lista.map(o => `<option value="${_opcH(o.nome)}"${o.nome === val ? ' selected' : ''}>` +
+                   `${_opcH(o.nome)}${o.ativo ? '' : ' (inativa)'}</option>`).join('');
+}
+
+function _opcH(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── Painel gerenciador (inline, dentro do próprio card) ────────────────────
+let _gerAberto = null; // { tipo, wrapId }
+
+function toggleGerenciador(tipo, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  if (_gerAberto && _gerAberto.tipo === tipo && _gerAberto.wrapId === wrapId && wrap.innerHTML) {
+    fecharGerenciador(wrapId); return;
+  }
+  _gerAberto = { tipo, wrapId };
+  renderGerenciador(tipo, wrapId);
+  const inp = document.getElementById('ger-novo-' + wrapId);
+  if (inp) inp.focus();
+}
+
+function fecharGerenciador(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) wrap.innerHTML = '';
+  _gerAberto = null;
+}
+
+function renderGerenciador(tipo, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const L     = OPC_LABEL[tipo];
+  const lista = getOpcoes(tipo);
+  wrap.innerHTML = `
+    <div class="ger-opc">
+      <div class="ger-opc-head">
+        <span>Gerenciar ${L.plural}</span>
+        <button type="button" class="ger-fechar" onclick="fecharGerenciador('${wrapId}')" title="Fechar">✕</button>
+      </div>
+      <div class="ger-opc-add">
+        <input type="text" id="ger-novo-${wrapId}" placeholder="Nova ${L.singular}..." maxlength="40"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();opcAdicionar('${tipo}','${wrapId}');}" />
+        <button type="button" class="ger-mini" onclick="opcAdicionar('${tipo}','${wrapId}')">+ Criar</button>
+      </div>
+      <div class="ger-opc-list">
+        ${lista.length === 0 ? `<p class="ger-opc-nota" style="border:none;margin:0;padding:0;">Nenhuma ${L.singular} cadastrada.</p>` : ''}
+        ${lista.map((o, i) => {
+          const n = contarUsoOpcao(tipo, o.nome);
+          return `
+          <div class="ger-opc-row ${o.ativo ? '' : 'inativa'}">
+            <span class="ger-opc-nome" title="${_opcH(o.nome)}">${_opcH(o.nome)}</span>
+            <span class="ger-opc-uso">${n ? n + ' ' + (n === 1 ? L.item : L.itens) : '—'}</span>
+            <label class="tgl" title="${o.ativo ? 'Ativa — clique para inativar' : 'Inativa — clique para reativar'}">
+              <input type="checkbox" ${o.ativo ? 'checked' : ''}
+                onchange="opcDefinirAtivo('${tipo}',${i},this.checked,'${wrapId}')" />
+              <span class="tgl-track"><span class="tgl-thumb"></span></span>
+            </label>
+            <button type="button" class="ger-del" onclick="opcExcluir('${tipo}',${i},'${wrapId}')" title="Excluir">🗑</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <div id="ger-danger-${wrapId}"></div>
+      <p class="ger-opc-nota">
+        Inativar mantém a ${L.singular} nos ${L.itens} que já a usam — ela só deixa de aparecer
+        na lista de escolha. Excluir só é liberado quando ninguém está usando.
+      </p>
+    </div>`;
+}
+
+function opcAdicionar(tipo, wrapId) {
+  const inp = document.getElementById('ger-novo-' + wrapId);
+  if (!inp) return;
+  const nome = inp.value.trim();
+  if (!nome) return;
+  const lista = getOpcoes(tipo);
+  if (lista.some(o => o.nome.toLowerCase() === nome.toLowerCase())) {
+    toast('Já existe uma opção com esse nome.'); return;
+  }
+  lista.push({ nome, ativo: true });
+  setOpcoes(tipo, lista);
+  inp.value = '';
+  renderGerenciador(tipo, wrapId);
+  atualizarSelectsOpcoes();
+  const novo = document.getElementById('ger-novo-' + wrapId);
+  if (novo) novo.focus();
+  toast(`✅ "${nome}" criada.`);
+}
+
+function opcDefinirAtivo(tipo, idx, ativo, wrapId) {
+  const lista = getOpcoes(tipo);
+  if (!lista[idx]) return;
+  lista[idx].ativo = !!ativo;
+  const nome = lista[idx].nome;
+  setOpcoes(tipo, lista);
+  renderGerenciador(tipo, wrapId);
+  atualizarSelectsOpcoes();
+  toast(ativo ? `"${nome}" reativada.` : `"${nome}" inativada — quem já usa mantém o rótulo.`);
+}
+
+function opcExcluir(tipo, idx, wrapId) {
+  const L     = OPC_LABEL[tipo];
+  const lista = getOpcoes(tipo);
+  const alvo  = lista[idx];
+  if (!alvo) return;
+  const n = contarUsoOpcao(tipo, alvo.nome);
+
+  if (n === 0) {
+    if (!confirm(`Excluir a ${L.singular} "${alvo.nome}"?`)) return;
+    lista.splice(idx, 1);
+    setOpcoes(tipo, lista);
+    renderGerenciador(tipo, wrapId);
+    atualizarSelectsOpcoes();
+    toast(`🗑 "${alvo.nome}" excluída.`);
+    return;
+  }
+
+  // Em uso: a exclusão direta deixaria os itens sem rótulo. Mostra as saídas.
+  const destinos = lista.filter((o, i) => i !== idx && o.ativo);
+  const box = document.getElementById('ger-danger-' + wrapId);
+  if (!box) return;
+  box.innerHTML = `
+    <div class="ger-danger">
+      <strong>"${_opcH(alvo.nome)}" está em uso</strong>
+      <p>${n} ${n === 1 ? L.item : L.itens} ${n === 1 ? 'usa' : 'usam'} esta ${L.singular}.
+         Excluir agora deixaria ${n === 1 ? 'esse item' : 'esses itens'} sem ${L.singular}.</p>
+      <div class="ger-danger-acoes">
+        <select id="ger-realvo-${wrapId}">
+          <option value="">— Deixar sem ${L.singular} —</option>
+          ${destinos.map(o => `<option value="${_opcH(o.nome)}">${_opcH(o.nome)}</option>`).join('')}
+        </select>
+        <button type="button" class="ger-mini perigo" onclick="opcReatribuirExcluir('${tipo}',${idx},'${wrapId}')">Mover e excluir</button>
+        <button type="button" class="ger-mini" onclick="opcDefinirAtivo('${tipo}',${idx},false,'${wrapId}')">Só inativar</button>
+        <button type="button" class="ger-mini" onclick="opcCancelarExclusao('${wrapId}')">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function opcCancelarExclusao(wrapId) {
+  const box = document.getElementById('ger-danger-' + wrapId);
+  if (box) box.innerHTML = '';
+}
+
+function opcReatribuirExcluir(tipo, idx, wrapId) {
+  const L     = OPC_LABEL[tipo];
+  const lista = getOpcoes(tipo);
+  const alvo  = lista[idx];
+  if (!alvo) return;
+  const destino = document.getElementById('ger-realvo-' + wrapId)?.value || '';
+  const campo   = L.campo;
+
+  const base = _opcBase();
+  let movidos = 0;
+  base.forEach(x => { if ((x[campo] || '') === alvo.nome) { x[campo] = destino; movidos++; } });
+  _opcSalvarBase(base);
+
+  lista.splice(idx, 1);
+  setOpcoes(tipo, lista);
+  renderGerenciador(tipo, wrapId);
+  atualizarSelectsOpcoes();
+  toast(destino
+    ? `${movidos} ${movidos === 1 ? L.item : L.itens} movid${movidos === 1 ? 'o' : 'os'} para "${destino}".`
+    : `${movidos} ${movidos === 1 ? L.item : L.itens} ficaram sem ${L.singular}.`);
+}
+
+// ── Adaptadores da base para o gerenciador de opções ──
+function _opcBase()            { return getProdutos(); }
+function _opcSalvarBase(itens) {
+  set('abcl-produtos', itens);
+  renderProdutos(); renderEstoque();
+  if (typeof ProdutosSync !== 'undefined')
+    ProdutosSync.salvarNoFirebase('produtos_vendinha', itens).catch(() => {});
+}
+
+// Repopula todo select alimentado por opções, preservando a escolha atual.
+function atualizarSelectsOpcoes() {
+  renderDropdown('np-categoria', 'categoria');
+  renderDropdown('ep-categoria', 'categoria');
+  renderFiltroCategoria();
+}
+
+// Filtro de categoria da vitrine do caixa. Lista as ativas mais as que ainda
+// estiverem em uso, para que nenhum produto fique inalcançável pelo filtro.
+function renderFiltroCategoria() {
+  const sel = document.getElementById('filtro-categoria');
+  if (!sel) return;
+  const atual = sel.value;
+  const emUso = new Set(getProdutos().map(p => p.categoria).filter(Boolean));
+  const lista = getOpcoes('categoria').filter(o => o.ativo || emUso.has(o.nome));
+  sel.innerHTML = '<option value="">Todas as categorias</option>' +
+    lista.map(o => `<option value="${_opcH(o.nome)}"${o.nome === atual ? ' selected' : ''}>${_opcH(o.nome)}</option>`).join('');
+  if (sel.value !== atual) sel.value = '';
+}
+
+const ALERTA_BAIXO_PADRAO = 3;
+
+// Quantidade deste item já reservada no pedido em aberto.
+function qtdNoCarrinho(id) {
+  return cart.reduce((s, i) => String(i.id) === String(id) ? s + i.qtd : s, 0);
+}
+
+// Estado de estoque JÁ DESCONTANDO o carrinho (a venda ainda não foi finalizada,
+// então o estoque persistido continua intacto — o que muda é só a disponibilidade).
+// Fonte única de verdade usada tanto no render inicial quanto na atualização incremental.
+function estadoEstoque(item) {
+  const base     = item.estoque || 0;
+  const disp     = Math.max(0, base - qtdNoCarrinho(item.id));
+  const limite   = item.alertaBaixo || ALERTA_BAIXO_PADRAO;
+  const esgotado = base <= 0;
+  const noPedido = !esgotado && disp <= 0;               // zerou por causa do carrinho
+  const baixo    = !esgotado && !noPedido && disp <= limite;
+  return {
+    disp, esgotado, noPedido, baixo,
+    classeCard: esgotado ? 'esgotado'     : noPedido ? 'no-pedido'     : baixo ? 'estoque-baixo' : '',
+    classeTxt:  esgotado ? 'esgotado-txt' : noPedido ? 'nopedido-txt'  : baixo ? 'baixo-txt'     : '',
+    texto:      esgotado ? '⛔ Esgotado'
+              : noPedido ? '✔ Tudo no pedido'
+              : baixo    ? `⚠ Restam ${disp}`
+              :            `Estoque: ${disp}`
+  };
+}
+
 function renderProdutos() {
-  const produtos = getProdutos();
+  const catFiltro = document.getElementById('filtro-categoria')?.value || '';
+  const produtos  = getProdutos().filter(p => !catFiltro || (p.categoria || '') === catFiltro);
   document.getElementById('prod-count').textContent = produtos.length + ' itens';
-  document.getElementById('produtos-grid').innerHTML = produtos.map(p => `
-    <div class="prod-card ${p.estoque <= 0 ? 'esgotado' : ''}" onclick="addToCart('${p.id}')">
-      ${p.estoque <= 3 && p.estoque > 0 ? `<span class="badge-estoque">últimos ${p.estoque}</span>` : ''}
+  document.getElementById('produtos-grid').innerHTML = produtos.map(p => {
+    const e = estadoEstoque(p);
+    return `
+    <div class="prod-card ${e.classeCard}" data-id="${p.id}" onclick="addToCart('${p.id}')">
       <div class="prod-icon" style="${p.imagem?'padding:0;overflow:hidden;border-radius:6px;':''}">
         ${p.imagem
           ? `<img data-src="${p.imagem}" data-fallback="${p.icon||'📦'}" alt="${p.nome}" style="width:100%;height:100%;object-fit:contain;background:#fff;border-radius:6px;" class="imgcache" />`
@@ -4251,10 +4853,31 @@ function renderProdutos() {
       </div>
       <div class="prod-nome">${p.nome}</div>
       <div class="prod-preco">R$ ${p.preco.toFixed(2)}</div>
-      <div class="prod-estoque">${p.estoque <= 0 ? '⛔ Esgotado' : `Estoque: ${p.estoque}`}</div>
+      <div class="prod-estoque ${e.classeTxt}">${e.texto}</div>
     </div>
-  `).join('');
+  `;}).join('');
   processImgCache(document.getElementById('produtos-grid'));
+}
+
+// Atualização incremental: mexe só no texto/classes dos cards já montados.
+// Não refaz o innerHTML da grade — isso remontaria as <img> e causaria piscada
+// (e reprocessamento do cache offline) a cada clique no caixa.
+function atualizarEstoqueCards() {
+  const grid = document.getElementById('produtos-grid');
+  if (!grid) return;
+  const produtos = getProdutos();
+  grid.querySelectorAll('.prod-card').forEach(card => {
+    const p = produtos.find(x => String(x.id) === card.dataset.id);
+    if (!p) return;
+    const e = estadoEstoque(p);
+    card.classList.remove('esgotado', 'no-pedido', 'estoque-baixo');
+    if (e.classeCard) card.classList.add(e.classeCard);
+    const el = card.querySelector('.prod-estoque');
+    if (el) {
+      el.className   = 'prod-estoque' + (e.classeTxt ? ' ' + e.classeTxt : '');
+      el.textContent = e.texto;
+    }
+  });
 }
 
 function addToCart(id) {
@@ -4318,6 +4941,10 @@ function renderCart() {
 
   // Atualiza badge mobile
   atualizarCartBadge();
+
+  // Reflete no grid o estoque disponível em tempo real (antes do early-return,
+  // para que limpar o carrinho também restaure os cards).
+  atualizarEstoqueCards();
 
   const el = document.getElementById('cart-items');
   if (cart.length === 0) {
@@ -5275,7 +5902,10 @@ function renderEstoque() {
       </div>
       <div class="estoque-info">
         <div class="estoque-nome">${p.nome}</div>
-        <div class="estoque-qtd">R$ ${p.preco.toFixed(2)}</div>
+        <div class="estoque-qtd">R$ ${p.preco.toFixed(2)}${p.custo ? ` · custo R$ ${Number(p.custo).toFixed(2)}` : ''}</div>
+        <div style="font-size:.63rem;color:var(--suave);">
+          ${p.categoria ? `🏷 ${p.categoria} · ` : ''}alerta ≤ ${p.alertaBaixo || ALERTA_BAIXO_PADRAO}
+        </div>
       </div>
       <div class="estoque-ctrl">
         <div style="display:flex;align-items:center;gap:.3rem;">
@@ -5311,6 +5941,7 @@ function saveEstoque() {
     if (el) p.estoque = parseInt(el.textContent) || 0;
   });
   set('abcl-produtos', produtos);
+  renderFiltroCategoria();
   renderProdutos();
   renderEstoque();
   renderBotoesPagamento();
@@ -5388,7 +6019,11 @@ function abrirEditarProduto(id) {
   document.getElementById('ep-nome').value    = p.nome    || '';
   document.getElementById('ep-preco').value   = p.preco   || '';
   document.getElementById('ep-estoque').value = p.estoque || 0;
+  document.getElementById('ep-custo').value   = p.custo   || '';
+  document.getElementById('ep-alerta').value  = p.alertaBaixo || '';
   document.getElementById('ep-icon').value    = p.icon    || '📦';
+  renderDropdown('ep-categoria', 'categoria', p.categoria || '');
+  fecharGerenciador('gerop-ep');
   document.getElementById('ep-img-url').value = p.imagem  || '';
   if (p.imagem) {
     document.getElementById('ep-img-preview').src = p.imagem;
@@ -5429,6 +6064,9 @@ async function salvarEdicaoProduto() {
   const nome    = document.getElementById('ep-nome').value.trim();
   const preco   = parseFloat(document.getElementById('ep-preco').value);
   const estoque = parseInt(document.getElementById('ep-estoque').value) || 0;
+  const custo   = parseFloat(document.getElementById('ep-custo').value) || 0;
+  const alertaBaixo = parseInt(document.getElementById('ep-alerta').value) || ALERTA_BAIXO_PADRAO;
+  const categoria   = document.getElementById('ep-categoria').value || '';
   const icon    = document.getElementById('ep-icon').value.trim() || '📦';
   if (!nome || isNaN(preco) || preco <= 0) { toast('Preencha nome e preço.'); return; }
 
@@ -5450,10 +6088,11 @@ async function salvarEdicaoProduto() {
     }
   }
 
-  produtos[idx] = { ...produtos[idx], nome, preco, estoque, icon, imagem };
+  produtos[idx] = { ...produtos[idx], nome, preco, custo, estoque, alertaBaixo, categoria, icon, imagem };
   set('abcl-produtos', produtos);
   renderProdutos();
   renderEstoque();
+  renderFiltroCategoria();
   fecharEditarProduto();
   toast(`✅ ${nome} atualizado!`);
 
@@ -5465,6 +6104,9 @@ async function addProduct() {
   const nome    = document.getElementById('np-nome').value.trim();
   const preco   = parseFloat(document.getElementById('np-preco').value) || 0;
   const estoque = parseInt(document.getElementById('np-estoque').value) || 0;
+  const custo   = parseFloat(document.getElementById('np-custo')?.value) || 0;
+  const alertaBaixo = parseInt(document.getElementById('np-alerta')?.value) || ALERTA_BAIXO_PADRAO;
+  const categoria   = document.getElementById('np-categoria')?.value || '';
   const icon    = document.getElementById('np-icon')?.value.trim() || '📦';
   if (!nome || preco <= 0) { toast('Preencha nome e preço.'); return; }
 
@@ -5482,12 +6124,14 @@ async function addProduct() {
   }
 
   const produtos = getProdutos();
-  produtos.push({ id: produtoId, nome, preco, estoque, icon, imagem });
+  produtos.push({ id: produtoId, nome, preco, custo, estoque, alertaBaixo, categoria, icon, imagem });
   set('abcl-produtos', produtos);
 
-  ['np-nome','np-preco','np-estoque','np-icon','np-img-url'].forEach(id => {
+  ['np-nome','np-preco','np-custo','np-estoque','np-alerta','np-icon','np-img-url'].forEach(id => {
     const e = document.getElementById(id); if (e) e.value = '';
   });
+  renderDropdown('np-categoria', 'categoria', '');
+  renderFiltroCategoria();
   const prev = document.getElementById('np-img-preview');
   if (prev) prev.style.display = 'none';
 
@@ -5563,6 +6207,18 @@ function renderResumo() {
 // ══════════════════════════════════════════════════
 // UI UTILS
 // ══════════════════════════════════════════════════
+
+// Mede o cabeçalho real (topo + stats + abas) e publica em --chrome-h. Sem isso
+// o grid usava um valor fixo que não batia com a altura real, e a diferença
+// virava barra de rolagem da página — inclusive deslocando o cabeçalho.
+function ajustarAlturaLayout() {
+  const header = document.querySelector('.app-header');
+  const stats  = document.querySelector('.stats-bar');
+  const h = (header?.offsetHeight || 0) + (stats?.offsetHeight || 0);
+  if (h > 0) document.documentElement.style.setProperty('--chrome-h', h + 'px');
+}
+window.addEventListener('resize', ajustarAlturaLayout);
+
 function switchView(name, btn) {
   document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
@@ -5570,6 +6226,18 @@ function switchView(name, btn) {
     const el = document.getElementById('vp-' + v);
     if (el) el.style.display = v === name ? 'block' : 'none';
   });
+  // A coluna do pedido pertence ao Caixa: fora dele, some junto e os demais
+  // painéis passam a ocupar a largura inteira da tela.
+  const grid    = document.getElementById('caixa-layout');
+  const largos  = document.querySelector('.paineis-largos');
+  const acoes   = document.getElementById('caixa-acoes');
+  const noCaixa = name === 'caixa';
+  // O grid permanece: o que sai de cena é a coluna do Pedido. Assim as abas,
+  // que agora moram na coluna esquerda, continuam visíveis em todas as telas.
+  if (grid)   grid.classList.toggle('sem-pedido', !noCaixa);
+  if (largos) largos.classList.toggle('oculto', noCaixa);
+  if (acoes)  acoes.classList.toggle('oculto', !noCaixa);
+  ajustarAlturaLayout();
   if (name === 'estoque')  { renderEstoque(); renderProdutos(); }
   if (name === 'resumo')   renderResumo();
   if (name === 'devendo')  renderDevendo();
@@ -5774,25 +6442,61 @@ if (typeof toggleTheme === 'undefined') {
 
 <!-- Modal Editar Produto -->
 <div id="ep-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;align-items:center;justify-content:center;">
-  <div style="background:var(--card);border:1px solid var(--borda);border-radius:14px;width:min(400px,92vw);padding:1.5rem;box-shadow:0 8px 40px rgba(0,0,0,.5);">
+  <div style="background:var(--card);border:1px solid var(--borda);border-radius:14px;width:min(460px,92vw);max-height:90vh;overflow-y:auto;padding:1.5rem;box-shadow:0 8px 40px rgba(0,0,0,.5);">
     <h3 style="font-family:'Cinzel',serif;font-size:1rem;color:var(--verde-cl);margin:0 0 1.25rem;">✏️ Editar Produto</h3>
 
     <div style="margin-bottom:.8rem;">
       <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Nome</label>
       <input type="text" id="ep-nome" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:.6rem;margin-bottom:.8rem;">
+    <div style="display:grid;grid-template-columns:1fr 60px;gap:.6rem;margin-bottom:.8rem;">
       <div>
-        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Preço (R$)</label>
-        <input type="number" id="ep-preco" step="0.5" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
-      </div>
-      <div>
-        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Estoque</label>
-        <input type="number" id="ep-estoque" min="0" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Categoria</label>
+        <div style="display:flex;gap:.35rem;">
+          <select id="ep-categoria" style="flex:1;min-width:0;width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;"></select>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGerenciador('categoria','gerop-ep')" title="Gerenciar categorias">⚙</button>
+        </div>
       </div>
       <div>
         <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Emoji</label>
         <input type="text" id="ep-icon" maxlength="2" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .4rem;font-size:1.2rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;text-align:center;" />
+      </div>
+    </div>
+    <div id="gerop-ep" style="margin-bottom:.8rem;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.8rem;">
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Preço (R$)</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('ep-preco',-1)">−</button>
+          <input type="number" id="ep-preco" step="0.01" data-step-btn="0.5" min="0" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+          <button type="button" class="num-btn" onclick="numStep('ep-preco',1)">+</button>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Custo (R$)</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('ep-custo',-1)">−</button>
+          <input type="number" id="ep-custo" step="0.01" data-step-btn="0.5" min="0" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+          <button type="button" class="num-btn" onclick="numStep('ep-custo',1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.8rem;">
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Estoque</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('ep-estoque',-1)">−</button>
+          <input type="number" id="ep-estoque" min="0" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+          <button type="button" class="num-btn" onclick="numStep('ep-estoque',1)">+</button>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--suave);margin-bottom:.3rem;">Alerta estoque baixo</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('ep-alerta',-1)">−</button>
+          <input type="number" id="ep-alerta" min="0" style="width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:8px;padding:.6rem .85rem;font-size:1rem;color:var(--texto);font-family:'Inter',sans-serif;outline:none;box-sizing:border-box;" />
+          <button type="button" class="num-btn" onclick="numStep('ep-alerta',1)">+</button>
+        </div>
       </div>
     </div>
 

@@ -2396,6 +2396,20 @@ var qrcode = function() {
     html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
     html, body { scrollbar-width: none; }
 
+    /* A barra estava só escondida, não desligada: ao chegar no fim do catálogo
+       a rolagem "vazava" para a página e abria aquela faixa vazia embaixo.
+       No desktop a página não rola (o layout já cabe em 100vh) e cada área
+       rolável contém a própria rolagem em vez de repassar para o pai. */
+    @media (min-width: 769px) {
+      html, body { overflow: hidden; height: 100%; }
+      .view-panel {
+        height: calc(100vh - var(--chrome-h, 148px));
+        overflow-y: auto; scrollbar-width: none;
+      }
+      .view-panel::-webkit-scrollbar { display: none; }
+    }
+    .catalogo-area, .pedido-itens, .view-panel { overscroll-behavior: contain; }
+
     .top-bar {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1rem 1.5rem;
@@ -2478,6 +2492,7 @@ var qrcode = function() {
     .livro-card:active { transform: scale(.97); }
     .livro-card.esgotado { opacity: .35; pointer-events: none; filter: grayscale(1); }
     .livro-card.estoque-baixo { border-color: rgba(245,158,11,.4); }
+    .livro-card.no-pedido     { opacity: .6; border-color: rgba(64,145,108,.5); }
 
     /* ── TOOLTIP DESKTOP ── */
     .livro-tooltip {
@@ -2544,7 +2559,8 @@ var qrcode = function() {
     .livro-editora { font-size: .62rem; color: var(--suave); }
     .livro-preco { font-family: 'Cinzel', serif; font-size: .85rem; color: var(--azul-cl); margin-top: auto; padding-top: .3rem; }
     .livro-estoque { font-size: .6rem; color: var(--suave); }
-    .estoque-baixo-badge { color: var(--amarelo); }
+    .estoque-baixo-badge { color: var(--amarelo);  font-weight: 600; }
+    .nopedido-badge      { color: var(--verde-cl); font-weight: 600; }
     .esgotado-badge { color: var(--vermelho); }
 
     /* ── PEDIDO ── */
@@ -2747,6 +2763,165 @@ var qrcode = function() {
       .stats-bar { grid-template-columns: repeat(2,1fr); }
       .livros-grid { grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); }
     }
+
+    /* ══════════════════════════════════════════════════
+       SELECT NATIVO — CONTRASTE
+       O popup do <select> é desenhado pelo sistema operacional. Sem
+       color-scheme ele vem em fundo claro herdando o texto claro do tema
+       escuro, ficando praticamente ilegível. As regras de option cobrem
+       Firefox/Linux, que ignoram color-scheme no popup.
+       ══════════════════════════════════════════════════ */
+    select { color-scheme: dark; }
+    [data-theme="light"] select { color-scheme: light; }
+    select option {
+      background: var(--card);
+      color: var(--texto);
+    }
+    select option:checked { background: rgba(59,130,246,.14); }
+
+    /* ══════════════════════════════════════════════════
+       CAMPOS NUMÉRICOS — setinhas nativas fora, botões −/+ no lugar
+       ══════════════════════════════════════════════════ */
+    input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .num-stepper { display: flex; align-items: stretch; gap: .3rem; }
+    .num-stepper input { flex: 1; min-width: 0; text-align: center; }
+    .num-btn {
+      flex: 0 0 32px; background: var(--card2); border: 1px solid var(--borda);
+      border-radius: 6px; color: var(--texto); font-size: 1.05rem; line-height: 1;
+      cursor: pointer; font-family: 'Inter', sans-serif; user-select: none;
+      transition: border-color .15s, background .15s, transform .1s;
+    }
+    .num-btn:hover  { border-color: var(--azul-cl); background: rgba(59,130,246,.14); }
+    .num-btn:active { transform: scale(.92); }
+
+    /* ══════════════════════════════════════════════════
+       TOGGLE ATIVO/INATIVO (verde = ativo, vermelho = inativo)
+       ══════════════════════════════════════════════════ */
+    .tgl { position: relative; display: inline-block; width: 34px; height: 18px; flex: 0 0 34px; cursor: pointer; }
+    .tgl input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .tgl-track {
+      position: absolute; inset: 0; border-radius: 99px;
+      background: rgba(239,68,68,.3); border: 1px solid rgba(239,68,68,.5);
+      transition: background .18s, border-color .18s;
+    }
+    .tgl-thumb {
+      position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+      border-radius: 50%; background: #fca5a5;
+      transition: transform .18s, background .18s;
+    }
+    .tgl input:checked + .tgl-track { background: rgba(64,145,108,.35); border-color: rgba(64,145,108,.65); }
+    .tgl input:checked + .tgl-track .tgl-thumb { transform: translateX(16px); background: #74C69D; }
+    .tgl input:focus-visible + .tgl-track { outline: 2px solid var(--azul-cl); outline-offset: 2px; }
+
+    /* ══════════════════════════════════════════════════
+       GERENCIADOR DE OPÇÕES (categorias / editoras) — inline no card
+       ══════════════════════════════════════════════════ */
+    .ger-opc {
+      border: 1px solid rgba(59,130,246,.3); border-radius: 10px;
+      background: var(--card2); padding: .75rem; margin-top: .5rem;
+    }
+    .ger-opc-head {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: .7rem; text-transform: uppercase; letter-spacing: .09em;
+      color: var(--azul-cl); font-weight: 600; margin-bottom: .6rem;
+    }
+    .ger-fechar {
+      background: none; border: none; color: var(--suave); cursor: pointer;
+      font-size: .85rem; padding: 0 .2rem; line-height: 1;
+    }
+    .ger-fechar:hover { color: var(--texto); }
+
+    .ger-opc-add { display: flex; gap: .35rem; margin-bottom: .6rem; }
+    .ger-opc-add input {
+      flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--borda);
+      border-radius: 6px; padding: .45rem .6rem; font-size: .85rem;
+      color: var(--texto); outline: none; font-family: 'Inter', sans-serif;
+    }
+    .ger-opc-add input:focus { border-color: var(--azul-cl); }
+
+    .ger-opc-list { max-height: 200px; overflow-y: auto; }
+    .ger-opc-row {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .38rem .1rem; border-bottom: 1px solid var(--borda);
+    }
+    .ger-opc-row:last-child { border-bottom: none; }
+    .ger-opc-nome { flex: 1; min-width: 0; font-size: .82rem; color: var(--texto);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ger-opc-row.inativa .ger-opc-nome { color: var(--suave); text-decoration: line-through; }
+    .ger-opc-uso { font-size: .65rem; color: var(--suave); white-space: nowrap; }
+    .ger-del {
+      background: none; border: none; cursor: pointer; font-size: .8rem;
+      opacity: .55; padding: .1rem .2rem; line-height: 1;
+    }
+    .ger-del:hover { opacity: 1; }
+
+    .ger-danger {
+      margin-top: .6rem; padding: .65rem; border-radius: 8px;
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35);
+      font-size: .78rem; color: var(--texto);
+    }
+    .ger-danger strong { display: block; margin-bottom: .3rem; color: var(--vermelho); font-size: .8rem; }
+    .ger-danger p { color: var(--suave); font-size: .72rem; margin-bottom: .5rem; line-height: 1.45; }
+    .ger-danger-acoes { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+    .ger-danger-acoes select {
+      flex: 1; min-width: 120px; background: var(--card); border: 1px solid var(--borda);
+      border-radius: 6px; padding: .35rem .5rem; font-size: .78rem; color: var(--texto);
+      outline: none; font-family: 'Inter', sans-serif;
+    }
+    .ger-mini {
+      background: var(--card); border: 1px solid var(--borda); border-radius: 6px;
+      padding: .35rem .6rem; font-size: .72rem; color: var(--texto);
+      cursor: pointer; font-family: 'Inter', sans-serif; white-space: nowrap;
+    }
+    .ger-mini:hover { border-color: var(--azul-cl); }
+    .ger-mini.perigo { border-color: rgba(239,68,68,.4); color: #fca5a5; }
+    .ger-mini.perigo:hover { border-color: var(--vermelho); }
+
+    .ger-opc-nota {
+      font-size: .66rem; color: var(--suave); line-height: 1.5;
+      margin-top: .55rem; padding-top: .5rem; border-top: 1px solid var(--borda);
+    }
+
+
+    /* ══════════════════════════════════════════════════
+       POLIMENTO VISUAL
+       Aplicado sobre os tokens de tema já existentes — sem hex fixo, para não
+       quebrar o tema claro nem desfazer a calibração de contraste.
+       ══════════════════════════════════════════════════ */
+
+    /* Texto secundário mais nítido no tema escuro (o claro já usa cor sólida). */
+    :root { --suave: rgba(237,232,223,0.62); }
+
+    /* Hierarquia dos títulos de seção. */
+    .section-h {
+      font-size: .82rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    /* KPIs do topo viram cards de verdade: contorno e leve profundidade. */
+    .stats-bar { gap: .6rem; padding: .75rem 1rem; background: transparent; }
+    .stat-item {
+      background: var(--card); border: 1px solid var(--borda);
+      border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+
+    /* Inputs com mais respiro e anel de foco discreto. */
+    .field input, .field select, .field textarea,
+    .busca-input, .filtro-select, .extras-input {
+      padding: .7rem .95rem;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus,
+    .busca-input:focus, .filtro-select:focus, .extras-input:focus {
+      border-color: var(--azul);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.2);
+    }
+
   </style>
 </head>
 <body>
@@ -2805,15 +2980,9 @@ var qrcode = function() {
             oninput="renderLivros()" />
           <select class="filtro-select" id="filtro-editora" onchange="renderLivros()">
             <option value="">Todas as editoras</option>
-            <option>Chamada</option><option>DLC</option><option>Deivison</option>
-            <option>Lucas</option><option>SBC</option><option>Verdade</option>
           </select>
           <select class="filtro-select" id="filtro-cat" onchange="renderLivros()">
             <option value="">Todas as categorias</option>
-            <option>Infantil</option><option>Bíblia</option><option>Teologia</option>
-            <option>Apologética</option><option>Profecia</option><option>Vida Cristã</option>
-            <option>Liderança</option><option>Biografia</option><option>Família</option>
-            <option>Devocional</option>
           </select>
         </div>
         <div class="livros-grid" id="livros-grid"></div>
@@ -2919,12 +3088,33 @@ var qrcode = function() {
     <div class="section-h">
       <span>Estoque de livros</span>
       <div style="display:flex;gap:.4rem;">
-        <button class="btn btn-ghost btn-sm" onclick="abrirImport()">📥 CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirImport()" title="Importar livros de um arquivo .csv">📥 Importar .csv</button>
         <button class="btn btn-ghost btn-sm" onclick="salvarEstoque()">💾 Salvar</button>
         <button class="btn btn-solid btn-sm" onclick="abrirNovoLivro()">+ Novo livro</button>
       </div>
     </div>
+
+    <!-- Mesmos filtros da vitrine, para não haver dois vocabulários de busca. -->
+    <div class="filtros-bar" style="position:static;padding-top:0;">
+      <input class="busca-input" id="est-busca" type="text" placeholder="🔍 Buscar título, autor, editora..."
+        oninput="estIrPara(1)" />
+      <select class="filtro-select" id="est-filtro-editora" onchange="estIrPara(1)">
+        <option value="">Todas as editoras</option>
+      </select>
+      <select class="filtro-select" id="est-filtro-cat" onchange="estIrPara(1)">
+        <option value="">Todas as categorias</option>
+      </select>
+      <select class="filtro-select" id="est-ordem" onchange="estIrPara(1)">
+        <option value="titulo">A → Z (título)</option>
+        <option value="titulo-desc">Z → A (título)</option>
+        <option value="editora">Por editora</option>
+        <option value="categoria">Por categoria</option>
+        <option value="estoque">Menor estoque primeiro</option>
+      </select>
+    </div>
+
     <div id="estoque-list"></div>
+    <div id="estoque-paginacao"></div>
   </div>
 
 
@@ -3007,28 +3197,53 @@ var qrcode = function() {
         <label>Editora</label>
         <div style="display:flex;gap:.35rem;">
           <select id="lm-editora" style="flex:1;"></select>
-          <button class="btn btn-ghost btn-sm" onclick="gerenciarOpcoes('editora')" title="Gerenciar editoras">⚙</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGerenciador('editora','gerop-lm')" title="Gerenciar editoras">⚙</button>
         </div>
       </div>
       <div class="field">
         <label>Categoria</label>
         <div style="display:flex;gap:.35rem;">
           <select id="lm-categoria" style="flex:1;"></select>
-          <button class="btn btn-ghost btn-sm" onclick="gerenciarOpcoes('categoria')" title="Gerenciar categorias">⚙</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleGerenciador('categoria','gerop-lm')" title="Gerenciar categorias">⚙</button>
         </div>
       </div>
     </div>
+    <div id="gerop-lm"></div>
     <div class="field-row">
       <div class="field"><label>ISBN</label><input type="text" id="lm-isbn" placeholder="Ex: 978-85-00-00000-0" maxlength="17" /></div>
       <div class="field"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Preço de venda (R$) *</label><input type="number" id="lm-preco" placeholder="29.90" step="0.01" /></div>
-      <div class="field"><label>Custo (R$)</label><input type="number" id="lm-custo" placeholder="25.00" step="0.01" /></div>
+      <div class="field"><label>Preço de venda (R$) *</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('lm-preco',-1)">−</button>
+          <input type="number" id="lm-preco" placeholder="29.90" step="0.01" data-step-btn="0.5" min="0" />
+          <button type="button" class="num-btn" onclick="numStep('lm-preco',1)">+</button>
+        </div>
+      </div>
+      <div class="field"><label>Custo (R$)</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('lm-custo',-1)">−</button>
+          <input type="number" id="lm-custo" placeholder="25.00" step="0.01" data-step-btn="0.5" min="0" />
+          <button type="button" class="num-btn" onclick="numStep('lm-custo',1)">+</button>
+        </div>
+      </div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Estoque inicial</label><input type="number" id="lm-estoque" placeholder="5" /></div>
-      <div class="field"><label>Alerta estoque baixo</label><input type="number" id="lm-alerta" placeholder="3" /></div>
+      <div class="field"><label>Estoque inicial</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('lm-estoque',-1)">−</button>
+          <input type="number" id="lm-estoque" placeholder="5" min="0" />
+          <button type="button" class="num-btn" onclick="numStep('lm-estoque',1)">+</button>
+        </div>
+      </div>
+      <div class="field"><label>Alerta estoque baixo</label>
+        <div class="num-stepper">
+          <button type="button" class="num-btn" onclick="numStep('lm-alerta',-1)">−</button>
+          <input type="number" id="lm-alerta" placeholder="3" min="0" />
+          <button type="button" class="num-btn" onclick="numStep('lm-alerta',1)">+</button>
+        </div>
+      </div>
     </div>
     <div class="field">
       <label>Capa do livro</label>
@@ -3093,6 +3308,7 @@ var qrcode = function() {
 </div>
 
 <script>
+console.log('%c[ABCL] livraria build: scroll-contido-4 ✅', 'color:#3B82F6;font-weight:bold');
 // ══════════════════════════════════════════════════
 // IMG CACHE — IndexedDB offline image cache
 // Versão 1.0 — abclhub
@@ -3364,6 +3580,7 @@ function initApp() {
       .catch(() => {});
   }
   ajustarAlturaLayout();
+  renderFiltrosOpcoes();
   renderLivros();
   renderCart();
   renderStats();
@@ -3402,6 +3619,55 @@ function fuzzyMatch(str, query) {
 // ══════════════════════════════════════════════════
 // RENDER LIVROS
 // ══════════════════════════════════════════════════
+const ALERTA_BAIXO_PADRAO = 3;
+
+// Quantidade deste item já reservada no pedido em aberto.
+function qtdNoCarrinho(id) {
+  return cart.reduce((s, i) => String(i.id) === String(id) ? s + i.qtd : s, 0);
+}
+
+// Estado de estoque JÁ DESCONTANDO o carrinho (a venda ainda não foi finalizada,
+// então o estoque persistido continua intacto — o que muda é só a disponibilidade).
+// Fonte única de verdade usada tanto no render inicial quanto na atualização incremental.
+function estadoEstoque(item) {
+  const base     = item.estoque || 0;
+  const disp     = Math.max(0, base - qtdNoCarrinho(item.id));
+  const limite   = item.alertaBaixo || ALERTA_BAIXO_PADRAO;
+  const esgotado = base <= 0;
+  const noPedido = !esgotado && disp <= 0;               // zerou por causa do carrinho
+  const baixo    = !esgotado && !noPedido && disp <= limite;
+  return {
+    disp, esgotado, noPedido, baixo,
+    classeCard: esgotado ? 'esgotado'       : noPedido ? 'no-pedido'       : baixo ? 'estoque-baixo'      : '',
+    classeTxt:  esgotado ? 'esgotado-badge' : noPedido ? 'nopedido-badge'  : baixo ? 'estoque-baixo-badge': '',
+    texto:      esgotado ? '✕ Esgotado'
+              : noPedido ? '✔ Tudo no pedido'
+              : baixo    ? `⚠ Restam ${disp}`
+              :            `Estoque: ${disp}`
+  };
+}
+
+// Atualização incremental: mexe só no texto/classes dos cards já montados.
+// Não refaz o innerHTML da grade — isso remontaria as <img> das capas e causaria
+// piscada (e reprocessamento do cache offline) a cada clique no caixa.
+function atualizarEstoqueCards() {
+  const grid = document.getElementById('livros-grid');
+  if (!grid) return;
+  const livros = getLivros();
+  grid.querySelectorAll('.livro-card').forEach(card => {
+    const l = livros.find(x => String(x.id) === card.dataset.id);
+    if (!l) return;
+    const e = estadoEstoque(l);
+    card.classList.remove('esgotado', 'no-pedido', 'estoque-baixo');
+    if (e.classeCard) card.classList.add(e.classeCard);
+    const el = card.querySelector('.livro-estoque');
+    if (el) {
+      el.className   = 'livro-estoque' + (e.classeTxt ? ' ' + e.classeTxt : '');
+      el.textContent = e.texto;
+    }
+  });
+}
+
 function renderLivros() {
   const livros  = getLivros();
   const busca   = document.getElementById('busca')?.value.trim() || '';
@@ -3423,10 +3689,9 @@ function renderLivros() {
   empty.style.display = 'none';
 
   grid.innerHTML = filtrados.map(l => {
-    const esgotado = l.estoque <= 0;
-    const baixo    = !esgotado && l.estoque <= (l.alertaBaixo || 3);
+    const e = estadoEstoque(l);
     return `
-    <div class="livro-card ${esgotado?'esgotado':baixo?'estoque-baixo':''}"
+    <div class="livro-card ${e.classeCard}" data-id="${l.id}"
       onclick="addToCart('${l.id}')"
       onmouseenter="showTooltip(event,'${l.id}')"
       onmouseleave="hideTooltip()"
@@ -3444,9 +3709,7 @@ function renderLivros() {
         <div class="livro-titulo">${l.titulo}</div>
         <div class="livro-editora">${l.editora}${l.autor?' · '+l.autor:''}</div>
         <div class="livro-preco">R$ ${l.preco.toFixed(2).replace('.',',')}</div>
-        <div class="livro-estoque ${esgotado?'esgotado-badge':baixo?'estoque-baixo-badge':''}">
-          ${esgotado ? '✕ Esgotado' : baixo ? `⚠ Restam ${l.estoque}` : `Estoque: ${l.estoque}`}
-        </div>
+        <div class="livro-estoque ${e.classeTxt}">${e.texto}</div>
       </div>
     </div>`;
   }).join('');
@@ -3540,6 +3803,10 @@ function renderCart() {
   const total     = Math.max(0, subtotal - desconto + oferta);
 
   document.getElementById('cart-total').textContent = `R$ ${total.toFixed(2).replace('.',',')}`;
+
+  // Reflete no grid o estoque disponível em tempo real (antes do early-return,
+  // para que limpar o pedido também restaure os cards).
+  atualizarEstoqueCards();
 
   if (cart.length === 0) { container.innerHTML = '<div class="pedido-vazio">Toque em um livro para adicionar.</div>'; return; }
 
@@ -3788,11 +4055,54 @@ function renderBestSellers() {
 // ══════════════════════════════════════════════════
 // ESTOQUE
 // ══════════════════════════════════════════════════
+const EST_POR_PAGINA = 25;
+let _estPagina = 1;
+
+function estIrPara(p) { _estPagina = Math.max(1, p); renderEstoque(); }
+
+// Aplica busca, filtros e ordenação da aba Estoque. Reaproveita o fuzzyMatch da
+// vitrine para que digitar "arca noe" ache "A Arca de Noé" nos dois lugares.
+function estoqueFiltrado() {
+  const busca = document.getElementById('est-busca')?.value.trim() || '';
+  const ed    = document.getElementById('est-filtro-editora')?.value || '';
+  const cat   = document.getElementById('est-filtro-cat')?.value || '';
+  const ordem = document.getElementById('est-ordem')?.value || 'titulo';
+
+  const lista = getLivros().filter(l => {
+    if (!fuzzyMatch(`${l.titulo} ${l.autor || ''} ${l.editora || ''} ${l.categoria || ''}`, busca)) return false;
+    if (ed  && l.editora   !== ed)  return false;
+    if (cat && l.categoria !== cat) return false;
+    return true;
+  });
+
+  const txt = (a, b) => String(a || '').localeCompare(String(b || ''), 'pt-BR', { sensitivity: 'base' });
+  const ordenadores = {
+    'titulo':      (a, b) => txt(a.titulo, b.titulo),
+    'titulo-desc': (a, b) => txt(b.titulo, a.titulo),
+    'editora':     (a, b) => txt(a.editora, b.editora)   || txt(a.titulo, b.titulo),
+    'categoria':   (a, b) => txt(a.categoria, b.categoria) || txt(a.titulo, b.titulo),
+    'estoque':     (a, b) => (a.estoque || 0) - (b.estoque || 0) || txt(a.titulo, b.titulo),
+  };
+  return lista.sort(ordenadores[ordem] || ordenadores.titulo);
+}
+
 function renderEstoque() {
-  const livros = getLivros();
-  document.getElementById('estoque-list').innerHTML = livros.map(l => {
-    const baixo = l.estoque > 0 && l.estoque <= (l.alertaBaixo||3);
-    const esgotado = l.estoque <= 0;
+  renderFiltrosEstoque();
+  const todos  = estoqueFiltrado();
+  const paginas = Math.max(1, Math.ceil(todos.length / EST_POR_PAGINA));
+  if (_estPagina > paginas) _estPagina = paginas;
+  const ini    = (_estPagina - 1) * EST_POR_PAGINA;
+  const livros = todos.slice(ini, ini + EST_POR_PAGINA);
+
+  const alvo = document.getElementById('estoque-list');
+  if (todos.length === 0) {
+    alvo.innerHTML = '<p style="text-align:center;padding:2rem;color:var(--suave);font-size:.82rem;">Nenhum livro encontrado com esses filtros.</p>';
+    renderPaginacaoEstoque(0, 1);
+    return;
+  }
+
+  alvo.innerHTML = livros.map(l => {
+    const e = estadoEstoque(l);
     return `
     <div class="estoque-item">
       ${l.capa
@@ -3800,18 +4110,58 @@ function renderEstoque() {
         : `<div class="estoque-capa" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📖</div>`}
       <div style="flex:1;min-width:0;">
         <div class="estoque-nome">${l.titulo}</div>
-        <div class="estoque-editora">${l.editora}${l.categoria?' · '+l.categoria:''}</div>
-        <div style="font-size:.65rem;color:${esgotado?'var(--vermelho)':baixo?'var(--amarelo)':'var(--suave)'};">
-          ${esgotado?'⛔ Esgotado':baixo?`⚠ Baixo estoque`:''}
-          R$ ${l.preco.toFixed(2).replace('.',',')}
+        <div class="estoque-editora">${l.editora}${l.categoria ? ' · ' + l.categoria : ''}</div>
+        <div style="font-size:.65rem;color:${e.esgotado ? 'var(--vermelho)' : e.baixo ? 'var(--amarelo)' : 'var(--suave)'};">
+          ${e.esgotado ? '⛔ Esgotado' : e.baixo ? '⚠ Baixo estoque' : ''}
+          R$ ${l.preco.toFixed(2).replace('.', ',')}
         </div>
       </div>
-      <input class="estoque-qty-input" type="number" value="${l.estoque}" min="0"
-        onchange="atualizarEstoque('${l.id}',+this.value)" />
+      <div class="num-stepper" style="width:116px;flex:0 0 116px;">
+        <button type="button" class="num-btn" onclick="numStep('est-inp-${l.id}',-1)">−</button>
+        <input class="estoque-qty-input" id="est-inp-${l.id}" type="number" value="${l.estoque}" min="0"
+          data-livro-id="${l.id}" onchange="atualizarEstoque('${l.id}',+this.value)" />
+        <button type="button" class="num-btn" onclick="numStep('est-inp-${l.id}',1)">+</button>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="editarLivro('${l.id}')" style="margin-left:.3rem;">✏️</button>
       <button class="btn btn-sm" onclick="removerLivro('${l.id}')" style="margin-left:.2rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:5px;">✕</button>
     </div>`;
   }).join('');
+
+  renderPaginacaoEstoque(todos.length, paginas);
+}
+
+function renderPaginacaoEstoque(total, paginas) {
+  const el = document.getElementById('estoque-paginacao');
+  if (!el) return;
+  if (total <= EST_POR_PAGINA) {
+    el.innerHTML = total
+      ? `<div style="text-align:center;padding:.75rem;font-size:.7rem;color:var(--suave);">${total} ${total === 1 ? 'livro' : 'livros'}</div>`
+      : '';
+    return;
+  }
+  const ini = (_estPagina - 1) * EST_POR_PAGINA + 1;
+  const fim = Math.min(_estPagina * EST_POR_PAGINA, total);
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.9rem 0;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="estIrPara(${_estPagina - 1})" ${_estPagina === 1 ? 'disabled style="opacity:.4;cursor:default;"' : ''}>← Anterior</button>
+      <span style="font-size:.72rem;color:var(--suave);">${ini}–${fim} de ${total} · página ${_estPagina}/${paginas}</span>
+      <button class="btn btn-ghost btn-sm" onclick="estIrPara(${_estPagina + 1})" ${_estPagina === paginas ? 'disabled style="opacity:.4;cursor:default;"' : ''}>Próxima →</button>
+    </div>`;
+}
+
+// Popula os filtros da aba Estoque a partir da mesma fonte de opções da vitrine.
+function renderFiltrosEstoque() {
+  [['est-filtro-editora', 'editora', 'Todas as editoras'],
+   ['est-filtro-cat',     'categoria', 'Todas as categorias']].forEach(([id, tipo, rotulo]) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const atual = sel.value;
+    const emUso = new Set(getLivros().map(l => l[OPC_LABEL[tipo].campo]).filter(Boolean));
+    const lista = getOpcoes(tipo).filter(o => o.ativo || emUso.has(o.nome));
+    sel.innerHTML = `<option value="">${rotulo}</option>` +
+      lista.map(o => `<option value="${_opcH(o.nome)}"${o.nome === atual ? ' selected' : ''}>${_opcH(o.nome)}</option>`).join('');
+    if (sel.value !== atual) sel.value = '';
+  });
 }
 
 function atualizarEstoque(id, val) {
@@ -3822,8 +4172,11 @@ function atualizarEstoque(id, val) {
 
 function salvarEstoque() {
   const livros = getLivros();
-  document.querySelectorAll('.estoque-qty-input').forEach((inp, i) => {
-    if (livros[i]) livros[i].estoque = Math.max(0, parseInt(inp.value)||0);
+  // Casa pelo id, não pela posição: com filtro e paginação ativos, a ordem da
+  // tela deixou de corresponder à ordem do array e o índice gravaria no livro errado.
+  document.querySelectorAll('.estoque-qty-input').forEach(inp => {
+    const l = livros.find(x => String(x.id) === inp.dataset.livroId);
+    if (l) l.estoque = Math.max(0, parseInt(inp.value) || 0);
   });
   set('abcl-livraria-livros', livros);
   renderLivros();
@@ -3853,50 +4206,272 @@ function removerLivro(id) {
 let _editLivroId  = null;
 let _capaPendente = null; // { file, localUrl }
 
-// ── Opções dinâmicas de editora/categoria ──────────────────────────────────
-const EDITORAS_DEFAULT   = ['Chamada','DLC','Deivison','Lucas','SBC','Verdade','Outra'];
-const CATEGORIAS_DEFAULT = ['Infantil','Bíblia','Teologia','Apologética','Profecia','Vida Cristã','Liderança','Biografia','Família','Devocional'];
+// ══════════════════════════════════════════════════
+// OPÇÕES DINÂMICAS — editoras e categorias
+// ══════════════════════════════════════════════════
+// Modelo: [{ nome, ativo }]. As listas antigas eram arrays de strings; a
+// migração acontece na leitura (getOpcoes), sem passo manual — mesmo padrão
+// usado nas opções de pergunta do sistema de formulários.
+//
+// Regras de ciclo de vida, decididas para nunca deixar item órfão:
+//   • INATIVAR  → some da lista de escolha, mas quem já usa MANTÉM o rótulo.
+//                 Reversível a qualquer momento.
+//   • EXCLUIR   → só permitido quando ninguém usa. Com uso, o operador precisa
+//                 escolher: inativar, ou reatribuir os itens e então excluir.
+// Nada é apagado silenciosamente por baixo dos dados existentes.
+
+const OPC_LABEL = {
+  editora: {
+    singular: 'editora', plural: 'editoras', item: 'livro', itens: 'livros',
+    campo: 'editora',
+    padrao: ['Chamada','DLC','Deivison','Lucas','SBC','Verdade','Outra']
+  },
+  categoria: {
+    singular: 'categoria', plural: 'categorias', item: 'livro', itens: 'livros',
+    campo: 'categoria',
+    padrao: ['Infantil','Bíblia','Teologia','Apologética','Profecia','Vida Cristã','Liderança','Biografia','Família','Devocional']
+  }
+};
+
+function _opcChave(tipo) { return 'abcl-livraria-' + tipo; }
 
 function getOpcoes(tipo) {
-  return JSON.parse(localStorage.getItem('abcl-livraria-' + tipo) || 'null')
-    || (tipo === 'editora' ? EDITORAS_DEFAULT : CATEGORIAS_DEFAULT);
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(_opcChave(tipo)) || 'null'); } catch (e) { raw = null; }
+  if (!Array.isArray(raw)) raw = OPC_LABEL[tipo].padrao;
+  return raw
+    .map(o => typeof o === 'string' ? { nome: o, ativo: true }
+                                    : { nome: String(o.nome || ''), ativo: o.ativo !== false })
+    .filter(o => o.nome);
 }
 
 function setOpcoes(tipo, lista) {
-  localStorage.setItem('abcl-livraria-' + tipo, JSON.stringify(lista));
+  localStorage.setItem(_opcChave(tipo), JSON.stringify(lista));
 }
 
+// Quantos itens da base usam esta opção (inclusive os inativos).
+function contarUsoOpcao(tipo, nome) {
+  const campo = OPC_LABEL[tipo].campo;
+  return _opcBase().filter(x => (x[campo] || '') === nome).length;
+}
+
+// Preenche um <select>. Uma opção inativa continua listada SE for o valor atual
+// do item sendo editado — senão, abrir a edição apagaria a categoria em silêncio.
 function renderDropdown(selectId, tipo, valorAtual) {
   const sel = document.getElementById(selectId);
   if (!sel) return;
-  const opcoes = getOpcoes(tipo);
-  sel.innerHTML = `<option value="">Selecione...</option>` +
-    opcoes.map(o => `<option value="${o}"${o === valorAtual ? ' selected' : ''}>${o}</option>`).join('');
+  const val   = valorAtual !== undefined && valorAtual !== null ? valorAtual : sel.value;
+  const lista = getOpcoes(tipo).filter(o => o.ativo || o.nome === val);
+  sel.innerHTML = '<option value="">Selecione...</option>' +
+    lista.map(o => `<option value="${_opcH(o.nome)}"${o.nome === val ? ' selected' : ''}>` +
+                   `${_opcH(o.nome)}${o.ativo ? '' : ' (inativa)'}</option>`).join('');
 }
 
-function gerenciarOpcoes(tipo) {
-  const label  = tipo === 'editora' ? 'Editoras' : 'Categorias';
-  const opcoes = getOpcoes(tipo);
-  const nova   = prompt(`${label} atuais:
-${opcoes.join(', ')}
+function _opcH(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
-Digite um novo item para adicionar (ou deixe vazio para cancelar):`);
-  if (nova === null) return;
-  if (nova.trim()) {
-    if (opcoes.includes(nova.trim())) { toast('Item já existe.'); return; }
-    opcoes.push(nova.trim());
-    setOpcoes(tipo, opcoes);
-    toast(`✅ "${nova.trim()}" adicionado às ${label.toLowerCase()}.`);
+// ── Painel gerenciador (inline, dentro do próprio card) ────────────────────
+let _gerAberto = null; // { tipo, wrapId }
+
+function toggleGerenciador(tipo, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  if (_gerAberto && _gerAberto.tipo === tipo && _gerAberto.wrapId === wrapId && wrap.innerHTML) {
+    fecharGerenciador(wrapId); return;
   }
-  const remover = prompt(`Deseja remover algum item? Digite o nome exato (ou deixe vazio para cancelar):
-${opcoes.join(', ')}`);
-  if (remover === null || !remover.trim()) { renderDropdown('lm-' + tipo, tipo, document.getElementById('lm-' + tipo)?.value); return; }
-  const idx = opcoes.indexOf(remover.trim());
-  if (idx < 0) { toast('Item não encontrado.'); return; }
-  opcoes.splice(idx, 1);
-  setOpcoes(tipo, opcoes);
-  renderDropdown('lm-' + tipo, tipo, '');
-  toast(`🗑 "${remover.trim()}" removido.`);
+  _gerAberto = { tipo, wrapId };
+  renderGerenciador(tipo, wrapId);
+  const inp = document.getElementById('ger-novo-' + wrapId);
+  if (inp) inp.focus();
+}
+
+function fecharGerenciador(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) wrap.innerHTML = '';
+  _gerAberto = null;
+}
+
+function renderGerenciador(tipo, wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const L     = OPC_LABEL[tipo];
+  const lista = getOpcoes(tipo);
+  wrap.innerHTML = `
+    <div class="ger-opc">
+      <div class="ger-opc-head">
+        <span>Gerenciar ${L.plural}</span>
+        <button type="button" class="ger-fechar" onclick="fecharGerenciador('${wrapId}')" title="Fechar">✕</button>
+      </div>
+      <div class="ger-opc-add">
+        <input type="text" id="ger-novo-${wrapId}" placeholder="Nova ${L.singular}..." maxlength="40"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();opcAdicionar('${tipo}','${wrapId}');}" />
+        <button type="button" class="ger-mini" onclick="opcAdicionar('${tipo}','${wrapId}')">+ Criar</button>
+      </div>
+      <div class="ger-opc-list">
+        ${lista.length === 0 ? `<p class="ger-opc-nota" style="border:none;margin:0;padding:0;">Nenhuma ${L.singular} cadastrada.</p>` : ''}
+        ${lista.map((o, i) => {
+          const n = contarUsoOpcao(tipo, o.nome);
+          return `
+          <div class="ger-opc-row ${o.ativo ? '' : 'inativa'}">
+            <span class="ger-opc-nome" title="${_opcH(o.nome)}">${_opcH(o.nome)}</span>
+            <span class="ger-opc-uso">${n ? n + ' ' + (n === 1 ? L.item : L.itens) : '—'}</span>
+            <label class="tgl" title="${o.ativo ? 'Ativa — clique para inativar' : 'Inativa — clique para reativar'}">
+              <input type="checkbox" ${o.ativo ? 'checked' : ''}
+                onchange="opcDefinirAtivo('${tipo}',${i},this.checked,'${wrapId}')" />
+              <span class="tgl-track"><span class="tgl-thumb"></span></span>
+            </label>
+            <button type="button" class="ger-del" onclick="opcExcluir('${tipo}',${i},'${wrapId}')" title="Excluir">🗑</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <div id="ger-danger-${wrapId}"></div>
+      <p class="ger-opc-nota">
+        Inativar mantém a ${L.singular} nos ${L.itens} que já a usam — ela só deixa de aparecer
+        na lista de escolha. Excluir só é liberado quando ninguém está usando.
+      </p>
+    </div>`;
+}
+
+function opcAdicionar(tipo, wrapId) {
+  const inp = document.getElementById('ger-novo-' + wrapId);
+  if (!inp) return;
+  const nome = inp.value.trim();
+  if (!nome) return;
+  const lista = getOpcoes(tipo);
+  if (lista.some(o => o.nome.toLowerCase() === nome.toLowerCase())) {
+    toast('Já existe uma opção com esse nome.'); return;
+  }
+  lista.push({ nome, ativo: true });
+  setOpcoes(tipo, lista);
+  inp.value = '';
+  renderGerenciador(tipo, wrapId);
+  atualizarSelectsOpcoes();
+  const novo = document.getElementById('ger-novo-' + wrapId);
+  if (novo) novo.focus();
+  toast(`✅ "${nome}" criada.`);
+}
+
+function opcDefinirAtivo(tipo, idx, ativo, wrapId) {
+  const lista = getOpcoes(tipo);
+  if (!lista[idx]) return;
+  lista[idx].ativo = !!ativo;
+  const nome = lista[idx].nome;
+  setOpcoes(tipo, lista);
+  renderGerenciador(tipo, wrapId);
+  atualizarSelectsOpcoes();
+  toast(ativo ? `"${nome}" reativada.` : `"${nome}" inativada — quem já usa mantém o rótulo.`);
+}
+
+function opcExcluir(tipo, idx, wrapId) {
+  const L     = OPC_LABEL[tipo];
+  const lista = getOpcoes(tipo);
+  const alvo  = lista[idx];
+  if (!alvo) return;
+  const n = contarUsoOpcao(tipo, alvo.nome);
+
+  if (n === 0) {
+    if (!confirm(`Excluir a ${L.singular} "${alvo.nome}"?`)) return;
+    lista.splice(idx, 1);
+    setOpcoes(tipo, lista);
+    renderGerenciador(tipo, wrapId);
+    atualizarSelectsOpcoes();
+    toast(`🗑 "${alvo.nome}" excluída.`);
+    return;
+  }
+
+  // Em uso: a exclusão direta deixaria os itens sem rótulo. Mostra as saídas.
+  const destinos = lista.filter((o, i) => i !== idx && o.ativo);
+  const box = document.getElementById('ger-danger-' + wrapId);
+  if (!box) return;
+  box.innerHTML = `
+    <div class="ger-danger">
+      <strong>"${_opcH(alvo.nome)}" está em uso</strong>
+      <p>${n} ${n === 1 ? L.item : L.itens} ${n === 1 ? 'usa' : 'usam'} esta ${L.singular}.
+         Excluir agora deixaria ${n === 1 ? 'esse item' : 'esses itens'} sem ${L.singular}.</p>
+      <div class="ger-danger-acoes">
+        <select id="ger-realvo-${wrapId}">
+          <option value="">— Deixar sem ${L.singular} —</option>
+          ${destinos.map(o => `<option value="${_opcH(o.nome)}">${_opcH(o.nome)}</option>`).join('')}
+        </select>
+        <button type="button" class="ger-mini perigo" onclick="opcReatribuirExcluir('${tipo}',${idx},'${wrapId}')">Mover e excluir</button>
+        <button type="button" class="ger-mini" onclick="opcDefinirAtivo('${tipo}',${idx},false,'${wrapId}')">Só inativar</button>
+        <button type="button" class="ger-mini" onclick="opcCancelarExclusao('${wrapId}')">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function opcCancelarExclusao(wrapId) {
+  const box = document.getElementById('ger-danger-' + wrapId);
+  if (box) box.innerHTML = '';
+}
+
+function opcReatribuirExcluir(tipo, idx, wrapId) {
+  const L     = OPC_LABEL[tipo];
+  const lista = getOpcoes(tipo);
+  const alvo  = lista[idx];
+  if (!alvo) return;
+  const destino = document.getElementById('ger-realvo-' + wrapId)?.value || '';
+  const campo   = L.campo;
+
+  const base = _opcBase();
+  let movidos = 0;
+  base.forEach(x => { if ((x[campo] || '') === alvo.nome) { x[campo] = destino; movidos++; } });
+  _opcSalvarBase(base);
+
+  lista.splice(idx, 1);
+  setOpcoes(tipo, lista);
+  renderGerenciador(tipo, wrapId);
+  atualizarSelectsOpcoes();
+  toast(destino
+    ? `${movidos} ${movidos === 1 ? L.item : L.itens} movid${movidos === 1 ? 'o' : 'os'} para "${destino}".`
+    : `${movidos} ${movidos === 1 ? L.item : L.itens} ficaram sem ${L.singular}.`);
+}
+
+
+// Ajusta um campo numérico pelos botões −/+ (as setinhas nativas foram removidas
+// via CSS). data-step-btn permite um passo de clique diferente do step do campo:
+// em dinheiro o step é 0,01 para digitação livre, mas o botão anda de 0,50.
+function numStep(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const passo = parseFloat(el.dataset.stepBtn) || parseFloat(el.step) || 1;
+  const min   = el.min !== '' && el.min !== undefined ? parseFloat(el.min) : null;
+  const max   = el.max !== '' && el.max !== undefined ? parseFloat(el.max) : null;
+  let v = (parseFloat(el.value) || 0) + delta * passo;
+  if (min !== null && !isNaN(min) && v < min) v = min;
+  if (max !== null && !isNaN(max) && v > max) v = max;
+  el.value = (passo % 1 === 0) ? String(Math.round(v)) : v.toFixed(2);
+  el.dispatchEvent(new Event('input',  { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+// ── Adaptadores da base para o gerenciador de opções ──
+function _opcBase()            { return getLivros(); }
+function _opcSalvarBase(itens) { set('abcl-livraria-livros', itens); renderLivros(); renderEstoque(); }
+
+// Repopula todo select alimentado por opções, preservando a escolha atual.
+function atualizarSelectsOpcoes() {
+  renderDropdown('lm-editora',   'editora');
+  renderDropdown('lm-categoria', 'categoria');
+  renderFiltrosOpcoes();
+}
+
+// Os filtros da vitrine eram <option> fixos no HTML: uma editora/categoria
+// criada aqui nunca aparecia lá. Agora saem da mesma fonte.
+function renderFiltrosOpcoes() {
+  [['filtro-editora', 'editora', 'Todas as editoras'],
+   ['filtro-cat',     'categoria', 'Todas as categorias']].forEach(([id, tipo, rotulo]) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const atual  = sel.value;
+    const emUso  = new Set(getLivros().map(l => l[OPC_LABEL[tipo].campo]).filter(Boolean));
+    const lista  = getOpcoes(tipo).filter(o => o.ativo || emUso.has(o.nome));
+    sel.innerHTML = `<option value="">${rotulo}</option>` +
+      lista.map(o => `<option value="${_opcH(o.nome)}"${o.nome === atual ? ' selected' : ''}>${_opcH(o.nome)}</option>`).join('');
+    if (sel.value !== atual) sel.value = '';
+  });
 }
 
 function abrirNovoLivro() {
